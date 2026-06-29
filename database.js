@@ -3,7 +3,7 @@
 // ================================================================
 
 const DB_NAME = "IslamicDigitalLibrary";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 const STORES = {
   BOOKS: "books",
@@ -30,7 +30,6 @@ function openDB() {
         if (!db.objectStoreNames.contains(STORES[key])) {
           const store = db.createObjectStore(STORES[key], { keyPath: "id" });
           
-          // Create indexes
           if (key === "CHUNKS") {
             store.createIndex("bookId", "bookId", { unique: false });
             store.createIndex("chunkNo", "chunkNo", { unique: false });
@@ -163,7 +162,7 @@ async function getChunk(bookId, chunkNo) {
   return await getData(STORES.CHUNKS, id);
 }
 
-async function getChunks(bookId, limit = 3, offset = 0) {
+async function getChunks(bookId, limit = 9999, offset = 0) {
   return new Promise((resolve, reject) => {
     try {
       const store = getStore(STORES.CHUNKS, "readonly");
@@ -204,7 +203,7 @@ async function saveChunk(bookId, chunkNo, pages) {
 }
 
 async function deleteChunks(bookId) {
-  const chunks = await getChunks(bookId, 9999, 0);
+  const chunks = await getChunks(bookId);
   for (const chunk of chunks) {
     await deleteData(STORES.CHUNKS, chunk.id);
   }
@@ -221,6 +220,20 @@ async function getTOC(bookId) {
 
 async function saveTOC(bookId, toc) {
   return await putData(STORES.TOC, { id: bookId, bookId, toc, updated_at: new Date().toISOString() });
+}
+
+async function appendTOC(bookId, tocItems) {
+  let existing = await getTOC(bookId) || [];
+  // Merge new items (avoid duplicates by sequence)
+  const seqMap = new Map();
+  existing.forEach(item => seqMap.set(item.sequence, item));
+  tocItems.forEach(item => {
+    if (!seqMap.has(item.sequence)) {
+      seqMap.set(item.sequence, item);
+    }
+  });
+  const merged = Array.from(seqMap.values()).sort((a, b) => a.sequence - b.sequence);
+  return await saveTOC(bookId, merged);
 }
 
 // ================================================================
@@ -309,6 +322,7 @@ window.DB = {
   // TOC
   getTOC,
   saveTOC,
+  appendTOC,
   
   // Bookmarks
   getBookmarks,
