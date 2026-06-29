@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#1b4d3e">
-  <title>📚 Islamic Digital Library</title>
+  <title>📚 Islamic Digital Library Pro</title>
   
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -430,7 +430,7 @@
       margin-top: 10px;
     }
 
-    /* ===== WORD HIGHLIGHT - ONLY IN EBOOK ===== */
+    /* ===== WORD HIGHLIGHT ===== */
     .word-token {
       cursor: pointer;
       transition: 0.15s;
@@ -451,7 +451,7 @@
     .word-hl-ml { background: #facc15 !important; color: #000 !important; }
     .word-hl-en { background: #a8e6cf !important; color: #000 !important; }
 
-    /* ===== VISUAL MODE - SPOKEN TEXT ONLY ===== */
+    /* ===== VISUAL MODE ===== */
     .visual-mode {
       position: fixed;
       inset: 0;
@@ -568,6 +568,12 @@
       color: var(--text-dark);
     }
     .page-num { font-weight: bold; color: var(--primary-green); font-size: 15px; }
+    .chunk-info {
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 10px;
+    }
 
     /* ===== LOADING OVERLAY ===== */
     .loading-overlay {
@@ -725,6 +731,19 @@
     }
     .theme-btn.active { border-color: var(--primary-green); background: var(--primary-light); color: var(--primary-green); }
 
+    /* ===== TOC STYLES (like deep31.html) ===== */
+    .toc-breadcrumb {
+      padding: 10px 15px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      font-weight: bold;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+    .toc-breadcrumb span { cursor: pointer; color: var(--primary-green); transition: 0.2s; }
+    .toc-breadcrumb span:hover { text-decoration: underline; }
+    
     .toc-item {
       padding: 15px;
       border-bottom: 1px solid var(--border);
@@ -748,10 +767,23 @@
       width: fit-content;
       text-transform: uppercase;
     }
-    .toc-level-1 { padding-left: 0px; font-weight: bold; font-size: 16px; }
-    .toc-level-2 { padding-left: 20px; }
-    .toc-level-3 { padding-left: 40px; font-size: 14px; }
-    .toc-level-4 { padding-left: 60px; font-size: 13px; color: var(--text-muted); }
+    .toc-title-text { font-size: 16px; font-weight: bold; }
+    .toc-translations { font-size: 12px; color: var(--text-muted); margin-top: 5px; }
+    .toc-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 3px; }
+    .toc-children-count {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 8px;
+    }
+    .toc-children-count i { margin-right: 4px; }
+    
+    /* TOC Level Indentation */
+    .toc-level-part { font-weight: bold; font-size: 17px; background: var(--primary-light); border-radius: 8px; padding: 12px 15px; margin-bottom: 4px; }
+    .toc-level-1 { padding-left: 15px; font-weight: bold; font-size: 16px; border-left: 3px solid var(--primary-green); }
+    .toc-level-2 { padding-left: 35px; }
+    .toc-level-3 { padding-left: 55px; font-size: 14px; }
+    .toc-level-4 { padding-left: 75px; font-size: 13px; color: var(--text-muted); }
+    .toc-level-page { padding-left: 15px; font-size: 14px; }
 
     .lang-selector {
       display: flex;
@@ -785,6 +817,9 @@
       .visual-controls { gap: 12px; font-size: 18px; padding: 6px 15px; }
       .vis-text { font-size: 24px; }
       .theme-grid { grid-template-columns: repeat(2, 1fr); }
+      .toc-level-2 { padding-left: 20px; }
+      .toc-level-3 { padding-left: 35px; }
+      .toc-level-4 { padding-left: 50px; }
     }
   </style>
 </head>
@@ -793,7 +828,7 @@
   <!-- ===== LOADER ===== -->
   <div id="loader">
     <div class="spinner"></div>
-    <div class="status" id="loadStatus">📚 Islamic Digital Library</div>
+    <div class="status" id="loadStatus">📚 Islamic Digital Library Pro</div>
     <div id="setupBox">
       <input type="text" id="supabaseUrl" placeholder="Supabase URL (eg: https://xyz.supabase.co)">
       <input type="text" id="supabaseKey" placeholder="Supabase anon/public key">
@@ -878,6 +913,7 @@
           <span class="page-num" id="readerPageNum">0 / 0</span>
           <button onclick="nextPage()">Next <i class="fas fa-chevron-right"></i></button>
         </div>
+        <div class="chunk-info" id="chunkInfo"></div>
       </div>
 
       <div id="audioView" style="display:none;">
@@ -953,7 +989,6 @@
   <div class="modal-box" id="settingsModal">
     <div class="modal-header"><span>⚙️ ക്രമീകരണങ്ങൾ</span><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
-      <!-- Theme -->
       <div class="setting-group">
         <label class="setting-label">🎨 Theme</label>
         <div class="theme-grid">
@@ -964,7 +999,6 @@
         </div>
       </div>
 
-      <!-- Fonts -->
       <div class="setting-group">
         <label class="setting-label">🔤 Fonts</label>
         <div class="setting-row"><span>മലയാളം</span><select id="optFontMl" onchange="applyFonts()"><option value="'Manjari', sans-serif">Manjari</option><option value="'Chilanka', cursive">Chilanka</option><option value="'Gayathri', sans-serif">Gayathri</option></select></div>
@@ -972,7 +1006,6 @@
         <div class="setting-row"><span>English</span><select id="optFontEn" onchange="applyFonts()"><option value="sans-serif">Sans</option><option value="serif">Serif</option></select></div>
       </div>
 
-      <!-- Reader -->
       <div class="setting-group">
         <label class="setting-label">📖 Reader Settings</label>
         <div class="setting-row"><span>Font Size</span><input type="range" id="optFontSize" min="14" max="30" value="18" onchange="applyFontSize()"></div>
@@ -982,7 +1015,6 @@
         <div class="setting-row"><span>Display English</span><input type="checkbox" id="optShowEn" checked onchange="renderAllViews()"></div>
       </div>
 
-      <!-- Audio / TTS -->
       <div class="setting-group">
         <label class="setting-label">🎙️ TTS Settings</label>
         <select id="optAudioLang" onchange="setupVoices(); applyAudioSettings(true);">
@@ -993,10 +1025,9 @@
         <select id="optVoice" onchange="applyAudioSettings(true)" style="margin-top:5px;"></select>
         <div class="setting-row"><span>Speed</span><input type="range" id="optSpeed" min="0.5" max="1.5" step="0.1" value="1.0" onchange="applyAudioSettings(true)"></div>
         <div class="setting-row"><span>Auto Next Page</span><input type="checkbox" id="optAutoNext" checked></div>
-        <div class="setting-row"><span>Background Play (Screen Off)</span><input type="checkbox" id="optBgPlay" checked></div>
+        <div class="setting-row"><span>Background Play</span><input type="checkbox" id="optBgPlay" checked></div>
       </div>
 
-      <!-- Spoken Language -->
       <div class="setting-group">
         <label class="setting-label">🔊 Highlight Language</label>
         <div class="lang-selector">
@@ -1006,14 +1037,12 @@
         </div>
       </div>
 
-      <!-- Visual Mode -->
       <div class="setting-group">
         <label class="setting-label">🎬 Visual Mode</label>
         <input type="text" id="optYoutubeId" placeholder="YouTube Video ID" style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text-dark);">
         <button style="width:100%; margin-top:5px; padding:8px; background:var(--primary-green); color:white; border-radius:6px;" onclick="applyVisualBg()">Update Background</button>
       </div>
 
-      <!-- Background Music -->
       <div class="setting-group">
         <label class="setting-label">🎵 Background Music</label>
         <select id="optBgMusic" onchange="handleBgMusic()">
@@ -1024,7 +1053,6 @@
         </select>
       </div>
 
-      <!-- Storage -->
       <div class="setting-group">
         <label class="setting-label">💾 Storage</label>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
@@ -1037,8 +1065,10 @@
     </div>
   </div>
 
+  <!-- ===== TOC MODAL (like deep31.html style) ===== -->
   <div class="modal-box" id="tocModal" style="padding:0;">
-    <div class="modal-header"><span>📑 സൂചിക</span><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-header"><span>📑 സൂചിക (TOC)</span><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="toc-breadcrumb" id="tocBreadcrumb"></div>
     <div class="modal-body" id="tocList" style="padding:0;"></div>
   </div>
 
@@ -1052,6 +1082,7 @@
     let currentPages = [];
     let currentPageIndex = 0;
     let totalPages = 0;
+    let CHUNK_SIZE = 15;
     let isPlaying = false;
     let synth = window.speechSynthesis;
     let allVoices = [];
@@ -1061,9 +1092,11 @@
     let currentUtterance = null;
     let currentWordOffset = 0;
     let isVisualMode = false;
+    let tocTree = [];
+    let tocPath = [];
 
-    // IndexedDB - Simple in-memory cache
-    let dbCache = {};
+    // In-memory cache
+    let pageCache = {};
 
     const STATE = {
       showAr: true,
@@ -1075,7 +1108,7 @@
     };
 
     // ================================================================
-    // AUDIO CONTEXT - For background play
+    // AUDIO CONTEXT
     // ================================================================
     let audioCtx = null;
     function initAudioContext() {
@@ -1095,35 +1128,11 @@
     document.addEventListener('click', initAudioContext, { once: true });
     document.addEventListener('touchstart', initAudioContext, { once: true });
 
-    // WakeLock for screen off audio
-    let wakeLock = null;
-    async function requestWakeLock() {
-      try {
-        if ('wakeLock' in navigator) {
-          wakeLock = await navigator.wakeLock.request('screen');
-        }
-      } catch(e) {}
-    }
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden && isPlaying) {
-        // Keep audio playing in background
-        document.getElementById('silentAudio').play().catch(()=>{});
-      }
-    });
-
     // ================================================================
     // SUPABASE CONNECTION
     // ================================================================
     async function initApp() {
       try {
-        // Load from localStorage cache
-        const cachedBooks = localStorage.getItem('library_books');
-        if (cachedBooks) {
-          allBooks = JSON.parse(cachedBooks);
-          renderBooks(allBooks);
-          updateContinueReading();
-        }
-        
         // Check saved config
         const savedUrl = localStorage.getItem('supabase_url');
         const savedKey = localStorage.getItem('supabase_key');
@@ -1309,7 +1318,7 @@
       try {
         // Check cache first
         const cacheKey = `book_${bookId}`;
-        let data = dbCache[cacheKey];
+        let data = pageCache[cacheKey];
         
         if (!data) {
           const tableName = `${bookId}_contents`;
@@ -1336,18 +1345,20 @@
             English: item['English Text'] || ''
           }));
           
-          dbCache[cacheKey] = data;
+          pageCache[cacheKey] = data;
           
-          // Background download to IndexedDB (simulated)
+          // Background download to localStorage
           setTimeout(() => {
-            localStorage.setItem(cacheKey, JSON.stringify(data));
-            // Update book as downloaded
-            const bookUpdate = allBooks.find(b => b.id === bookId);
-            if (bookUpdate) {
-              bookUpdate.downloaded = true;
-              bookUpdate.total_pages = data.length;
-              localStorage.setItem('library_books', JSON.stringify(allBooks));
-            }
+            try {
+              localStorage.setItem(cacheKey, JSON.stringify(data));
+              // Update book as downloaded
+              const bookUpdate = allBooks.find(b => b.id === bookId);
+              if (bookUpdate) {
+                bookUpdate.downloaded = true;
+                bookUpdate.total_pages = data.length;
+                localStorage.setItem('library_books', JSON.stringify(allBooks));
+              }
+            } catch(e) {}
           }, 100);
         }
         
@@ -1365,6 +1376,9 @@
             currentWordOffset = prog.offset || 0;
           }
         }
+        
+        // Build TOC
+        buildTOCData();
         
         hideLoading();
         openReader();
@@ -1440,6 +1454,12 @@
       document.getElementById('readerPageNum').textContent = 
         `${currentPageIndex + 1} / ${totalPages}`;
 
+      // Update chunk info
+      const chunkStart = Math.floor(currentPageIndex / CHUNK_SIZE) * CHUNK_SIZE + 1;
+      const chunkEnd = Math.min(chunkStart + CHUNK_SIZE - 1, totalPages);
+      document.getElementById('chunkInfo').textContent = 
+        `📊 Showing ${chunkStart} - ${chunkEnd} of ${totalPages} pages`;
+
       // Update mini player
       const row = currentPages[currentPageIndex];
       if (row) {
@@ -1505,10 +1525,10 @@
     }
 
     // ================================================================
-    // HIGHLIGHT CURRENT WORD - Only in Ebook
+    // HIGHLIGHT CURRENT WORD
     // ================================================================
     function highlightCurrentWord() {
-      if (isVisualMode) return; // Visual mode handles its own highlight
+      if (isVisualMode) return;
       
       document.querySelectorAll('.word-hl, .word-hl-ar, .word-hl-ml, .word-hl-en').forEach(el => {
         el.classList.remove('word-hl', 'word-hl-ar', 'word-hl-ml', 'word-hl-en');
@@ -1551,12 +1571,11 @@
     }
 
     // ================================================================
-    // VISUAL MODE - Spoken Text Only
+    // VISUAL MODE
     // ================================================================
     function openVisualMode() {
       isVisualMode = true;
       document.getElementById('visualMode').classList.add('show');
-      document.getElementById('spokenOverlay')?.classList.remove('show');
       applyVisualBg();
       updateVisualChunk();
       if (!isPlaying) togglePlay();
@@ -1730,12 +1749,10 @@
           isPlaying = true;
           updatePlayIcon();
           document.getElementById('silentAudio').play().catch(()=>{});
-          requestWakeLock();
         } else {
           isPlaying = true;
           updatePlayIcon();
           playAudio();
-          requestWakeLock();
         }
       }
     }
@@ -1792,7 +1809,6 @@
 
       synth.cancel();
       
-      const fullText = text;
       const startOffset = currentWordOffset;
       
       currentUtterance = new SpeechSynthesisUtterance(startText);
@@ -1876,10 +1892,6 @@
       document.getElementById('audioProgressBar').style.width = '0%';
       document.getElementById('visProgressBar').style.width = '0%';
       document.getElementById('silentAudio').pause();
-      if (wakeLock) {
-        wakeLock.release().catch(()=>{});
-        wakeLock = null;
-      }
       document.querySelectorAll('.word-hl, .word-hl-ar, .word-hl-ml, .word-hl-en').forEach(el => {
         el.classList.remove('word-hl', 'word-hl-ar', 'word-hl-ml', 'word-hl-en');
       });
@@ -1987,70 +1999,161 @@
     }
 
     // ================================================================
-    // TOC - Build from pages
+    // TOC - Hierarchical (like deep31.html)
     // ================================================================
-    function openTOC() {
-      if (!currentBookId || !currentPages.length) return;
-      
-      const modal = document.getElementById('tocModal');
-      document.getElementById('modalOverlay').classList.add('show');
-      modal.classList.add('show');
+    function buildTOCData() {
+      tocTree = [];
+      let currentPart = null, currentH1 = null, currentH2 = null, currentH3 = null;
 
-      const list = document.getElementById('tocList');
-      let html = '';
-      
-      // Build TOC from headings in Arabic text
-      let currentH1 = null;
-      let currentH2 = null;
-      
-      currentPages.forEach((page, index) => {
-        const arText = page.Arabic || '';
-        const mlText = (page.Malayalam || '').replace(/<[^>]+>/g, '').trim().substring(0, 30);
-        
-        // Check for headings in Arabic text (h1, h2, h3, h4)
-        const h1Match = arText.match(/<h1[^>]*>(.*?)<\/h1>/i);
-        const h2Match = arText.match(/<h2[^>]*>(.*?)<\/h2>/i);
-        const h3Match = arText.match(/<h3[^>]*>(.*?)<\/h3>/i);
-        const h4Match = arText.match(/<h4[^>]*>(.*?)<\/h4>/i);
-        
+      currentPages.forEach((row, index) => {
+        let partName = row.part || "1";
+        if (!currentPart || currentPart.name !== partName) {
+          currentPart = { 
+            type: 'part', 
+            name: partName, 
+            title: `ഭാഗം ${partName}`, 
+            children: [], 
+            index: index, 
+            page: row.page 
+          };
+          tocTree.push(currentPart);
+          currentH1 = null; currentH2 = null; currentH3 = null;
+        }
+
+        // Check for headings in Arabic text
+        const ar = row.Arabic || '';
+        const h1Match = ar.match(/<h1[^>]*>(.*?)<\/h1>/i);
+        const h2Match = ar.match(/<h2[^>]*>(.*?)<\/h2>/i);
+        const h3Match = ar.match(/<h3[^>]*>(.*?)<\/h3>/i);
+        const h4Match = ar.match(/<h4[^>]*>(.*?)<\/h4>/i);
+
         if (h1Match) {
           const title = h1Match[1].replace(/<[^>]+>/g, '').trim();
-          currentH1 = { title, index };
-          currentH2 = null;
-          html += `<div class="toc-item toc-level-1" onclick="jumpToPage(${index})">
-            <div class="toc-badge">📖 ${page.part || '?'}</div>
-            <div dir="rtl">${title}</div>
-          </div>`;
+          const mlText = (row.Malayalam || '').replace(/<[^>]+>/g, '').trim().substring(0, 30);
+          currentH1 = { 
+            type: 'h1', 
+            title: title, 
+            subtitle: mlText,
+            index: index, 
+            children: [], 
+            page: row.page 
+          };
+          currentPart.children.push(currentH1);
+          currentH2 = null; currentH3 = null;
         } else if (h2Match) {
           const title = h2Match[1].replace(/<[^>]+>/g, '').trim();
-          currentH2 = { title, index };
-          html += `<div class="toc-item toc-level-2" onclick="jumpToPage(${index})">
-            <div class="toc-badge">📑 ${page.part || '?'}</div>
-            <div dir="rtl">${title}</div>
-            <div style="font-size:11px;color:var(--text-muted);">${mlText}</div>
-          </div>`;
+          const mlText = (row.Malayalam || '').replace(/<[^>]+>/g, '').trim().substring(0, 30);
+          currentH2 = { 
+            type: 'h2', 
+            title: title, 
+            subtitle: mlText,
+            index: index, 
+            children: [], 
+            page: row.page 
+          };
+          if (currentH1) currentH1.children.push(currentH2);
+          else currentPart.children.push(currentH2);
+          currentH3 = null;
         } else if (h3Match) {
           const title = h3Match[1].replace(/<[^>]+>/g, '').trim();
-          html += `<div class="toc-item toc-level-3" onclick="jumpToPage(${index})">
-            <div class="toc-badge">📄 ${page.page || '?'}</div>
-            <div dir="rtl">${title}</div>
-          </div>`;
+          currentH3 = { 
+            type: 'h3', 
+            title: title, 
+            index: index, 
+            children: [], 
+            page: row.page 
+          };
+          if (currentH2) currentH2.children.push(currentH3);
+          else if (currentH1) currentH1.children.push(currentH3);
+          else currentPart.children.push(currentH3);
         } else if (h4Match) {
           const title = h4Match[1].replace(/<[^>]+>/g, '').trim();
-          html += `<div class="toc-item toc-level-4" onclick="jumpToPage(${index})">
-            <div class="toc-badge">🔖 ${page.page || '?'}</div>
-            <div dir="rtl">${title}</div>
-          </div>`;
-        } else if (index % 10 === 0 || index === currentPageIndex) {
-          // Show page markers every 10 pages or current page
-          html += `<div class="toc-item ${index === currentPageIndex ? 'current' : ''}" onclick="jumpToPage(${index})">
-            <div class="toc-badge">📄 പേജ് ${page.page || '?'}</div>
-            <div>${mlText || '...'}</div>
-          </div>`;
+          const node = { 
+            type: 'h4', 
+            title: title, 
+            index: index, 
+            children: [], 
+            page: row.page 
+          };
+          if (currentH3) currentH3.children.push(node);
+          else if (currentH2) currentH2.children.push(node);
+          else if (currentH1) currentH1.children.push(node);
+          else currentPart.children.push(node);
+        } else if (index % 5 === 0 || index === currentPageIndex || index === 0 || index === currentPages.length - 1) {
+          // Page marker
+          const mlText = (row.Malayalam || '').replace(/<[^>]+>/g, '').trim().substring(0, 25);
+          const node = { 
+            type: 'page', 
+            title: `പേജ് ${row.page}`, 
+            subtitle: mlText,
+            index: index, 
+            children: [], 
+            page: row.page 
+          };
+          if (currentH3) currentH3.children.push(node);
+          else if (currentH2) currentH2.children.push(node);
+          else if (currentH1) currentH1.children.push(node);
+          else currentPart.children.push(node);
         }
       });
+    }
+
+    function openTOC() {
+      openModal('tocModal');
+      tocPath = [{ title: 'Home', nodes: tocTree }];
+      renderTOCLevel();
+    }
+
+    function renderTOCLevel() {
+      let currentLevel = tocPath[tocPath.length - 1];
+      document.getElementById('tocBreadcrumb').innerHTML = tocPath.map((p, i) => 
+        `<span onclick="navTOC(${i})">${p.title}</span>`
+      ).join(' <i class="fas fa-angle-right"></i> ');
       
-      list.innerHTML = html || '<div style="padding:20px;text-align:center;color:var(--text-muted);">No content</div>';
+      document.getElementById('tocList').innerHTML = currentLevel.nodes.map((node, i) => {
+        const isCurrent = node.index === currentPageIndex;
+        let levelClass = '';
+        let badgeText = '';
+        
+        if (node.type === 'part') { levelClass = 'toc-level-part'; badgeText = '📖 ഭാഗം'; }
+        else if (node.type === 'h1') { levelClass = 'toc-level-1'; badgeText = '📑 H1'; }
+        else if (node.type === 'h2') { levelClass = 'toc-level-2'; badgeText = '📂 H2'; }
+        else if (node.type === 'h3') { levelClass = 'toc-level-3'; badgeText = '📄 H3'; }
+        else if (node.type === 'h4') { levelClass = 'toc-level-4'; badgeText = '🔖 H4'; }
+        else { levelClass = 'toc-level-page'; badgeText = '📄 പേജ്'; }
+        
+        if (node.children && node.children.length > 0) {
+          return `<div class="toc-item ${levelClass} ${isCurrent ? 'current' : ''}" onclick="drillTOC(${i})">
+            <div class="toc-badge">${badgeText}</div>
+            <div class="toc-title-text" dir="rtl">${node.title}</div>
+            ${node.subtitle ? `<div class="toc-translations">${node.subtitle}</div>` : ''}
+            <div class="toc-children-count"><i class="fas fa-folder-open"></i> ${node.children.length} items</div>
+          </div>`;
+        } else {
+          return `<div class="toc-item ${levelClass} ${isCurrent ? 'current' : ''}" onclick="closeModal(); jumpToPage(${node.index})">
+            <div class="toc-badge">${badgeText}</div>
+            <div class="toc-title-text" dir="rtl">${node.title}</div>
+            ${node.subtitle ? `<div class="toc-translations">${node.subtitle}</div>` : ''}
+          </div>`;
+        }
+      }).join('');
+    }
+
+    function drillTOC(indexInCurrentList) {
+      let currentLevel = tocPath[tocPath.length - 1];
+      let node = currentLevel.nodes[indexInCurrentList];
+      if (node.children && node.children.length > 0) {
+        tocPath.push({ title: node.title, nodes: node.children });
+        renderTOCLevel();
+      } else {
+        closeModal();
+        jumpToPage(node.index);
+      }
+    }
+
+    function navTOC(pathIndex) {
+      tocPath = tocPath.slice(0, pathIndex + 1);
+      renderTOCLevel();
     }
 
     // ================================================================
@@ -2148,7 +2251,6 @@
       if (!confirm('⚠️ Remove all downloaded books and data? This cannot be undone!')) return;
       
       try {
-        // Clear all book caches
         for (const book of allBooks) {
           localStorage.removeItem(`book_${book.id}`);
           localStorage.removeItem(`progress_${book.id}`);
@@ -2157,7 +2259,7 @@
           book.total_pages = 0;
         }
         localStorage.setItem('library_books', JSON.stringify(allBooks));
-        dbCache = {};
+        pageCache = {};
         renderBooks(allBooks);
         updateStorageInfo();
         alert('✅ All data cleared!');
