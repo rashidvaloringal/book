@@ -2,16 +2,16 @@
 // DATABASE LAYER - IndexedDB
 // ================================================================
 
-const DB_NAME = "IslamicDigitalLibraryDB";
+const DB_NAME = "IslamicDigitalLibrary";
 const DB_VERSION = 2;
+
 const STORES = {
-  CATALOG: "master_catalog",
+  BOOKS: "books",
   CHUNKS: "book_chunks",
   TOC: "book_toc",
   BOOKMARKS: "bookmarks",
-  PROGRESS: "reading_progress",
-  SETTINGS: "settings",
-  SYNC: "sync_state"
+  PROGRESS: "progress",
+  SETTINGS: "settings"
 };
 
 let dbInstance = null;
@@ -26,51 +26,24 @@ function openDB() {
     request.onupgradeneeded = (event) => {
       const db = event.target.result;
       
-      // Create stores if they don't exist
       for (const key in STORES) {
         if (!db.objectStoreNames.contains(STORES[key])) {
-          db.createObjectStore(STORES[key], { keyPath: "id" });
-        }
-      }
-      
-      // Create indexes for book_chunks
-      if (db.objectStoreNames.contains(STORES.CHUNKS)) {
-        const store = request.transaction.objectStore(STORES.CHUNKS);
-        if (!store.indexNames.contains("bookId")) {
-          store.createIndex("bookId", "bookId", { unique: false });
-        }
-        if (!store.indexNames.contains("sequence")) {
-          store.createIndex("sequence", "sequence", { unique: false });
-        }
-        if (!store.indexNames.contains("part")) {
-          store.createIndex("part", "part", { unique: false });
-        }
-      }
-      
-      // Create indexes for TOC
-      if (db.objectStoreNames.contains(STORES.TOC)) {
-        const store = request.transaction.objectStore(STORES.TOC);
-        if (!store.indexNames.contains("bookId")) {
-          store.createIndex("bookId", "bookId", { unique: false });
-        }
-        if (!store.indexNames.contains("level")) {
-          store.createIndex("level", "level", { unique: false });
-        }
-      }
-      
-      // Create indexes for bookmarks
-      if (db.objectStoreNames.contains(STORES.BOOKMARKS)) {
-        const store = request.transaction.objectStore(STORES.BOOKMARKS);
-        if (!store.indexNames.contains("bookId")) {
-          store.createIndex("bookId", "bookId", { unique: false });
-        }
-      }
-      
-      // Create indexes for progress
-      if (db.objectStoreNames.contains(STORES.PROGRESS)) {
-        const store = request.transaction.objectStore(STORES.PROGRESS);
-        if (!store.indexNames.contains("bookId")) {
-          store.createIndex("bookId", "bookId", { unique: true });
+          const store = db.createObjectStore(STORES[key], { keyPath: "id" });
+          
+          // Create indexes
+          if (key === "CHUNKS") {
+            store.createIndex("bookId", "bookId", { unique: false });
+            store.createIndex("chunkNo", "chunkNo", { unique: false });
+          }
+          if (key === "BOOKMARKS") {
+            store.createIndex("bookId", "bookId", { unique: false });
+          }
+          if (key === "PROGRESS") {
+            store.createIndex("bookId", "bookId", { unique: true });
+          }
+          if (key === "TOC") {
+            store.createIndex("bookId", "bookId", { unique: true });
+          }
         }
       }
     };
@@ -87,7 +60,7 @@ function openDB() {
 }
 
 // ================================================================
-// GENERIC CRUD OPERATIONS
+// GENERIC CRUD
 // ================================================================
 function getStore(storeName, mode = "readonly") {
   if (!dbInstance) throw new Error("Database not open");
@@ -102,9 +75,7 @@ async function putData(storeName, data) {
       const request = store.put(data);
       request.onsuccess = () => resolve(data);
       request.onerror = () => reject(request.error);
-    } catch (err) {
-      reject(err);
-    }
+    } catch (err) { reject(err); }
   });
 }
 
@@ -115,9 +86,7 @@ async function getData(storeName, id) {
       const request = store.get(id);
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
-    } catch (err) {
-      reject(err);
-    }
+    } catch (err) { reject(err); }
   });
 }
 
@@ -128,9 +97,7 @@ async function getAllData(storeName) {
       const request = store.getAll();
       request.onsuccess = () => resolve(request.result || []);
       request.onerror = () => reject(request.error);
-    } catch (err) {
-      reject(err);
-    }
+    } catch (err) { reject(err); }
   });
 }
 
@@ -141,9 +108,7 @@ async function deleteData(storeName, id) {
       const request = store.delete(id);
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
-    } catch (err) {
-      reject(err);
-    }
+    } catch (err) { reject(err); }
   });
 }
 
@@ -154,16 +119,51 @@ async function clearStore(storeName) {
       const request = store.clear();
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
-    } catch (err) {
-      reject(err);
-    }
+    } catch (err) { reject(err); }
   });
 }
 
 // ================================================================
-// BOOK CHUNKS - SPECIALIZED
+// BOOKS
 // ================================================================
-async function getBookChunks(bookId, limit = 10, offset = 0) {
+async function getBooks() {
+  return await getAllData(STORES.BOOKS);
+}
+
+async function getBook(bookId) {
+  return await getData(STORES.BOOKS, bookId);
+}
+
+async function saveBook(book) {
+  book.id = book.id || book.bookId;
+  return await putData(STORES.BOOKS, book);
+}
+
+async function saveBooks(books) {
+  for (const book of books) {
+    await saveBook(book);
+  }
+  return books;
+}
+
+async function updateBook(bookId, updates) {
+  const book = await getBook(bookId);
+  if (book) {
+    Object.assign(book, updates);
+    await saveBook(book);
+  }
+  return book;
+}
+
+// ================================================================
+// CHUNKS
+// ================================================================
+async function getChunk(bookId, chunkNo) {
+  const id = `${bookId}_${chunkNo}`;
+  return await getData(STORES.CHUNKS, id);
+}
+
+async function getChunks(bookId, limit = 3, offset = 0) {
   return new Promise((resolve, reject) => {
     try {
       const store = getStore(STORES.CHUNKS, "readonly");
@@ -192,75 +192,35 @@ async function getBookChunks(bookId, limit = 10, offset = 0) {
           resolve(results);
         }
       };
-      
       request.onerror = () => reject(request.error);
-    } catch (err) {
-      reject(err);
-    }
+    } catch (err) { reject(err); }
   });
 }
 
-async function getBookChunkBySequence(bookId, sequence) {
-  return new Promise((resolve, reject) => {
-    try {
-      const store = getStore(STORES.CHUNKS, "readonly");
-      const index = store.index("sequence");
-      const range = IDBKeyRange.only(sequence);
-      const request = index.openCursor(range, "next");
-      
-      request.onsuccess = (event) => {
-        const cursor = event.target.result;
-        if (cursor) {
-          if (cursor.value.bookId === bookId) {
-            resolve(cursor.value);
-          } else {
-            cursor.continue();
-          }
-        } else {
-          resolve(null);
-        }
-      };
-      
-      request.onerror = () => reject(request.error);
-    } catch (err) {
-      reject(err);
-    }
-  });
+async function saveChunk(bookId, chunkNo, pages) {
+  const id = `${bookId}_${chunkNo}`;
+  const data = { id, bookId, chunkNo, pages, updated_at: new Date().toISOString() };
+  return await putData(STORES.CHUNKS, data);
 }
 
-async function saveBookChunks(chunks) {
-  const store = getStore(STORES.CHUNKS, "readwrite");
+async function deleteChunks(bookId) {
+  const chunks = await getChunks(bookId, 9999, 0);
   for (const chunk of chunks) {
-    store.put(chunk);
+    await deleteData(STORES.CHUNKS, chunk.id);
   }
-  return true;
+  return chunks;
 }
 
 // ================================================================
-// BOOK TOC
+// TOC
 // ================================================================
-async function getBookTOC(bookId) {
-  return new Promise((resolve, reject) => {
-    try {
-      const store = getStore(STORES.TOC, "readonly");
-      const index = store.index("bookId");
-      const range = IDBKeyRange.only(bookId);
-      const request = index.getAll(range);
-      request.onsuccess = () => resolve(request.result || []);
-      request.onerror = () => reject(request.error);
-    } catch (err) {
-      reject(err);
-    }
-  });
+async function getTOC(bookId) {
+  const data = await getData(STORES.TOC, bookId);
+  return data ? data.toc : null;
 }
 
-async function saveBookTOC(bookId, tocItems) {
-  const store = getStore(STORES.TOC, "readwrite");
-  for (const item of tocItems) {
-    item.bookId = bookId;
-    store.put(item);
-  }
-  return true;
+async function saveTOC(bookId, toc) {
+  return await putData(STORES.TOC, { id: bookId, bookId, toc, updated_at: new Date().toISOString() });
 }
 
 // ================================================================
@@ -275,89 +235,50 @@ async function getBookmarks(bookId) {
       const request = index.getAll(range);
       request.onsuccess = () => resolve(request.result || []);
       request.onerror = () => reject(request.error);
-    } catch (err) {
-      reject(err);
-    }
+    } catch (err) { reject(err); }
   });
 }
 
-async function addBookmark(bookId, sequence, note = "") {
-  const bookmark = {
-    id: `${bookId}_${Date.now()}`,
-    bookId: bookId,
-    sequence: sequence,
-    note: note,
-    created_at: new Date().toISOString()
-  };
-  await putData(STORES.BOOKMARKS, bookmark);
-  return bookmark;
+async function addBookmark(bookId, sequence) {
+  const id = `${bookId}_${sequence}`;
+  const data = { id, bookId, sequence, created_at: new Date().toISOString() };
+  return await putData(STORES.BOOKMARKS, data);
 }
 
-async function removeBookmark(bookmarkId) {
-  await deleteData(STORES.BOOKMARKS, bookmarkId);
+async function removeBookmark(bookId, sequence) {
+  const id = `${bookId}_${sequence}`;
+  return await deleteData(STORES.BOOKMARKS, id);
 }
 
 // ================================================================
-// READING PROGRESS
+// PROGRESS
 // ================================================================
 async function getProgress(bookId) {
-  const progress = await getData(STORES.PROGRESS, bookId);
-  return progress || { bookId, sequence: 0, character_offset: 0, audio_position: 0 };
+  const data = await getData(STORES.PROGRESS, bookId);
+  return data || { id: bookId, bookId, sequence: 0, word_offset: 0 };
 }
 
-async function saveProgress(bookId, sequence, character_offset = 0, audio_position = 0) {
-  const progress = {
-    id: bookId,
-    bookId: bookId,
-    sequence: sequence,
-    character_offset: character_offset,
-    audio_position: audio_position,
-    updated_at: new Date().toISOString()
-  };
-  await putData(STORES.PROGRESS, progress);
-  return progress;
+async function saveProgress(bookId, sequence, word_offset = 0) {
+  return await putData(STORES.PROGRESS, { 
+    id: bookId, 
+    bookId, 
+    sequence, 
+    word_offset,
+    updated_at: new Date().toISOString() 
+  });
 }
 
 // ================================================================
 // SETTINGS
 // ================================================================
 async function getSettings() {
-  const settings = await getData(STORES.SETTINGS, "user_settings");
-  return settings || {};
+  const data = await getData(STORES.SETTINGS, "user_settings");
+  return data || {};
 }
 
 async function saveSettings(settings) {
   settings.id = "user_settings";
-  await putData(STORES.SETTINGS, settings);
-  return settings;
-}
-
-// ================================================================
-// CATALOG
-// ================================================================
-async function getCatalog() {
-  return await getAllData(STORES.CATALOG);
-}
-
-async function saveCatalog(books) {
-  const store = getStore(STORES.CATALOG, "readwrite");
-  for (const book of books) {
-    store.put(book);
-  }
-  return true;
-}
-
-async function getBook(bookId) {
-  return await getData(STORES.CATALOG, bookId);
-}
-
-async function updateBook(bookId, updates) {
-  const book = await getBook(bookId);
-  if (book) {
-    Object.assign(book, updates);
-    await putData(STORES.CATALOG, book);
-  }
-  return book;
+  return await putData(STORES.SETTINGS, settings);
 }
 
 // ================================================================
@@ -370,15 +291,24 @@ window.DB = {
   getAllData,
   deleteData,
   clearStore,
+  STORES,
   
-  // Book chunks
-  getBookChunks,
-  getBookChunkBySequence,
-  saveBookChunks,
+  // Books
+  getBooks,
+  getBook,
+  saveBook,
+  saveBooks,
+  updateBook,
+  
+  // Chunks
+  getChunk,
+  getChunks,
+  saveChunk,
+  deleteChunks,
   
   // TOC
-  getBookTOC,
-  saveBookTOC,
+  getTOC,
+  saveTOC,
   
   // Bookmarks
   getBookmarks,
@@ -391,13 +321,5 @@ window.DB = {
   
   // Settings
   getSettings,
-  saveSettings,
-  
-  // Catalog
-  getCatalog,
-  saveCatalog,
-  getBook,
-  updateBook,
-  
-  STORES
+  saveSettings
 };
