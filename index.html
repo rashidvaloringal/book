@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#1b4d3e">
-  <title>📚 Islamic Digital Library Pro</title>
+  <title>📚 Islamic Digital Library</title>
   
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -305,6 +305,7 @@
       margin-top: 4px;
     }
     .status-badge.downloaded { background: #d4edda; color: #155724; }
+    .status-badge.downloading { background: #fff3cd; color: #856404; }
     .status-badge.not-downloaded { background: #f8d7da; color: #721c24; }
 
     /* ===== BOTTOM NAV ===== */
@@ -388,7 +389,7 @@
       border-radius: var(--radius);
       box-shadow: 0 2px 20px rgba(0,0,0,0.08);
       border: 1px solid var(--border);
-      min-height: 60vh;
+      min-height: 50vh;
       position: relative;
     }
     .head-badge {
@@ -451,104 +452,6 @@
     .word-hl-ml { background: #facc15 !important; color: #000 !important; }
     .word-hl-en { background: #a8e6cf !important; color: #000 !important; }
 
-    /* ===== VISUAL MODE ===== */
-    .visual-mode {
-      position: fixed;
-      inset: 0;
-      z-index: 2500;
-      display: none;
-      background: #000;
-      flex-direction: column;
-    }
-    .visual-mode.show { display: flex; }
-    .visual-video-wrapper {
-      position: absolute;
-      inset: 0;
-      z-index: 1;
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .visual-video-wrapper iframe, .visual-video-wrapper video {
-      width: 100vw;
-      height: 100vh;
-      object-fit: cover;
-      pointer-events: none;
-      border: none;
-    }
-    .visual-overlay {
-      position: absolute;
-      inset: 0;
-      background: rgba(0,0,0,0.4);
-      z-index: 2;
-    }
-    .visual-content {
-      position: relative;
-      z-index: 10;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      padding: 120px 25px;
-      color: white;
-      text-align: center;
-    }
-    .vis-text {
-      font-size: 32px;
-      line-height: 2.2;
-      text-shadow: 2px 2px 10px rgba(0,0,0,0.9);
-      padding: 10px 20px;
-      border-radius: 12px;
-      background: rgba(0,0,0,0.3);
-      backdrop-filter: blur(5px);
-      max-width: 90%;
-    }
-    .vis-text.ar { font-family: var(--font-ar); direction: rtl; color: #81d4fa; }
-    .vis-text.ml { font-family: var(--font-ml); color: #fff; }
-    .vis-text.en { font-family: var(--font-en); font-style: italic; color: #ddd; }
-    .vis-word-hl {
-      background: var(--highlight-color) !important;
-      color: #000 !important;
-      padding: 0 4px;
-      border-radius: 4px;
-      box-shadow: 0 0 20px rgba(250,204,21,0.6);
-    }
-    .visual-controls {
-      position: absolute;
-      top: 30px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 20px;
-      z-index: 20;
-      font-size: 24px;
-      color: white;
-      text-shadow: 0 2px 15px rgba(0,0,0,0.9);
-      align-items: center;
-      background: rgba(0,0,0,0.6);
-      padding: 8px 20px;
-      border-radius: 50px;
-      backdrop-filter: blur(5px);
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-    .vis-play { font-size: 32px; color: #38bdf8; }
-    .vis-close-btn { color: #ef4444; }
-    .vis-fullscreen-btn { color: #facc15; }
-    .visual-progress {
-      position: absolute;
-      bottom: 80px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 80%;
-      max-width: 500px;
-      height: 3px;
-      background: rgba(255,255,255,0.3);
-    }
-    .vis-progress-bar { height: 100%; background: #38bdf8; width: 0%; }
-
     .reader-pagination {
       display: flex;
       justify-content: space-between;
@@ -568,11 +471,11 @@
       color: var(--text-dark);
     }
     .page-num { font-weight: bold; color: var(--primary-green); font-size: 15px; }
-    .chunk-info {
+    .download-progress {
       text-align: center;
-      font-size: 12px;
+      font-size: 11px;
       color: var(--text-muted);
-      margin-top: 10px;
+      margin-top: 8px;
     }
 
     /* ===== LOADING OVERLAY ===== */
@@ -599,7 +502,7 @@
       animation: spin 0.8s linear infinite;
     }
 
-    /* ===== AUDIO ===== */
+    /* ===== AUDIO PLAYER ===== */
     .audio-player {
       background: var(--surface);
       padding: 25px;
@@ -641,6 +544,114 @@
     .mini-title { font-weight: bold; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .mini-progress { font-size: 10px; color: var(--text-muted); }
     .mini-controls { display: flex; gap: 14px; font-size: 18px; color: var(--primary-green); align-items: center; }
+
+    /* ===== VISUAL MODE ===== */
+    .visual-mode {
+      position: fixed;
+      inset: 0;
+      z-index: 2500;
+      display: none;
+      background: #000;
+      flex-direction: column;
+    }
+    .visual-mode.show { display: flex; }
+    .visual-video-wrapper {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .visual-video-wrapper iframe, .visual-video-wrapper video {
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+      pointer-events: none;
+      border: none;
+    }
+    .visual-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.3);
+      z-index: 2;
+    }
+    .visual-content {
+      position: relative;
+      z-index: 10;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 120px 25px;
+      color: white;
+      text-align: center;
+    }
+    .vis-ar {
+      font-family: var(--font-ar);
+      font-size: 34px;
+      direction: rtl;
+      line-height: 2.2;
+      margin-bottom: 20px;
+      color: #81d4fa;
+      text-shadow: 2px 2px 5px rgba(0,0,0,0.9);
+    }
+    .vis-ml {
+      font-size: 24px;
+      line-height: 2;
+      margin-bottom: 15px;
+      text-shadow: 2px 2px 5px rgba(0,0,0,0.9);
+      color: #fff;
+    }
+    .vis-en {
+      font-size: 20px;
+      font-style: italic;
+      opacity: 0.9;
+      text-shadow: 2px 2px 5px rgba(0,0,0,0.9);
+      color: #ddd;
+    }
+    .vis-word-hl {
+      background: var(--highlight-color) !important;
+      color: #000 !important;
+      padding: 0 4px;
+      border-radius: 4px;
+      box-shadow: 0 0 20px rgba(250,204,21,0.6);
+    }
+    .visual-controls {
+      position: absolute;
+      top: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 20px;
+      z-index: 20;
+      font-size: 24px;
+      color: white;
+      text-shadow: 0 2px 15px rgba(0,0,0,0.9);
+      align-items: center;
+      background: rgba(0,0,0,0.6);
+      padding: 8px 20px;
+      border-radius: 50px;
+      backdrop-filter: blur(5px);
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .vis-play { font-size: 32px; color: #38bdf8; }
+    .vis-close-btn { color: #ef4444; }
+    .vis-fullscreen-btn { color: #facc15; }
+    .visual-progress {
+      position: absolute;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80%;
+      max-width: 500px;
+      height: 3px;
+      background: rgba(255,255,255,0.3);
+    }
+    .vis-progress-bar { height: 100%; background: #38bdf8; width: 0%; }
 
     /* ===== MODALS ===== */
     .modal-overlay {
@@ -731,21 +742,9 @@
     }
     .theme-btn.active { border-color: var(--primary-green); background: var(--primary-light); color: var(--primary-green); }
 
-    /* ===== TOC STYLES (like deep31.html) ===== */
-    .toc-breadcrumb {
-      padding: 10px 15px;
-      background: var(--bg);
-      border-bottom: 1px solid var(--border);
-      font-size: 13px;
-      font-weight: bold;
-      color: var(--text-muted);
-      flex-shrink: 0;
-    }
-    .toc-breadcrumb span { cursor: pointer; color: var(--primary-green); transition: 0.2s; }
-    .toc-breadcrumb span:hover { text-decoration: underline; }
-    
+    /* ===== TOC ===== */
     .toc-item {
-      padding: 15px;
+      padding: 12px 15px;
       border-bottom: 1px solid var(--border);
       cursor: pointer;
       color: var(--text-dark);
@@ -757,33 +756,22 @@
     .toc-item.current { background: var(--primary-light); border-left: 4px solid var(--primary-green); }
     .toc-badge {
       display: inline-block;
-      padding: 3px 8px;
+      padding: 2px 10px;
       background: var(--primary-light);
       color: var(--primary-green);
       border-radius: 4px;
       font-size: 10px;
       font-weight: bold;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
       width: fit-content;
       text-transform: uppercase;
     }
-    .toc-title-text { font-size: 16px; font-weight: bold; }
-    .toc-translations { font-size: 12px; color: var(--text-muted); margin-top: 5px; }
-    .toc-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 3px; }
-    .toc-children-count {
-      font-size: 11px;
-      color: var(--text-muted);
-      margin-top: 8px;
-    }
-    .toc-children-count i { margin-right: 4px; }
-    
-    /* TOC Level Indentation */
-    .toc-level-part { font-weight: bold; font-size: 17px; background: var(--primary-light); border-radius: 8px; padding: 12px 15px; margin-bottom: 4px; }
-    .toc-level-1 { padding-left: 15px; font-weight: bold; font-size: 16px; border-left: 3px solid var(--primary-green); }
-    .toc-level-2 { padding-left: 35px; }
-    .toc-level-3 { padding-left: 55px; font-size: 14px; }
-    .toc-level-4 { padding-left: 75px; font-size: 13px; color: var(--text-muted); }
-    .toc-level-page { padding-left: 15px; font-size: 14px; }
+    .toc-level-1 { padding-left: 0px; font-weight: bold; font-size: 16px; border-left: 3px solid var(--primary-green); }
+    .toc-level-2 { padding-left: 20px; }
+    .toc-level-3 { padding-left: 40px; font-size: 14px; }
+    .toc-level-4 { padding-left: 60px; font-size: 13px; color: var(--text-muted); }
+    .toc-level-page { padding-left: 20px; font-size: 13px; color: var(--text-muted); }
+    .toc-children { padding-left: 10px; }
 
     .lang-selector {
       display: flex;
@@ -809,17 +797,32 @@
     }
     .lang-btn:active { transform: scale(0.95); }
 
+    .toc-breadcrumb {
+      padding: 10px 15px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      font-weight: bold;
+      color: var(--text-muted);
+      flex-shrink: 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+    .toc-breadcrumb span {
+      cursor: pointer;
+      color: var(--primary-green);
+      transition: 0.2s;
+    }
+    .toc-breadcrumb span:hover { text-decoration: underline; }
+
     @media (max-width: 600px) {
       .book-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
       .reader-page-card { padding: 20px 15px; }
       .ar-content { font-size: calc(var(--font-scale) + 2px); }
       .ml-content { font-size: var(--font-scale); }
       .visual-controls { gap: 12px; font-size: 18px; padding: 6px 15px; }
-      .vis-text { font-size: 24px; }
       .theme-grid { grid-template-columns: repeat(2, 1fr); }
-      .toc-level-2 { padding-left: 20px; }
-      .toc-level-3 { padding-left: 35px; }
-      .toc-level-4 { padding-left: 50px; }
     }
   </style>
 </head>
@@ -828,7 +831,7 @@
   <!-- ===== LOADER ===== -->
   <div id="loader">
     <div class="spinner"></div>
-    <div class="status" id="loadStatus">📚 Islamic Digital Library Pro</div>
+    <div class="status" id="loadStatus">📚 Islamic Digital Library</div>
     <div id="setupBox">
       <input type="text" id="supabaseUrl" placeholder="Supabase URL (eg: https://xyz.supabase.co)">
       <input type="text" id="supabaseKey" placeholder="Supabase anon/public key">
@@ -913,7 +916,7 @@
           <span class="page-num" id="readerPageNum">0 / 0</span>
           <button onclick="nextPage()">Next <i class="fas fa-chevron-right"></i></button>
         </div>
-        <div class="chunk-info" id="chunkInfo"></div>
+        <div class="download-progress" id="downloadProgress"></div>
       </div>
 
       <div id="audioView" style="display:none;">
@@ -976,9 +979,9 @@
       <i class="fas fa-times-circle vis-close-btn" onclick="closeVisualMode()"></i>
     </div>
     <div class="visual-content">
-      <div class="vis-text ar" id="visArText">...</div>
-      <div class="vis-text ml" id="visMlText">...</div>
-      <div class="vis-text en" id="visEnText">...</div>
+      <div class="vis-ar" id="visArText">...</div>
+      <div class="vis-ml" id="visMlText">...</div>
+      <div class="vis-en" id="visEnText">...</div>
     </div>
     <div class="visual-progress"><div class="vis-progress-bar" id="visProgressBar"></div></div>
   </div>
@@ -1013,6 +1016,7 @@
         <div class="setting-row"><span>Display Arabic</span><input type="checkbox" id="optShowAr" checked onchange="renderAllViews()"></div>
         <div class="setting-row"><span>Display Malayalam</span><input type="checkbox" id="optShowMl" checked onchange="renderAllViews()"></div>
         <div class="setting-row"><span>Display English</span><input type="checkbox" id="optShowEn" checked onchange="renderAllViews()"></div>
+        <div class="setting-row"><span>Chunk Size (Pages)</span><select id="optChunkSize" onchange="updateChunkSize()"><option value="10">10</option><option value="20" selected>20</option><option value="30">30</option><option value="50">50</option></select></div>
       </div>
 
       <div class="setting-group">
@@ -1025,7 +1029,6 @@
         <select id="optVoice" onchange="applyAudioSettings(true)" style="margin-top:5px;"></select>
         <div class="setting-row"><span>Speed</span><input type="range" id="optSpeed" min="0.5" max="1.5" step="0.1" value="1.0" onchange="applyAudioSettings(true)"></div>
         <div class="setting-row"><span>Auto Next Page</span><input type="checkbox" id="optAutoNext" checked></div>
-        <div class="setting-row"><span>Background Play</span><input type="checkbox" id="optBgPlay" checked></div>
       </div>
 
       <div class="setting-group">
@@ -1065,9 +1068,8 @@
     </div>
   </div>
 
-  <!-- ===== TOC MODAL (like deep31.html style) ===== -->
   <div class="modal-box" id="tocModal" style="padding:0;">
-    <div class="modal-header"><span>📑 സൂചിക (TOC)</span><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-header"><span>📑 സൂചിക</span><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="toc-breadcrumb" id="tocBreadcrumb"></div>
     <div class="modal-body" id="tocList" style="padding:0;"></div>
   </div>
@@ -1079,10 +1081,9 @@
     let supabaseClient = null;
     let allBooks = [];
     let currentBookId = null;
-    let currentPages = [];
+    let currentSequence = 0;
     let currentPageIndex = 0;
     let totalPages = 0;
-    let CHUNK_SIZE = 15;
     let isPlaying = false;
     let synth = window.speechSynthesis;
     let allVoices = [];
@@ -1091,12 +1092,13 @@
     let autoScrollEnabled = true;
     let currentUtterance = null;
     let currentWordOffset = 0;
-    let isVisualMode = false;
-    let tocTree = [];
+    let CHUNK_SIZE = 20;
+    let bookPages = [];
+    let isDownloading = false;
+    let downloadProgress = 0;
+    let totalBookPages = 0;
+    let tocData = [];
     let tocPath = [];
-
-    // In-memory cache
-    let pageCache = {};
 
     const STATE = {
       showAr: true,
@@ -1128,12 +1130,21 @@
     document.addEventListener('click', initAudioContext, { once: true });
     document.addEventListener('touchstart', initAudioContext, { once: true });
 
+    // WakeLock for background play
+    let wakeLock = null;
+    async function requestWakeLock() {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+        }
+      } catch(e) {}
+    }
+
     // ================================================================
     // SUPABASE CONNECTION
     // ================================================================
     async function initApp() {
       try {
-        // Check saved config
         const savedUrl = localStorage.getItem('supabase_url');
         const savedKey = localStorage.getItem('supabase_key');
         
@@ -1233,7 +1244,6 @@
         if (error) throw error;
 
         allBooks = data || [];
-        localStorage.setItem('library_books', JSON.stringify(allBooks));
         renderBooks(allBooks);
         updateContinueReading();
         updateStorageInfo();
@@ -1303,93 +1313,183 @@
     }
 
     // ================================================================
-    // OPEN BOOK - Load from Supabase or Cache
+    // OPEN BOOK - CHUNK LOADING
     // ================================================================
     async function openBook(bookId) {
       currentBookId = bookId;
+      currentSequence = 0;
       currentPageIndex = 0;
       currentWordOffset = 0;
+      bookPages = [];
 
       const book = allBooks.find(b => b.id === bookId);
       document.getElementById('readerTitle').textContent = book?.title_ml || book?.title_ar || 'Book';
 
+      // Load progress
+      const progressKey = `progress_${bookId}`;
+      const savedProgress = localStorage.getItem(progressKey);
+      if (savedProgress) {
+        const prog = JSON.parse(savedProgress);
+        currentSequence = prog.sequence || 0;
+        currentWordOffset = prog.offset || 0;
+      }
+
+      // Load bookmarks
+      const bookmarkKey = `bookmarks_${bookId}`;
+      const savedBookmarks = localStorage.getItem(bookmarkKey);
+      const bookmarks = savedBookmarks ? JSON.parse(savedBookmarks) : [];
+
+      // Load TOC
+      const tocKey = `toc_${bookId}`;
+      const savedTOC = localStorage.getItem(tocKey);
+      if (savedTOC) {
+        tocData = JSON.parse(savedTOC);
+      } else {
+        tocData = [];
+      }
+
       showLoading('📖 Opening book...');
 
       try {
-        // Check cache first
-        const cacheKey = `book_${bookId}`;
-        let data = pageCache[cacheKey];
-        
-        if (!data) {
-          const tableName = `${bookId}_contents`;
-          const { data: supabaseData, error } = await supabaseClient
-            .from(tableName)
-            .select('*')
-            .order('ID', { ascending: true });
+        // Get total pages count
+        const countTable = `${bookId}_contents`;
+        const { count, error: countError } = await supabaseClient
+          .from(countTable)
+          .select('*', { count: 'exact', head: true });
 
-          if (error) throw error;
-          if (!supabaseData || supabaseData.length === 0) {
-            hideLoading();
-            alert('No content found in ' + tableName);
-            return;
-          }
-          
-          // Cache in memory
-          data = supabaseData.map(item => ({
-            id: item.ID,
-            sequence: item.ID,
-            part: item['Part Number'] || 1,
-            page: item['Page Number'] || 1,
-            Arabic: item['Arabic Text'] || '',
-            Malayalam: item['Malayalam Text'] || '',
-            English: item['English Text'] || ''
-          }));
-          
-          pageCache[cacheKey] = data;
-          
-          // Background download to localStorage
-          setTimeout(() => {
-            try {
-              localStorage.setItem(cacheKey, JSON.stringify(data));
-              // Update book as downloaded
-              const bookUpdate = allBooks.find(b => b.id === bookId);
-              if (bookUpdate) {
-                bookUpdate.downloaded = true;
-                bookUpdate.total_pages = data.length;
-                localStorage.setItem('library_books', JSON.stringify(allBooks));
-              }
-            } catch(e) {}
-          }, 100);
+        if (countError) throw countError;
+        totalBookPages = count || 0;
+        totalPages = totalBookPages;
+
+        // Load first chunk
+        await loadChunk(currentSequence || 0);
+
+        // Start background download
+        if (!book.downloaded) {
+          startBackgroundDownload(bookId);
         }
-        
-        currentPages = data;
-        totalPages = data.length;
-        
-        // Get progress
-        const progressKey = `progress_${bookId}`;
-        const savedProgress = localStorage.getItem(progressKey);
-        if (savedProgress) {
-          const prog = JSON.parse(savedProgress);
-          const idx = data.findIndex(c => c.sequence === prog.sequence);
-          if (idx >= 0) {
-            currentPageIndex = idx;
-            currentWordOffset = prog.offset || 0;
-          }
-        }
-        
-        // Build TOC
-        buildTOCData();
-        
+
         hideLoading();
         openReader();
         renderCurrentPage();
-        
+
       } catch(err) {
         hideLoading();
         alert('❌ Error: ' + err.message);
       }
     }
 
+    // ================================================================
+    // LOAD CHUNK FROM SUPABASE
+    // ================================================================
+    async function loadChunk(startSequence) {
+      if (!supabaseClient) return;
+
+      try {
+        const tableName = `${currentBookId}_contents`;
+        const { data, error } = await supabaseClient
+          .from(tableName)
+          .select('*')
+          .gte('ID', startSequence)
+          .lt('ID', startSequence + CHUNK_SIZE)
+          .order('ID', { ascending: true });
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) return;
+
+        // Store in memory
+        const pages = data.map(item => ({
+          sequence: item.ID,
+          part: item['Part Number'] || 1,
+          page: item['Page Number'] || 1,
+          Arabic: item['Arabic Text'] || '',
+          Malayalam: item['Malayalam Text'] || '',
+          English: item['English Text'] || ''
+        }));
+
+        // Merge with existing pages
+        const existingSeq = new Set(bookPages.map(p => p.sequence));
+        for (const page of pages) {
+          if (!existingSeq.has(page.sequence)) {
+            bookPages.push(page);
+            existingSeq.add(page.sequence);
+          }
+        }
+
+        // Sort by sequence
+        bookPages.sort((a, b) => a.sequence - b.sequence);
+
+        // Update current page index
+        if (bookPages.length > 0) {
+          const idx = bookPages.findIndex(p => p.sequence === currentSequence);
+          if (idx >= 0) currentPageIndex = idx;
+          else currentPageIndex = 0;
+        }
+
+        // Save to localStorage cache
+        const cacheKey = `book_${currentBookId}`;
+        localStorage.setItem(cacheKey, JSON.stringify(bookPages));
+
+        // Update download progress
+        downloadProgress = Math.min(bookPages.length, totalBookPages);
+        document.getElementById('downloadProgress').textContent = 
+          `📥 Downloaded ${downloadProgress}/${totalBookPages} pages`;
+
+        // Check if book is fully downloaded
+        if (bookPages.length >= totalBookPages) {
+          const book = allBooks.find(b => b.id === currentBookId);
+          if (book) {
+            book.downloaded = true;
+            book.total_pages = totalBookPages;
+            localStorage.setItem('library_books', JSON.stringify(allBooks));
+          }
+          document.getElementById('downloadProgress').textContent = '✅ Book downloaded!';
+          isDownloading = false;
+        }
+
+        return pages;
+
+      } catch(err) {
+        console.error('Load chunk error:', err);
+        return [];
+      }
+    }
+
+    // ================================================================
+    // BACKGROUND DOWNLOAD
+    // ================================================================
+    async function startBackgroundDownload(bookId) {
+      if (isDownloading) return;
+      isDownloading = true;
+
+      let startSeq = bookPages.length > 0 ? bookPages[bookPages.length - 1].sequence + 1 : 0;
+
+      while (startSeq < totalBookPages) {
+        await loadChunk(startSeq);
+        startSeq += CHUNK_SIZE;
+        
+        // Update UI periodically
+        if (bookPages.length > 0) {
+          const progress = Math.min(bookPages.length, totalBookPages);
+          document.getElementById('downloadProgress').textContent = 
+            `📥 Downloading ${progress}/${totalBookPages} pages...`;
+        }
+
+        // Small delay to not block UI
+        await new Promise(r => setTimeout(r, 50));
+      }
+
+      isDownloading = false;
+    }
+
+    function updateChunkSize() {
+      CHUNK_SIZE = parseInt(document.getElementById('optChunkSize').value) || 20;
+    }
+
+    // ================================================================
+    // OPEN READER
+    // ================================================================
     function openReader() {
       document.getElementById('readerView').classList.add('show');
       document.getElementById('homeView').classList.remove('show');
@@ -1399,12 +1499,11 @@
     }
 
     function closeReader() {
-      // Save progress
-      if (currentBookId && currentPages.length > 0) {
-        const chunk = currentPages[currentPageIndex];
-        if (chunk) {
+      if (currentBookId && bookPages.length > 0) {
+        const page = getCurrentPage();
+        if (page) {
           localStorage.setItem(`progress_${currentBookId}`, JSON.stringify({
-            sequence: chunk.sequence,
+            sequence: page.sequence,
             offset: currentWordOffset
           }));
         }
@@ -1417,22 +1516,28 @@
       updateContinueReading();
     }
 
+    function getCurrentPage() {
+      return bookPages[currentPageIndex] || null;
+    }
+
     // ================================================================
-    // RENDER PAGE WITH WORD HIGHLIGHT
+    // RENDER PAGE
     // ================================================================
     function renderCurrentPage() {
-      if (!currentPages || currentPages.length === 0) return;
+      const page = getCurrentPage();
+      if (!page) {
+        document.getElementById('readerPageContainer').innerHTML = 
+          `<div class="reader-page-card"><div style="text-align:center;padding:40px;color:var(--text-muted);">📖 No content loaded</div></div>`;
+        return;
+      }
 
-      const page = currentPages[currentPageIndex];
       const container = document.getElementById('readerPageContainer');
-
       const ar = page.Arabic || '';
       const ml = page.Malayalam || '';
       const en = page.English || '';
       const part = page.part || '?';
       const pageNum = page.page || '?';
 
-      // Clear previous highlights
       document.querySelectorAll('.word-hl, .word-hl-ar, .word-hl-ml, .word-hl-en').forEach(el => {
         el.classList.remove('word-hl', 'word-hl-ar', 'word-hl-ml', 'word-hl-en');
       });
@@ -1452,33 +1557,21 @@
 
       container.innerHTML = html;
       document.getElementById('readerPageNum').textContent = 
-        `${currentPageIndex + 1} / ${totalPages}`;
-
-      // Update chunk info
-      const chunkStart = Math.floor(currentPageIndex / CHUNK_SIZE) * CHUNK_SIZE + 1;
-      const chunkEnd = Math.min(chunkStart + CHUNK_SIZE - 1, totalPages);
-      document.getElementById('chunkInfo').textContent = 
-        `📊 Showing ${chunkStart} - ${chunkEnd} of ${totalPages} pages`;
+        `${currentPageIndex + 1} / ${totalBookPages || bookPages.length}`;
 
       // Update mini player
-      const row = currentPages[currentPageIndex];
-      if (row) {
-        const mlText = (row.Malayalam || '').replace(/<[^>]+>/g, '').trim();
-        document.getElementById('miniTitle').textContent = mlText.substring(0, 40) + '...';
-        document.getElementById('miniProgress').textContent = `ഭാഗം ${part} - പേജ് ${pageNum}`;
-        updateAudioUI();
-      }
+      document.getElementById('miniTitle').textContent = (ml || '').replace(/<[^>]+>/g, '').substring(0, 40) + '...';
+      document.getElementById('miniProgress').textContent = `ഭാഗം ${part} - പേജ് ${pageNum}`;
+      updateAudioUI();
 
-      if (isVisualMode) {
+      if (document.getElementById('visualMode').classList.contains('show')) {
         updateVisualChunk();
       }
 
-      // Apply highlight if playing
       if (isPlaying && currentUtterance) {
         highlightCurrentWord();
       }
 
-      // Auto scroll
       if (autoScrollEnabled && document.getElementById('optAutoScroll')?.checked !== false) {
         setTimeout(autoScrollToHighlight, 150);
       }
@@ -1517,7 +1610,9 @@
       if (isPlaying) {
         if (currentUtterance) {
           highlightCurrentWord();
-          if (isVisualMode) updateVisualChunk();
+          if (document.getElementById('visualMode').classList.contains('show')) {
+            updateVisualChunk();
+          }
         }
       } else {
         togglePlay();
@@ -1528,7 +1623,7 @@
     // HIGHLIGHT CURRENT WORD
     // ================================================================
     function highlightCurrentWord() {
-      if (isVisualMode) return;
+      if (document.getElementById('visualMode').classList.contains('show')) return;
       
       document.querySelectorAll('.word-hl, .word-hl-ar, .word-hl-ml, .word-hl-en').forEach(el => {
         el.classList.remove('word-hl', 'word-hl-ar', 'word-hl-ml', 'word-hl-en');
@@ -1571,98 +1666,37 @@
     }
 
     // ================================================================
-    // VISUAL MODE
-    // ================================================================
-    function openVisualMode() {
-      isVisualMode = true;
-      document.getElementById('visualMode').classList.add('show');
-      applyVisualBg();
-      updateVisualChunk();
-      if (!isPlaying) togglePlay();
-    }
-
-    function closeVisualMode() {
-      isVisualMode = false;
-      document.getElementById('visualMode').classList.remove('show');
-      document.getElementById('visualVideo').pause();
-      document.getElementById('visualYoutube').src = '';
-    }
-
-    function toggleVisualFullscreen() {
-      document.getElementById('visualMode').classList.toggle('fullscreen');
-    }
-
-    function updateVisualChunk() {
-      const page = currentPages[currentPageIndex];
-      if (!page) return;
-      
-      const arText = (page.Arabic || '').replace(/<[^>]+>/g, '').trim();
-      const mlText = (page.Malayalam || '').replace(/<[^>]+>/g, '').trim();
-      const enText = (page.English || '').replace(/<[^>]+>/g, '').trim();
-      
-      document.getElementById('visArText').innerHTML = getVisualWords(arText, 'ar');
-      document.getElementById('visMlText').innerHTML = getVisualWords(mlText, 'ml');
-      document.getElementById('visEnText').innerHTML = getVisualWords(enText, 'en');
-    }
-
-    function getVisualWords(text, lang) {
-      if (!text) return '...';
-      const words = text.split(/\s+/);
-      let currentPos = 0;
-      let startIdx = 0;
-
-      for (let i = 0; i < words.length; i++) {
-        const wordLen = words[i].length + 1;
-        if (currentPos + wordLen <= currentWordOffset) {
-          startIdx = i + 1;
-        }
-        currentPos += wordLen;
-      }
-
-      const displayWords = words.slice(Math.max(0, startIdx - 2), Math.min(words.length, startIdx + 3));
-      const isActive = spokenLang === lang;
-      
-      return displayWords.map((word, idx) => {
-        const wordOffset = words.slice(0, startIdx + idx).join(' ').length + (idx > 0 ? 1 : 0);
-        const isHighlighted = isActive && wordOffset >= currentWordOffset - 5 && wordOffset <= currentWordOffset + 30;
-        return isHighlighted ? `<span class="vis-word-hl">${word}</span>` : word;
-      }).join(' ');
-    }
-
-    function applyVisualBg() {
-      const id = document.getElementById('optYoutubeId').value.trim();
-      const video = document.getElementById('visualVideo');
-      const yt = document.getElementById('visualYoutube');
-      const vid = extractYoutubeId(id);
-
-      if (vid) {
-        video.style.display = 'none';
-        yt.style.display = 'block';
-        yt.src = `https://www.youtube.com/embed/${vid}?enablejsapi=1&autoplay=1&mute=1&controls=0&loop=1&playlist=${vid}&playsinline=1&showinfo=0&rel=0`;
-      } else {
-        yt.style.display = 'none';
-        video.style.display = 'block';
-        video.src = 'https://assets.mixkit.co/videos/preview/mixkit-forest-trees-3524-large.mp4';
-        video.loop = true;
-        video.play().catch(()=>{});
-      }
-    }
-
-    function extractYoutubeId(url) {
-      const match = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
-      return (match && match[2].length === 11) ? match[2] : url;
-    }
-
-    // ================================================================
     // NAVIGATION
     // ================================================================
     function nextPage() {
-      if (currentPageIndex < totalPages - 1) {
+      if (currentPageIndex < bookPages.length - 1) {
         currentPageIndex++;
         currentWordOffset = 0;
+        const page = getCurrentPage();
+        if (page) currentSequence = page.sequence;
         renderCurrentPage();
         if (isPlaying) playAudio();
         saveProgress();
+        
+        // Preload next chunk if needed
+        if (currentPageIndex >= bookPages.length - 2 && bookPages.length < totalBookPages) {
+          const nextSeq = bookPages[bookPages.length - 1].sequence + 1;
+          loadChunk(nextSeq);
+        }
+      } else if (bookPages.length < totalBookPages) {
+        // Load next chunk
+        const nextSeq = bookPages.length > 0 ? bookPages[bookPages.length - 1].sequence + 1 : 0;
+        loadChunk(nextSeq).then(() => {
+          if (currentPageIndex < bookPages.length - 1) {
+            currentPageIndex++;
+            currentWordOffset = 0;
+            const page = getCurrentPage();
+            if (page) currentSequence = page.sequence;
+            renderCurrentPage();
+            if (isPlaying) playAudio();
+            saveProgress();
+          }
+        });
       }
     }
 
@@ -1670,6 +1704,8 @@
       if (currentPageIndex > 0) {
         currentPageIndex--;
         currentWordOffset = 0;
+        const page = getCurrentPage();
+        if (page) currentSequence = page.sequence;
         renderCurrentPage();
         if (isPlaying) playAudio();
         saveProgress();
@@ -1677,22 +1713,40 @@
     }
 
     function jumpToPage(index) {
-      if (index >= 0 && index < totalPages) {
+      if (index >= 0 && index < bookPages.length) {
         currentPageIndex = index;
         currentWordOffset = 0;
+        const page = getCurrentPage();
+        if (page) currentSequence = page.sequence;
         renderCurrentPage();
         if (isPlaying) playAudio();
         saveProgress();
         closeModal();
+      } else if (index < bookPages.length) {
+        // Try to load the chunk
+        const seq = index + 1;
+        loadChunk(seq).then(() => {
+          const idx = bookPages.findIndex(p => p.sequence === seq);
+          if (idx >= 0) {
+            currentPageIndex = idx;
+            currentWordOffset = 0;
+            const page = getCurrentPage();
+            if (page) currentSequence = page.sequence;
+            renderCurrentPage();
+            if (isPlaying) playAudio();
+            saveProgress();
+          }
+          closeModal();
+        });
       }
     }
 
     function saveProgress() {
-      if (currentBookId && currentPages.length > 0) {
-        const chunk = currentPages[currentPageIndex];
-        if (chunk) {
+      if (currentBookId) {
+        const page = getCurrentPage();
+        if (page) {
           localStorage.setItem(`progress_${currentBookId}`, JSON.stringify({
-            sequence: chunk.sequence,
+            sequence: page.sequence,
             offset: currentWordOffset
           }));
         }
@@ -1749,16 +1803,18 @@
           isPlaying = true;
           updatePlayIcon();
           document.getElementById('silentAudio').play().catch(()=>{});
+          requestWakeLock();
         } else {
           isPlaying = true;
           updatePlayIcon();
           playAudio();
+          requestWakeLock();
         }
       }
     }
 
     function playAudio() {
-      const page = currentPages[currentPageIndex];
+      const page = getCurrentPage();
       if (!page) return;
 
       const lang = document.getElementById('optAudioLang').value;
@@ -1778,7 +1834,7 @@
 
       text = text.replace(/<[^>]+>/g, '').trim();
       if (!text) {
-        if (currentPageIndex < totalPages - 1) {
+        if (currentPageIndex < bookPages.length - 1) {
           nextPage();
         } else {
           stopAudio();
@@ -1798,7 +1854,7 @@
       }
 
       if (!startText.trim()) {
-        if (currentPageIndex < totalPages - 1) {
+        if (currentPageIndex < bookPages.length - 1) {
           currentWordOffset = 0;
           nextPage();
         } else {
@@ -1836,7 +1892,7 @@
           const newOffset = startOffset + e.charIndex;
           if (newOffset > currentWordOffset) {
             currentWordOffset = newOffset;
-            if (isVisualMode) {
+            if (document.getElementById('visualMode').classList.contains('show')) {
               updateVisualChunk();
             } else {
               highlightCurrentWord();
@@ -1849,7 +1905,7 @@
       currentUtterance.onstart = () => {
         document.getElementById('silentAudio').play().catch(()=>{});
         initAudioContext();
-        if (isVisualMode) {
+        if (document.getElementById('visualMode').classList.contains('show')) {
           updateVisualChunk();
         } else {
           highlightCurrentWord();
@@ -1862,7 +1918,7 @@
       currentUtterance.onend = () => {
         if (isPlaying) {
           const autoNext = document.getElementById('optAutoNext')?.checked !== false;
-          if (autoNext && currentPageIndex < totalPages - 1) {
+          if (autoNext && currentPageIndex < bookPages.length - 1) {
             currentWordOffset = 0;
             nextPage();
           } else {
@@ -1872,7 +1928,7 @@
       };
 
       currentUtterance.onerror = () => {
-        if (isPlaying && currentPageIndex < totalPages - 1) {
+        if (isPlaying && currentPageIndex < bookPages.length - 1) {
           currentWordOffset = 0;
           nextPage();
         } else {
@@ -1892,6 +1948,10 @@
       document.getElementById('audioProgressBar').style.width = '0%';
       document.getElementById('visProgressBar').style.width = '0%';
       document.getElementById('silentAudio').pause();
+      if (wakeLock) {
+        wakeLock.release().catch(()=>{});
+        wakeLock = null;
+      }
       document.querySelectorAll('.word-hl, .word-hl-ar, .word-hl-ml, .word-hl-en').forEach(el => {
         el.classList.remove('word-hl', 'word-hl-ar', 'word-hl-ml', 'word-hl-en');
       });
@@ -1912,12 +1972,12 @@
     }
 
     function updateAudioUI() {
-      const page = currentPages[currentPageIndex];
+      const page = getCurrentPage();
       if (!page) return;
       const mlText = (page.Malayalam || '').replace(/<[^>]+>/g, '').trim();
       document.getElementById('audioTitle').textContent = mlText.substring(0, 50) + '...';
       document.getElementById('audioMeta').textContent = 
-        `ഭാഗം ${page.part || '?'} - പേജ് ${page.page || '?'} / ${totalPages}`;
+        `ഭാഗം ${page.part || '?'} - പേജ് ${page.page || '?'} / ${totalBookPages || bookPages.length}`;
     }
 
     function setSpokenLang(lang) {
@@ -1935,11 +1995,90 @@
         togglePlay();
       }
       
-      if (isVisualMode) {
+      if (document.getElementById('visualMode').classList.contains('show')) {
         updateVisualChunk();
       } else {
         highlightCurrentWord();
       }
+    }
+
+    // ================================================================
+    // VISUAL MODE
+    // ================================================================
+    function openVisualMode() {
+      document.getElementById('visualMode').classList.add('show');
+      applyVisualBg();
+      updateVisualChunk();
+      if (!isPlaying) togglePlay();
+    }
+
+    function closeVisualMode() {
+      document.getElementById('visualMode').classList.remove('show');
+      document.getElementById('visualVideo').pause();
+      document.getElementById('visualYoutube').src = '';
+    }
+
+    function toggleVisualFullscreen() {
+      document.getElementById('visualMode').classList.toggle('fullscreen');
+    }
+
+    function updateVisualChunk() {
+      const page = getCurrentPage();
+      if (!page) return;
+      
+      const arText = (page.Arabic || '').replace(/<[^>]+>/g, '').trim();
+      const mlText = (page.Malayalam || '').replace(/<[^>]+>/g, '').trim();
+      const enText = (page.English || '').replace(/<[^>]+>/g, '').trim();
+      
+      document.getElementById('visArText').innerHTML = getVisualWords(arText, 'ar');
+      document.getElementById('visMlText').innerHTML = getVisualWords(mlText, 'ml');
+      document.getElementById('visEnText').innerHTML = getVisualWords(enText, 'en');
+    }
+
+    function getVisualWords(text, lang) {
+      if (!text) return '...';
+      const words = text.split(/\s+/);
+      let currentPos = 0;
+      let startIdx = 0;
+
+      for (let i = 0; i < words.length; i++) {
+        const wordLen = words[i].length + 1;
+        if (currentPos + wordLen <= currentWordOffset) {
+          startIdx = i + 1;
+        }
+        currentPos += wordLen;
+      }
+
+      const displayWords = words.slice(Math.max(0, startIdx - 2), Math.min(words.length, startIdx + 3));
+      const isActive = spokenLang === lang;
+      
+      return displayWords.map((word) => {
+        return isActive ? `<span class="vis-word-hl">${word}</span>` : word;
+      }).join(' ');
+    }
+
+    function applyVisualBg() {
+      const id = document.getElementById('optYoutubeId').value.trim();
+      const video = document.getElementById('visualVideo');
+      const yt = document.getElementById('visualYoutube');
+      const vid = extractYoutubeId(id);
+
+      if (vid) {
+        video.style.display = 'none';
+        yt.style.display = 'block';
+        yt.src = `https://www.youtube.com/embed/${vid}?enablejsapi=1&autoplay=1&mute=1&controls=0&loop=1&playlist=${vid}&playsinline=1&showinfo=0&rel=0`;
+      } else {
+        yt.style.display = 'none';
+        video.style.display = 'block';
+        video.src = 'https://assets.mixkit.co/videos/preview/mixkit-forest-trees-3524-large.mp4';
+        video.loop = true;
+        video.play().catch(()=>{});
+      }
+    }
+
+    function extractYoutubeId(url) {
+      const match = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
+      return (match && match[2].length === 11) ? match[2] : url;
     }
 
     // ================================================================
@@ -1969,18 +2108,18 @@
     // BOOKMARKS
     // ================================================================
     function toggleBookmark() {
-      if (!currentBookId || !currentPages.length) return;
-      const chunk = currentPages[currentPageIndex];
-      if (!chunk) return;
+      if (!currentBookId) return;
+      const page = getCurrentPage();
+      if (!page) return;
       
       const key = `bookmarks_${currentBookId}`;
       let bookmarks = JSON.parse(localStorage.getItem(key) || '[]');
-      const exists = bookmarks.find(b => b.sequence === chunk.sequence);
+      const exists = bookmarks.find(b => b.sequence === page.sequence);
       
       if (exists) {
-        bookmarks = bookmarks.filter(b => b.sequence !== chunk.sequence);
+        bookmarks = bookmarks.filter(b => b.sequence !== page.sequence);
       } else {
-        bookmarks.push({ sequence: chunk.sequence, part: chunk.part, page: chunk.page });
+        bookmarks.push({ sequence: page.sequence, part: page.part, page: page.page });
       }
       
       localStorage.setItem(key, JSON.stringify(bookmarks));
@@ -1988,172 +2127,191 @@
     }
 
     function updateBookmarkUI() {
-      if (!currentBookId || !currentPages.length) return;
-      const chunk = currentPages[currentPageIndex];
-      if (!chunk) return;
+      if (!currentBookId) return;
+      const page = getCurrentPage();
+      if (!page) return;
       
       const key = `bookmarks_${currentBookId}`;
       const bookmarks = JSON.parse(localStorage.getItem(key) || '[]');
-      const exists = bookmarks.find(b => b.sequence === chunk.sequence);
+      const exists = bookmarks.find(b => b.sequence === page.sequence);
       document.getElementById('readerBookmark').classList.toggle('active-bm', !!exists);
     }
 
     // ================================================================
-    // TOC - Hierarchical (like deep31.html)
+    // TOC - HIERARCHICAL
     // ================================================================
-    function buildTOCData() {
-      tocTree = [];
-      let currentPart = null, currentH1 = null, currentH2 = null, currentH3 = null;
+    function openTOC() {
+      if (!currentBookId || bookPages.length === 0) return;
+      
+      // Build TOC from pages
+      tocData = buildTOC(bookPages);
+      
+      const modal = document.getElementById('tocModal');
+      document.getElementById('modalOverlay').classList.add('show');
+      modal.classList.add('show');
+      
+      tocPath = [{ title: 'Contents', nodes: tocData }];
+      renderTOCLevel();
+    }
 
-      currentPages.forEach((row, index) => {
-        let partName = row.part || "1";
-        if (!currentPart || currentPart.name !== partName) {
-          currentPart = { 
-            type: 'part', 
-            name: partName, 
-            title: `ഭാഗം ${partName}`, 
-            children: [], 
-            index: index, 
-            page: row.page 
+    function buildTOC(pages) {
+      const tree = [];
+      let currentPart = null;
+      let currentH1 = null;
+      let currentH2 = null;
+
+      pages.forEach((page, index) => {
+        const arText = page.Arabic || '';
+        const mlText = (page.Malayalam || '').replace(/<[^>]+>/g, '').trim();
+        
+        // Extract headings
+        const h1Match = arText.match(/<h1[^>]*>(.*?)<\/h1>/i);
+        const h2Match = arText.match(/<h2[^>]*>(.*?)<\/h2>/i);
+        const h3Match = arText.match(/<h3[^>]*>(.*?)<\/h3>/i);
+        const h4Match = arText.match(/<h4[^>]*>(.*?)<\/h4>/i);
+
+        const partName = page.part || '1';
+        if (!currentPart || currentPart.title !== `ഭാഗം ${partName}`) {
+          currentPart = {
+            type: 'part',
+            title: `ഭാഗം ${partName}`,
+            children: [],
+            index: index,
+            page: page.page
           };
-          tocTree.push(currentPart);
-          currentH1 = null; currentH2 = null; currentH3 = null;
+          tree.push(currentPart);
+          currentH1 = null;
+          currentH2 = null;
         }
-
-        // Check for headings in Arabic text
-        const ar = row.Arabic || '';
-        const h1Match = ar.match(/<h1[^>]*>(.*?)<\/h1>/i);
-        const h2Match = ar.match(/<h2[^>]*>(.*?)<\/h2>/i);
-        const h3Match = ar.match(/<h3[^>]*>(.*?)<\/h3>/i);
-        const h4Match = ar.match(/<h4[^>]*>(.*?)<\/h4>/i);
 
         if (h1Match) {
           const title = h1Match[1].replace(/<[^>]+>/g, '').trim();
-          const mlText = (row.Malayalam || '').replace(/<[^>]+>/g, '').trim().substring(0, 30);
-          currentH1 = { 
-            type: 'h1', 
-            title: title, 
-            subtitle: mlText,
-            index: index, 
-            children: [], 
-            page: row.page 
+          currentH1 = {
+            type: 'h1',
+            title: title,
+            children: [],
+            index: index,
+            page: page.page
           };
           currentPart.children.push(currentH1);
-          currentH2 = null; currentH3 = null;
+          currentH2 = null;
         } else if (h2Match) {
           const title = h2Match[1].replace(/<[^>]+>/g, '').trim();
-          const mlText = (row.Malayalam || '').replace(/<[^>]+>/g, '').trim().substring(0, 30);
-          currentH2 = { 
-            type: 'h2', 
-            title: title, 
-            subtitle: mlText,
-            index: index, 
-            children: [], 
-            page: row.page 
+          currentH2 = {
+            type: 'h2',
+            title: title,
+            children: [],
+            index: index,
+            page: page.page
           };
           if (currentH1) currentH1.children.push(currentH2);
           else currentPart.children.push(currentH2);
-          currentH3 = null;
         } else if (h3Match) {
           const title = h3Match[1].replace(/<[^>]+>/g, '').trim();
-          currentH3 = { 
-            type: 'h3', 
-            title: title, 
-            index: index, 
-            children: [], 
-            page: row.page 
+          const node = {
+            type: 'h3',
+            title: title,
+            children: [],
+            index: index,
+            page: page.page
           };
-          if (currentH2) currentH2.children.push(currentH3);
-          else if (currentH1) currentH1.children.push(currentH3);
-          else currentPart.children.push(currentH3);
-        } else if (h4Match) {
-          const title = h4Match[1].replace(/<[^>]+>/g, '').trim();
-          const node = { 
-            type: 'h4', 
-            title: title, 
-            index: index, 
-            children: [], 
-            page: row.page 
-          };
-          if (currentH3) currentH3.children.push(node);
-          else if (currentH2) currentH2.children.push(node);
+          if (currentH2) currentH2.children.push(node);
           else if (currentH1) currentH1.children.push(node);
           else currentPart.children.push(node);
-        } else if (index % 5 === 0 || index === currentPageIndex || index === 0 || index === currentPages.length - 1) {
-          // Page marker
-          const mlText = (row.Malayalam || '').replace(/<[^>]+>/g, '').trim().substring(0, 25);
-          const node = { 
-            type: 'page', 
-            title: `പേജ് ${row.page}`, 
-            subtitle: mlText,
-            index: index, 
-            children: [], 
-            page: row.page 
+        } else if (h4Match) {
+          const title = h4Match[1].replace(/<[^>]+>/g, '').trim();
+          const node = {
+            type: 'h4',
+            title: title,
+            children: [],
+            index: index,
+            page: page.page
           };
-          if (currentH3) currentH3.children.push(node);
-          else if (currentH2) currentH2.children.push(node);
+          if (currentH2 && currentH2.children.length > 0) {
+            const lastH3 = currentH2.children[currentH2.children.length - 1];
+            if (lastH3 && lastH3.type === 'h3') lastH3.children.push(node);
+            else currentH2.children.push(node);
+          } else if (currentH1) currentH1.children.push(node);
+          else currentPart.children.push(node);
+        } else if (index % 10 === 0 || index === 0 || index === pages.length - 1) {
+          // Add page markers
+          const node = {
+            type: 'page',
+            title: `പേജ് ${page.page}`,
+            subtitle: mlText.substring(0, 30) + '...',
+            children: [],
+            index: index,
+            page: page.page
+          };
+          if (currentH2) currentH2.children.push(node);
           else if (currentH1) currentH1.children.push(node);
           else currentPart.children.push(node);
         }
       });
-    }
 
-    function openTOC() {
-      openModal('tocModal');
-      tocPath = [{ title: 'Home', nodes: tocTree }];
-      renderTOCLevel();
+      return tree;
     }
 
     function renderTOCLevel() {
-      let currentLevel = tocPath[tocPath.length - 1];
+      const currentLevel = tocPath[tocPath.length - 1];
       document.getElementById('tocBreadcrumb').innerHTML = tocPath.map((p, i) => 
         `<span onclick="navTOC(${i})">${p.title}</span>`
       ).join(' <i class="fas fa-angle-right"></i> ');
-      
-      document.getElementById('tocList').innerHTML = currentLevel.nodes.map((node, i) => {
+
+      const list = document.getElementById('tocList');
+      list.innerHTML = currentLevel.nodes.map((node, i) => {
         const isCurrent = node.index === currentPageIndex;
-        let levelClass = '';
-        let badgeText = '';
-        
-        if (node.type === 'part') { levelClass = 'toc-level-part'; badgeText = '📖 ഭാഗം'; }
-        else if (node.type === 'h1') { levelClass = 'toc-level-1'; badgeText = '📑 H1'; }
-        else if (node.type === 'h2') { levelClass = 'toc-level-2'; badgeText = '📂 H2'; }
-        else if (node.type === 'h3') { levelClass = 'toc-level-3'; badgeText = '📄 H3'; }
-        else if (node.type === 'h4') { levelClass = 'toc-level-4'; badgeText = '🔖 H4'; }
-        else { levelClass = 'toc-level-page'; badgeText = '📄 പേജ്'; }
-        
+        const levelClass = node.type === 'part' ? 'toc-level-1' :
+                          node.type === 'h1' ? 'toc-level-1' :
+                          node.type === 'h2' ? 'toc-level-2' :
+                          node.type === 'h3' ? 'toc-level-3' :
+                          node.type === 'h4' ? 'toc-level-4' : 'toc-level-page';
+
         if (node.children && node.children.length > 0) {
-          return `<div class="toc-item ${levelClass} ${isCurrent ? 'current' : ''}" onclick="drillTOC(${i})">
-            <div class="toc-badge">${badgeText}</div>
-            <div class="toc-title-text" dir="rtl">${node.title}</div>
-            ${node.subtitle ? `<div class="toc-translations">${node.subtitle}</div>` : ''}
-            <div class="toc-children-count"><i class="fas fa-folder-open"></i> ${node.children.length} items</div>
+          return `<div class="toc-item ${levelClass}" onclick="drillTOC(${i})">
+            <div class="toc-badge">${node.type.toUpperCase()}</div>
+            <div dir="rtl">${node.title}</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">
+              <i class="fas fa-folder-open"></i> ${node.children.length} items
+            </div>
           </div>`;
         } else {
-          return `<div class="toc-item ${levelClass} ${isCurrent ? 'current' : ''}" onclick="closeModal(); jumpToPage(${node.index})">
-            <div class="toc-badge">${badgeText}</div>
-            <div class="toc-title-text" dir="rtl">${node.title}</div>
-            ${node.subtitle ? `<div class="toc-translations">${node.subtitle}</div>` : ''}
+          return `<div class="toc-item ${levelClass} ${isCurrent ? 'current' : ''}" onclick="jumpToTOC(${node.index})">
+            <div class="toc-badge">📄 പേജ് ${node.page}</div>
+            <div dir="rtl">${node.title}</div>
+            ${node.subtitle ? `<div style="font-size:12px;color:var(--text-muted);">${node.subtitle}</div>` : ''}
           </div>`;
         }
-      }).join('');
+      }).join('') || '<div style="padding:20px;text-align:center;color:var(--text-muted);">No content</div>';
     }
 
-    function drillTOC(indexInCurrentList) {
-      let currentLevel = tocPath[tocPath.length - 1];
-      let node = currentLevel.nodes[indexInCurrentList];
+    function drillTOC(index) {
+      const currentLevel = tocPath[tocPath.length - 1];
+      const node = currentLevel.nodes[index];
       if (node.children && node.children.length > 0) {
         tocPath.push({ title: node.title, nodes: node.children });
         renderTOCLevel();
       } else {
-        closeModal();
-        jumpToPage(node.index);
+        jumpToTOC(node.index);
       }
     }
 
     function navTOC(pathIndex) {
       tocPath = tocPath.slice(0, pathIndex + 1);
       renderTOCLevel();
+    }
+
+    function jumpToTOC(index) {
+      if (index >= 0 && index < bookPages.length) {
+        currentPageIndex = index;
+        currentWordOffset = 0;
+        const page = getCurrentPage();
+        if (page) currentSequence = page.sequence;
+        renderCurrentPage();
+        if (isPlaying) playAudio();
+        saveProgress();
+        closeModal();
+      }
     }
 
     // ================================================================
@@ -2255,11 +2413,12 @@
           localStorage.removeItem(`book_${book.id}`);
           localStorage.removeItem(`progress_${book.id}`);
           localStorage.removeItem(`bookmarks_${book.id}`);
+          localStorage.removeItem(`toc_${book.id}`);
           book.downloaded = false;
           book.total_pages = 0;
         }
         localStorage.setItem('library_books', JSON.stringify(allBooks));
-        pageCache = {};
+        bookPages = [];
         renderBooks(allBooks);
         updateStorageInfo();
         alert('✅ All data cleared!');
