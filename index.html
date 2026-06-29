@@ -7,13 +7,15 @@
   
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
+  <script src="config.js"></script>
+  
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
   <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Manjari:wght@400;700&family=Chilanka&family=Gayathri&family=Scheherazade+New:wght@400;700&family=Lateef&display=swap" rel="stylesheet">
   
   <style>
     /* ================================================================
-       ROOT VARIABLES & THEMES
+       ROOT VARIABLES
        ================================================================ */
     :root {
       --primary-green: #1b4d3e; 
@@ -62,7 +64,7 @@
     button, input, select { font-family: inherit; border: none; outline: none; background: transparent; color: inherit; cursor: pointer; }
 
     /* ================================================================
-       LOADER & SETUP UI
+       LOADER
        ================================================================ */
     #loader {
       position: fixed; inset: 0; background: var(--bg); z-index: 9999;
@@ -71,9 +73,11 @@
     #loader.hidden { opacity: 0; pointer-events: none; }
     .spinner { border: 4px solid var(--border); border-top: 4px solid var(--primary-green); border-radius: 50%; width: 45px; height: 45px; animation: spin 0.8s linear infinite; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    .status { font-size: 16px; font-weight: bold; color: var(--primary-green); text-align: center; padding: 0 15px; }
-    .sub-status { font-size: 13px; color: var(--text-muted); text-align: center; padding: 0 15px; }
+    .status { font-size: 16px; font-weight: bold; color: var(--primary-green); }
 
+    /* ================================================================
+       CONNECTION SETUP
+       ================================================================ */
     #connectionSetup {
       display: none;
       flex-direction: column;
@@ -108,12 +112,9 @@
     }
     #connectionSetup button:active { transform: scale(0.97); }
     .setup-hint { font-size: 12px; color: var(--text-muted); text-align: center; }
-    .status-msg-badge { font-size: 13px; padding: 8px 12px; border-radius: 6px; width: 100%; text-align: center; }
-    .status-msg-badge.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-    .status-msg-badge.info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
 
     /* ================================================================
-       HOME SHELF VIEW
+       HOME VIEW
        ================================================================ */
     #homeView { display: flex; flex-direction: column; height: 100%; overflow-y: auto; padding-bottom: 90px; }
     header.home-header {
@@ -135,6 +136,9 @@
 
     .container { padding: 15px; max-width: 1000px; margin: auto; width: 100%; }
     
+    /* ================================================================
+       CONTINUE READING
+       ================================================================ */
     .continue-card {
       background: var(--primary-light); border: 2px solid var(--primary-green); border-radius: var(--radius);
       padding: 15px 20px; margin-bottom: 20px; display: none; align-items: center; justify-content: space-between; cursor: pointer; transition: 0.2s; grid-column: 1/-1;
@@ -144,7 +148,10 @@
     .continue-card .info p { font-size: 12px; color: var(--text-muted); }
     .continue-card .btn { background: var(--primary-green); color: white; padding: 8px 20px; border-radius: 30px; font-size: 13px; }
 
-    .book-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 15px; }
+    /* ================================================================
+       BOOK GRID
+       ================================================================ */
+    .book-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 15px; }
     
     details.group-details { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 15px; grid-column: 1/-1; overflow: hidden; }
     details.group-details summary { padding: 15px; font-weight: bold; color: var(--primary-green); cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; background: var(--primary-light); }
@@ -156,7 +163,6 @@
       box-shadow: var(--shadow); border: 1px solid var(--border); display: flex; flex-direction: column; transition: transform 0.2s; position: relative; cursor: pointer;
     }
     .book-card:active { transform: scale(0.98); }
-    .book-cover { width: 100%; height: 200px; object-fit: cover; background: #eee; border-bottom: 1px solid var(--border); }
     .book-avatar-fallback { width: 100%; height: 200px; background: linear-gradient(135deg, var(--primary-green), #2c3e50); display: flex; align-items: center; justify-content: center; color: white; font-size: 48px; }
     .book-details { padding: 12px; text-align: center; flex-grow: 1; }
     .book-details h3 { margin: 0; font-size: 15px; color: var(--primary-green); line-height: 1.4; height: 42px; overflow: hidden; }
@@ -166,13 +172,16 @@
     .more-btn { width: 40px; border: none; background: none; color: var(--text-muted); border-right: 1px solid var(--border); cursor: pointer; }
     .open-btn { flex-grow: 1; border: none; background: none; color: var(--primary-green); font-weight: bold; padding: 12px; cursor: pointer; font-size: 14px; }
 
+    /* ================================================================
+       BOTTOM NAV
+       ================================================================ */
     .bottom-nav { position: fixed; bottom: 0; width: 100%; background: var(--surface); display: flex; justify-content: space-around; padding: 10px 0; box-shadow: 0 -2px 15px rgba(0,0,0,0.1); z-index: 1000; border-top: 1px solid var(--border); }
     .nav-link { text-align: center; color: var(--text-muted); font-size: 12px; flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
     .nav-link i { font-size: 22px; }
     .nav-link.active { color: var(--primary-green); font-weight: bold; }
 
     /* ================================================================
-       READER VIEW & VIEWPORT MECHANICS
+       READER VIEW
        ================================================================ */
     #readerView { display: none; flex-direction: column; height: 100%; position: fixed; inset: 0; background: var(--bg); z-index: 2000; }
     #readerView.show { display: flex; }
@@ -230,6 +239,9 @@
     .word-hl { background: #facc15 !important; color: #000 !important; font-weight: bold; border-radius: 4px; box-shadow: 0 2px 12px rgba(250,204,21,0.4); }
     [data-theme="dark"] .word-hl { background-color: #f59e0b !important; color: #fff !important; }
 
+    /* ================================================================
+       LOADING OVERLAY
+       ================================================================ */
     .loading-overlay {
       position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 9999;
       display: none; justify-content: center; align-items: center; flex-direction: column; gap: 20px;
@@ -238,16 +250,25 @@
     .loading-overlay .loader-text { color: white; font-size: 18px; font-family: var(--font-ml); }
     .loading-overlay .loader-spinner { width: 60px; height: 60px; border: 5px solid rgba(255,255,255,0.2); border-top: 5px solid #facc15; border-radius: 50%; animation: spin 0.8s linear infinite; }
 
+    /* ================================================================
+       PAGINATION
+       ================================================================ */
     .reader-pagination {
       display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; margin-top: 15px; background: var(--surface); border-radius: 50px; border: 1px solid var(--border);
     }
     .reader-pagination button { padding: 8px 18px; border-radius: 30px; background: var(--bg); border: 1px solid var(--border); font-weight: bold; color: var(--text-dark); }
     .page-num { font-weight: bold; color: var(--primary-green); font-size: 15px; }
 
+    /* ================================================================
+       BOTTOM TABS
+       ================================================================ */
     .reader-bottom-nav { position: fixed; bottom: 0; width: 100%; height: var(--bottom-nav); background: var(--surface); display: flex; align-items: center; z-index: 500; border-top: 1px solid var(--border); }
     .nav-tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); font-size: 11px; font-weight: bold; gap: 6px; height: 100%; cursor: pointer; }
     .nav-tab.active { color: var(--primary-green); }
 
+    /* ================================================================
+       MINI PLAYER
+       ================================================================ */
     .mini-player { position: fixed; bottom: var(--bottom-nav); width: 100%; height: 52px; background: var(--surface); border-top: 1px solid var(--border); display: none; align-items: center; padding: 0 14px; z-index: 1500; box-shadow: 0 -4px 15px rgba(0,0,0,0.06); }
     .mini-player.show { display: flex; }
     .mini-details { flex: 1; overflow: hidden; cursor: pointer; }
@@ -256,7 +277,7 @@
     .mini-controls { display: flex; gap: 14px; font-size: 18px; color: var(--primary-green); align-items: center; }
 
     /* ================================================================
-       AUDIO PLAYER COMPONENT
+       AUDIO PLAYER
        ================================================================ */
     .audio-player { background: var(--surface); padding: 25px; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow-lg); text-align: center; }
     .audio-icon { font-size: 60px; color: var(--primary-green); margin-bottom: 15px; }
@@ -269,7 +290,7 @@
     .progress-bar { height: 100%; background: var(--primary-green); border-radius: 3px; width: 0%; transition: width 0.1s; }
 
     /* ================================================================
-       CINEMATIC REELS VISUALS
+       VISUAL MODE
        ================================================================ */
     .visual-mode { position: fixed; inset: 0; z-index: 2500; display: none; background: #000; flex-direction: column; }
     .visual-mode.show { display: flex; }
@@ -292,7 +313,7 @@
     .vis-progress-bar { height: 100%; background: #38bdf8; width: 0%; }
 
     /* ================================================================
-       MODALS MODIFIERS
+       MODALS
        ================================================================ */
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(3px); z-index: 3000; }
     .modal-overlay.show { display: block; }
@@ -325,12 +346,23 @@
     .toc-translations { font-size: 12px; color: var(--text-muted); margin-top: 5px; }
 
     .gender-btn {
-      padding: 8px 16px; border-radius: 8px; border: 2px solid var(--border);
-      background: var(--bg); color: var(--text-dark); cursor: pointer;
-      transition: all 0.3s; font-size: 13px; font-weight: bold; flex: 1;
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 2px solid var(--border);
+      background: var(--bg);
+      color: var(--text-dark);
+      cursor: pointer;
+      transition: all 0.3s;
+      font-size: 13px;
+      font-weight: bold;
+      flex: 1;
     }
     .gender-btn:hover { background: var(--primary-light); }
-    .gender-btn.active { border-color: var(--primary-green); background: var(--primary-light); color: var(--primary-green); }
+    .gender-btn.active {
+      border-color: var(--primary-green);
+      background: var(--primary-light);
+      color: var(--primary-green);
+    }
     .gender-btn:active { transform: scale(0.95); }
 
     @media (max-width: 600px) {
@@ -477,10 +509,10 @@
     <div class="visual-overlay"></div>
 
     <div class="visual-controls" id="visualControls">
-      <i class="fas fa-backward-step" onclick="changeVisualPage(-1)"></i>
-      <i class="fas fa-play vis-play" id="visPlayBtn" onclick="toggleVisualPlay()"></i>
-      <i class="fas fa-forward-step" onclick="changeVisualPage(1)"></i>
-      <i class="fas fa-stop" onclick="stopVisualAudio()"></i>
+      <i class="fas fa-backward-step" onclick="changePage(-1)"></i>
+      <i class="fas fa-play vis-play" id="visPlayBtn" onclick="togglePlay()"></i>
+      <i class="fas fa-forward-step" onclick="changePage(1)"></i>
+      <i class="fas fa-stop" onclick="stopAudio()"></i>
       <i class="fas fa-expand vis-fullscreen-btn" onclick="toggleVisualFullscreen()" title="Fullscreen"></i>
       <i class="fas fa-times-circle vis-close-btn" onclick="closeVisualMode()"></i>
     </div>
@@ -579,17 +611,15 @@
     // SUPABASE INTEGRATION ENGINE - CONFIRMED DUAL-LATCH LOGIC
     // ================================================================
     let supabase = null;
-    let SUPABASE_URL = 'https://axjeqkeocbfemojomfjm.supabase.co';
-    let SUPABASE_KEY = 'sb_publishable_JgdXpn2s46NfLu0wNHU_9w_Cj9ewUKE';
+    let SUPABASE_URL = '';
+    let SUPABASE_KEY = '';
 
     async function loadSupabaseConfig() {
-      // Inline Vercel simulation variables check
       if (window.ENV_SUPABASE_URL && window.ENV_SUPABASE_KEY) {
         SUPABASE_URL = window.ENV_SUPABASE_URL;
         SUPABASE_KEY = window.ENV_SUPABASE_KEY;
       }
       
-      // Fallback check to localStorage
       if (!SUPABASE_URL || !SUPABASE_KEY) {
         SUPABASE_URL = localStorage.getItem('supabase_url') || '';
         SUPABASE_KEY = localStorage.getItem('supabase_key') || '';
@@ -612,7 +642,7 @@
       const statusDiv = document.getElementById('statusMessage');
       
       if (!url || !key) {
-        statusDiv.innerHTML = `<div class="status-msg-badge error">❌ URL-ഉം Key-യും കൃത്യമായി നൽകുക!</div>`;
+        if(statusDiv) statusDiv.innerHTML = `<div class="status-msg-badge error">❌ URL-ഉം Key-യും കൃത്യമായി നൽകുക!</div>`;
         return;
       }
       
@@ -631,55 +661,46 @@
         document.getElementById('loadStatus').textContent = '📚 ഡിജിറ്റൽ ഗ്രന്ഥശേഖരം ലോഡ് ചെയ്യുന്നു...';
         document.getElementById('loadSubStatus').textContent = '✅ കണക്റ്റ് ആയി. പുസ്തകങ്ങൾ ലഭ്യമാക്കുന്നു...';
         
-        testCatalogConnection();
-      } catch (err) {
-        if(statusDiv) statusDiv.innerHTML = `<div class="status-msg-badge error">❌ ${err.message}</div>`;
-      }
-    }
-
-    async function testCatalogConnection() {
-      const statusDiv = document.getElementById('statusMessage');
-      try {
-        const { data, error } = await supabase
-          .from('master_catalog')
-          .select('*')
-          .limit(1);
-          
-        if (error) {
-          document.getElementById('connectionSetup').classList.add('show');
-          if(statusDiv) statusDiv.innerHTML = `<div class="status-msg-badge error">❌ ${error.message}</div>`;
-          return;
-        }
-        
         loadLibraryFromSupabase();
       } catch (err) {
-        document.getElementById('connectionSetup').classList.add('show');
         if(statusDiv) statusDiv.innerHTML = `<div class="status-msg-badge error">❌ ${err.message}</div>`;
       }
     }
 
     // ================================================================
-    // WEB AUDIO API - LATCH BACKEND BACKGROUND ALIVE ENGINE
+    // WEB AUDIO API - WILL START ON USER GESTURE
     // ================================================================
-    let audioCtx = null, oscillator = null, gainNode = null;
+    let audioCtx = null;
     function initAudioContext() {
       try {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        oscillator = audioCtx.createOscillator();
-        oscillator.type = 'sine';
-        oscillator.frequency.value = 18000;
-        gainNode = audioCtx.createGain();
-        gainNode.gain.value = 0.001;
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        oscillator.start();
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-      } catch(e) {}
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          gain.gain.value = 0.001;
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start();
+        }
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+      } catch(e) { console.warn('AudioContext error:', e); }
     }
-    function resumeAudioContext() { if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); }
-    document.addEventListener('click', resumeAudioContext);
-    document.addEventListener('touchstart', resumeAudioContext);
 
+    document.addEventListener('click', function initAudioOnClick() {
+      initAudioContext();
+      document.removeEventListener('click', initAudioOnClick);
+    }, { once: true });
+    
+    document.addEventListener('touchstart', function initAudioOnTouch() {
+      initAudioContext();
+      document.removeEventListener('touchstart', initAudioOnTouch);
+    }, { once: true });
+
+    // ================================================================
+    // BACKGROUND MUSIC
+    // ================================================================
     function handleBgMusic() {
       const opt = document.getElementById('optBgMusic').value;
       const bg = document.getElementById('bgMusic');
@@ -692,7 +713,7 @@
     }
 
     // ================================================================
-    // VOICE SUB-SYSTEM LOGIC (Edge Natural Voices + Gender Filters)
+    // VOICE SYSTEM (Edge Natural Voices + Gender Filter)
     // ================================================================
     let allSystemVoices = [];
     let currentVoiceFilter = 'all';
@@ -738,7 +759,6 @@
     function setupVoices() {
       allSystemVoices = synth.getVoices();
       updateVoiceList();
-      
       if (allSystemVoices.length === 0) {
         setTimeout(() => {
           allSystemVoices = synth.getVoices();
@@ -787,7 +807,7 @@
     }
 
     // ================================================================
-    // GENERAL STATE MANAGEMENT
+    // STATE
     // ================================================================
     const STATE = {
       books: [], currentBook: null, currentPage: 0, totalPages: 0,
@@ -795,7 +815,7 @@
       mode: 'ebook', fontScale: 18, showAr: true, showMl: true, showEn: true,
       ttsLang: 'ml-IN', speed: 1.0, autoNext: true, touchSpeak: true,
       currentBookId: null, charOffset: 0, shelfFilter: 'all',
-      scrollStyle: 'page'
+      scrollStyle: 'page', chunkOffset: 0, chunkSize: 10
     };
 
     const PLAY_STATE = { bookId: null, data: [], page: 0, charOffset: 0, totalPages: 0 };
@@ -817,7 +837,7 @@
     }
 
     // ================================================================
-    // LOAD LIBRARY CATALOG LOADER LOGIC
+    // LOAD LIBRARY FROM `master_catalog`
     // ================================================================
     async function loadLibraryFromSupabase() {
       if (!supabase) return;
@@ -841,15 +861,17 @@
         
         renderBooks(STATE.books);
         document.getElementById('loader').classList.add('hidden');
+        document.getElementById('homeView').style.display = 'flex';
         updateContinueReading();
       } catch (err) {
         console.error(err);
-        document.getElementById('loadStatus').textContent = '❌ ഗ്രന്ഥശേഖരം ലഭ്യമാക്കാൻ കഴിഞ്ഞില്ല';
+        document.getElementById('loadStatus').textContent = '❌ കണക്ഷൻ എറർ!';
+        document.getElementById('loadSubStatus').textContent = err.message;
       }
     }
 
     // ================================================================
-    // CONTINUITY ENGINE DETECTORS
+    // CONTINUE READING
     // ================================================================
     function updateContinueReading() {
       const card = document.getElementById('continueCard');
@@ -871,12 +893,37 @@
 
     function showLoading(text) {
       document.getElementById('loadingText').textContent = text || '📖 Loading...';
-      document.getElementById('loadingOverlay').classList.add('show');
+      document.getElementById('loadingOverlay').style.display = 'flex';
     }
-    function hideLoading() { document.getElementById('loadingOverlay').classList.remove('show'); }
+    function hideLoading() { document.getElementById('loadingOverlay').style.display = 'none'; }
 
     // ================================================================
-    // OPEN BOOK VERIFIED RECOVERY LOGIC - SELECT * ORDER BY "ID"
+    // FETCH CHUNK LOGIC - 10 ROWS AT A TIME BY DEFAULT
+    // ================================================================
+    async function fetchBookChunk(bookId, offset, limit) {
+      const tableName = `${bookId}_contents`;
+      const { data, error } = await supabase
+        .from(tableName)
+        .select('*')
+        .order('ID', { ascending: true })
+        .range(offset, offset + limit - 1);
+        
+      if (error) throw error;
+      return data || [];
+    }
+
+    async function fetchTotalRowCount(bookId) {
+      const tableName = `${bookId}_contents`;
+      const { count, error } = await supabase
+        .from(tableName)
+        .select('*', { count: 'exact', head: true });
+        
+      if (error) throw error;
+      return count || 0;
+    }
+
+    // ================================================================
+    // OPEN BOOK WITH LIGHTWEIGHT ON-DEMAND PAGINATION WINDOW
     // ================================================================
     async function openBook(bookId) {
       const book = STATE.books.find(b => b.id === bookId);
@@ -887,58 +934,73 @@
       showLoading(`📖 ${book.titleMl || book.title} ലോഡ് ചെയ്യുന്നു...`);
       
       try {
-        const tableName = `${bookId}_contents`;
+        const totalRows = await fetchTotalRowCount(bookId);
+        STATE.totalPages = totalRows;
+
+        const savedGlobalIndex = parseInt(localStorage.getItem(bookId + '_global_index')) || 0;
+        STATE.currentPage = savedGlobalIndex >= totalRows ? 0 : savedGlobalIndex;
+        STATE.charOffset = parseInt(localStorage.getItem(bookId + '_offset')) || 0;
+
+        STATE.chunkOffset = Math.floor(STATE.currentPage / STATE.chunkSize) * STATE.chunkSize;
         
-        // Verified Latch Logic: Query exact columns, sorted strictly by capital string identifier 'ID'
-        const { data, error } = await supabase
-          .from(tableName)
-          .select('*')
-          .order('ID', { ascending: true });
+        const rawRows = await fetchBookChunk(bookId, STATE.chunkOffset, STATE.chunkSize);
+        processLoadedRows(rawRows);
 
-        if (error) throw error;
-
-        if (data && data.length > 0) {
-          let list = data.map(row => {
-            // Remap values directly from Sheet column structure mapping notation
-            let ar = (row['Arabic Text'] || "").toString().trim();
-            let ml = (row['Malayalam Text'] || "").toString().trim();
-            let en = (row['English Text'] || "").toString().trim();
-            let plainAr = ar.replace(/<\/?[^>]+(>|$)/g, "").trim();
-            let plainMl = ml.replace(/<\/?[^>]+(>|$)/g, "").trim();
-            let plainEn = en.replace(/<\/?[^>]+(>|$)/g, "").trim();
-            
-            let hMatch = ar.match(/<(h[1-6])[^>]*>(.*?)<\/\1>/i);
-            let isHead = !!hMatch;
-            let headingAr = hMatch ? hMatch[2].replace(/<[^>]+>/g, "").trim() : "";
-            let hTagLevel = hMatch ? hMatch[1].toLowerCase() : "";
-
-            return {
-              id: row['ID'] || row.id, 
-              part: row['Part Number'] || '1', 
-              page: row['Page Number'] || '1',
-              arStr: ar, mlStr: ml, enStr: en, 
-              isHead: isHead, headingAr: headingAr,
-              hTagLevel: hTagLevel, arPure: plainAr, mlPure: plainMl, enPure: plainEn
-            };
-          });
-
-          STATE.data = list;
-          STATE.totalPages = list.length;
-          STATE.currentPage = parseInt(localStorage.getItem(bookId + '_index')) || 0;
-          STATE.charOffset = parseInt(localStorage.getItem(bookId + '_offset')) || 0;
-          if (STATE.currentPage >= STATE.totalPages) STATE.currentPage = 0;
-          
-          hideLoading();
-          openReader();
-        } else {
-          hideLoading();
-          alert("ഡാറ്റ ലഭ്യമായില്ല! ഈ പുസ്തകത്തിന്റെ ഉള്ളടക്ക ടേബിൾ പരിശോധിക്കുക.");
-        }
+        hideLoading();
+        openReader();
       } catch (err) {
         hideLoading();
         console.error(err);
-        alert(`എറർ: ${bookId}_contents ടേബിൾ കണ്ടെത്തുന്നതിൽ പരാജയപ്പെട്ടു!`);
+        alert(`എറർ: ഡാറ്റാബേസിൽ നിന്ന് വരികൾ ലഭ്യമാക്കാൻ സാധിച്ചില്ല.`);
       }
+    }
+
+    function processLoadedRows(rawRows) {
+      STATE.data = rawRows.map(row => {
+        let ar = (row['Arabic Text'] || "").toString().trim();
+        let ml = (row['Malayalam Text'] || "").toString().trim();
+        let en = (row['English Text'] || "").toString().trim();
+        let plainAr = ar.replace(/<\/?[^>]+(>|$)/g, "").trim();
+        let plainMl = ml.replace(/<\/?[^>]+(>|$)/g, "").trim();
+        let plainEn = en.replace(/<\/?[^>]+(>|$)/g, "").trim();
+        
+        let hMatch = ar.match(/<(h[1-6])[^>]*>(.*?)<\/\1>/i);
+        let isHead = !!hMatch;
+        let headingAr = hMatch ? hMatch[2].replace(/<[^>]+>/g, "").trim() : "";
+        let hTagLevel = hMatch ? hMatch[1].toLowerCase() : "";
+
+        return {
+          id: row['ID'] || row.id, 
+          part: row['Part Number'] || '1', 
+          page: row['Page Number'] || '1',
+          arStr: ar, mlStr: ml, enStr: en, 
+          isHead: isHead, headingAr: headingAr,
+          hTagLevel: hTagLevel, arPure: plainAr, mlPure: plainMl, enPure: plainEn
+        };
+      });
+    }
+
+    async function loadPageContext(targetGlobalIndex) {
+      if (targetGlobalIndex < 0 || targetGlobalIndex >= STATE.totalPages) return false;
+      
+      const targetChunkOffset = Math.floor(targetGlobalIndex / STATE.chunkSize) * STATE.chunkSize;
+      
+      if (targetChunkOffset !== STATE.chunkOffset) {
+        showLoading('📖 അടുത്ത വരികൾ ലോഡ് ചെയ്യുന്നു...');
+        try {
+          const rawRows = await fetchBookChunk(STATE.currentBookId, targetChunkOffset, STATE.chunkSize);
+          STATE.chunkOffset = targetChunkOffset;
+          processLoadedRows(rawRows);
+          hideLoading();
+        } catch (e) {
+          hideLoading();
+          console.error(e);
+          return false;
+        }
+      }
+      
+      STATE.currentPage = targetGlobalIndex;
+      return true;
     }
 
     function openReader() {
@@ -954,8 +1016,11 @@
     }
 
     function closeReader() {
-      if (STATE.currentBookId) {
-        const row = STATE.data[STATE.currentPage];
+      if (STATE.currentBookId && STATE.data.length > 0) {
+        const localIndex = STATE.currentPage - STATE.chunkOffset;
+        const row = STATE.data[localIndex];
+        localStorage.setItem(STATE.currentBookId + '_global_index', STATE.currentPage);
+        localStorage.setItem(STATE.currentBookId + '_offset', STATE.charOffset);
         localStorage.setItem('last_played_book_id', STATE.currentBookId);
         localStorage.setItem('last_played_book_title', STATE.currentBook.titleMl || STATE.currentBook.title);
         localStorage.setItem('last_played_page', row?.page || '1');
@@ -970,10 +1035,11 @@
     }
 
     function saveState() {
-      if(!STATE.currentBookId) return;
-      localStorage.setItem(STATE.currentBookId + '_index', STATE.currentPage);
+      if(!STATE.currentBookId || STATE.data.length === 0) return;
+      localStorage.setItem(STATE.currentBookId + '_global_index', STATE.currentPage);
       localStorage.setItem(STATE.currentBookId + '_offset', STATE.charOffset);
-      const row = STATE.data[STATE.currentPage];
+      const localIndex = STATE.currentPage - STATE.chunkOffset;
+      const row = STATE.data[localIndex];
       if (row) {
         localStorage.setItem('last_played_book_id', STATE.currentBookId);
         localStorage.setItem('last_played_book_title', STATE.currentBook.titleMl || STATE.currentBook.title);
@@ -983,12 +1049,9 @@
       updateContinueReading();
     }
 
-    // ================================================================
-    // COMPONENT LAYER DRAWING ENGINE
-    // ================================================================
     function renderBooks(books) {
       const grid = document.getElementById('bookGrid');
-      if (!books || books.length === 0) { grid.innerHTML = `<div class="empty-state"><h3>ഗ്രന്ഥങ്ങൾ ലഭ്യമായിട്ടില്ല</h3></div>`; return; }
+      if (!books || books.length === 0) { grid.innerHTML = `<div class="empty-state"><h3>ഗ്രന്ഥങ്ങൾ ലഭ്യമല്ല</h3></div>`; return; }
       
       grid.innerHTML = books.map(book => `
         <div class="book-card" onclick="openBook('${book.id}')">
@@ -1057,9 +1120,11 @@
       const container = document.getElementById('readerPageContainer');
       container.className = STATE.scrollStyle === 'vertical' ? 'mode-vertical' : 'mode-ebook-page';
       
+      const localIndex = STATE.currentPage - STATE.chunkOffset;
       let html = '';
+      
       STATE.data.forEach((row, index) => {
-        const isCurrent = index === STATE.currentPage;
+        const isCurrent = index === localIndex;
         html += `
           <div class="reader-page-card ${isCurrent ? 'active-page' : ''}" id="page_${index}">
             <div class="head-badge">ഭാഗം ${row.part || '?'} - പേജ് ${row.page || '?'}</div>
@@ -1069,32 +1134,28 @@
           </div>`;
         
         if (STATE.scrollStyle === 'vertical' && index < STATE.data.length - 1) {
-          html += `<div class="page-breaker"><i class="fas fa-book-open"></i> ${index + 1} <i class="fas fa-ellipsis-h"></i> ${index + 2} <i class="fas fa-book-open"></i></div>`;
+          html += `<div class="page-breaker"><i class="fas fa-book-open"></i> ${STATE.chunkOffset + index + 1} <i class="fas fa-ellipsis-h"></i> ${STATE.chunkOffset + index + 2} <i class="fas fa-book-open"></i></div>`;
         }
       });
       
       container.innerHTML = html;
       document.getElementById('readerPageNum').textContent = `${STATE.currentPage + 1} / ${STATE.totalPages}`;
       
-      const row = STATE.data[STATE.currentPage];
-      if (row) {
-        document.getElementById('miniTitle').textContent = (row.mlPure || '').substring(0, 40) + '...';
-        document.getElementById('miniProgress').textContent = `ഭാഗം ${row.part} - പേജ് ${row.page}`;
+      const activeRow = STATE.data[localIndex];
+      if (activeRow) {
+        document.getElementById('miniTitle').textContent = (activeRow.mlPure || '').substring(0, 40) + '...';
+        document.getElementById('miniProgress').textContent = `ഭാഗം ${activeRow.part} - പേജ് ${activeRow.page}`;
         updateAudioUI();
       }
       
       syncHighlights();
       if (document.getElementById('visualMode').classList.contains('show')) updateVisualChunk();
-      
-      if (STATE.scrollStyle === 'vertical') {
-        const el = document.getElementById(`page_${STATE.currentPage}`);
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
     }
 
-    function highlightWords(text, pageIndex) {
+    function highlightWords(text, localPageIndex) {
       if (!text) return '';
-      if (pageIndex !== STATE.currentPage) return text;
+      const localIndex = STATE.currentPage - STATE.chunkOffset;
+      if (localPageIndex !== localIndex) return text;
       
       let offsetAcc = 0;
       return text.split(/(\s+)/).map(token => {
@@ -1120,18 +1181,21 @@
       }
     }
 
-    function changePage(delta) {
-      const newPage = STATE.currentPage + delta;
-      if (newPage < 0 || newPage >= STATE.totalPages) return;
-      STATE.currentPage = newPage;
-      STATE.charOffset = 0;
-      saveState();
-      renderAllPages();
+    async function changePage(delta) {
+      const targetGlobalIndex = STATE.currentPage + delta;
+      if (targetGlobalIndex < 0 || targetGlobalIndex >= STATE.totalPages) return;
       
-      if (STATE.playing && PLAY_STATE.bookId === STATE.currentBookId) {
-        PLAY_STATE.page = STATE.currentPage;
-        PLAY_STATE.charOffset = 0;
-        playAudioLine();
+      const success = await loadPageContext(targetGlobalIndex);
+      if (success) {
+        STATE.charOffset = 0;
+        saveState();
+        renderAllPages();
+        
+        if (STATE.playing && PLAY_STATE.bookId === STATE.currentBookId) {
+          PLAY_STATE.page = STATE.currentPage;
+          PLAY_STATE.charOffset = 0;
+          playAudioLine();
+        }
       }
     }
 
@@ -1139,7 +1203,8 @@
       document.querySelectorAll(".word-token").forEach(el => el.classList.remove('word-hl'));
       if (!STATE.playing && !document.querySelector('.word-hl')) return;
       
-      const pageEl = document.getElementById(`page_${STATE.currentPage}`);
+      const localIndex = STATE.currentPage - STATE.chunkOffset;
+      const pageEl = document.getElementById(`page_${localIndex}`);
       if (!pageEl) return;
       
       let targetSpan = null;
@@ -1158,7 +1223,7 @@
     }
 
     // ================================================================
-    // TTS AUDIO CHUNKS BROADCAST SYSTEM
+    // AUDIO ENGINE
     // ================================================================
     function togglePlay() {
       resumeAudioContext();
@@ -1182,10 +1247,17 @@
     }
 
     function playAudioLine() {
-      if(!PLAY_STATE.data || PLAY_STATE.data.length === 0) return;
-      const row = PLAY_STATE.data[PLAY_STATE.page];
+      const localIndex = STATE.currentPage - STATE.chunkOffset;
+      const row = STATE.data[localIndex];
       if (!row) return;
       const audioLangSetting = document.getElementById("optAudioLang").value;
+      const voiceSelect = document.getElementById("optVoice");
+      
+      const selectedVoiceName = voiceSelect ? voiceSelect.value : '';
+      let selectedVoice = null;
+      if (selectedVoiceName) {
+        selectedVoice = allSystemVoices.find(v => v.name === selectedVoiceName);
+      }
       
       resumeAudioContext();
       
@@ -1195,40 +1267,25 @@
       else if (audioLangSetting === "ar-EG") fullText = row.arPure;
 
       if (!fullText) {
-        if (STATE.autoNext && PLAY_STATE.page < PLAY_STATE.totalPages - 1) {
-          PLAY_STATE.page++; PLAY_STATE.charOffset = 0; playAudioLine();
-        }
+        if (STATE.autoNext) changePage(1);
         return;
       }
       
       let playableText = fullText.substring(PLAY_STATE.charOffset);
       if (playableText.trim() === "") {
-        if (STATE.autoNext && PLAY_STATE.page < PLAY_STATE.totalPages - 1) {
-          PLAY_STATE.page++; PLAY_STATE.charOffset = 0; playAudioLine();
-        }
+        if (STATE.autoNext) changePage(1);
         return;
       }
 
       synth.cancel();
-      
-      const voiceSelect = document.getElementById('optVoice');
-      const selectedVoiceName = voiceSelect ? voiceSelect.value : '';
-      let selectedVoice = null;
-      if (selectedVoiceName) {
-        selectedVoice = allSystemVoices.find(v => v.name === selectedVoiceName);
-      }
-      
       currentUtterance = new SpeechSynthesisUtterance(playableText);
       currentUtterance.lang = audioLangSetting;
       
-      if (selectedVoice) {
-        currentUtterance.voice = selectedVoice;
-      }
-      
+      if(selectedVoice) currentUtterance.voice = selectedVoice;
       currentUtterance.rate = parseFloat(document.getElementById("optSpeed").value) || 1.0;
 
       let baseCharOffset = PLAY_STATE.charOffset;
-      const currentPageOnStart = PLAY_STATE.page;
+      const currentPageOnStart = STATE.currentPage;
 
       if (audioProgressInterval) clearInterval(audioProgressInterval);
       let progress = 0;
@@ -1246,48 +1303,25 @@
         document.getElementById('silentAudio').play().catch(()=>{});
         updateMediaSessionMeta();
         resumeAudioContext();
-        const rowData = PLAY_STATE.data[PLAY_STATE.page];
-        if (rowData) {
-          localStorage.setItem('last_played_book_id', PLAY_STATE.bookId);
-          localStorage.setItem('last_played_book_title', STATE.currentBook?.titleMl || 'Book');
-          localStorage.setItem('last_played_page', rowData.page || '1');
-          localStorage.setItem('last_played_part', rowData.part || '1');
-          updateContinueReading();
-        }
+        saveState();
       };
       
       currentUtterance.onboundary = (e) => {
         if(typeof e.charIndex === 'number' && (e.name === 'word' || !e.name)) {
           PLAY_STATE.charOffset = baseCharOffset + e.charIndex;
           
-          if(STATE.currentBookId === PLAY_STATE.bookId && STATE.currentPage === PLAY_STATE.page) {
+          if(STATE.currentBookId === PLAY_STATE.bookId && STATE.currentPage === currentPageOnStart) {
             STATE.charOffset = PLAY_STATE.charOffset;
             saveState();
             renderAllPages();
             updateVisualChunk();
           }
-          
-          const rowData = PLAY_STATE.data[PLAY_STATE.page];
-          document.getElementById('miniTitle').textContent = (rowData?.mlPure || '').substring(0, 40) + '...';
-          document.getElementById('miniProgress').textContent = `ഭാഗം ${rowData?.part} - പേജ് ${rowData?.page}`;
         }
       };
 
       currentUtterance.onend = () => {
-        if (STATE.playing && STATE.autoNext && PLAY_STATE.page === currentPageOnStart) {
-          PLAY_STATE.page++;
-          PLAY_STATE.charOffset = 0;
-          if(PLAY_STATE.page < PLAY_STATE.totalPages) {
-            if(STATE.currentBookId === PLAY_STATE.bookId) {
-              STATE.currentPage = PLAY_STATE.page;
-              STATE.charOffset = 0;
-              saveState();
-              renderAllPages();
-            }
-            playAudioLine();
-          } else {
-            stopAudio();
-          }
+        if (STATE.playing && STATE.autoNext && STATE.currentPage === currentPageOnStart) {
+          changePage(1);
         }
       };
       synth.speak(currentUtterance);
@@ -1316,10 +1350,6 @@
     function restorePlayingBook() {
       if(PLAY_STATE.bookId && PLAY_STATE.bookId !== STATE.currentBookId) {
         openBook(PLAY_STATE.bookId).then(() => {
-          STATE.currentPage = PLAY_STATE.page;
-          STATE.charOffset = PLAY_STATE.charOffset;
-          saveState();
-          renderAllPages();
           switchViewportTab('audio');
         });
       } else {
@@ -1331,13 +1361,14 @@
     function applyAudioSettings(restart) { if(restart && STATE.playing) { synth.cancel(); playAudioLine(); } }
 
     function updateAudioUI() {
-      const row = STATE.data[STATE.currentPage]; if (!row) return;
+      const localIndex = STATE.currentPage - STATE.chunkOffset;
+      const row = STATE.data[localIndex]; if (!row) return;
       document.getElementById('audioTitle').textContent = (row.mlPure || '').substring(0, 50) + '...';
-      document.getElementById('audioMeta').textContent = `ഭാഗം ${row.part} - പേജ് ${row.page} / ${STATE.totalPages}`;
+      document.getElementById('audioMeta').textContent = `പേജ് ${STATE.currentPage + 1} / ${STATE.totalPages}`;
     }
 
     // ================================================================
-    // CINEMATIC VIDEO REELS PROJECTION
+    // VISUAL REELS LAYER
     // ================================================================
     function openVisualMode() {
       document.getElementById('visualMode').classList.add('show');
@@ -1353,28 +1384,23 @@
       renderAllPages();
     }
 
-    function toggleVisualFullscreen() {
-      document.getElementById('visualMode').classList.toggle('fullscreen');
-    }
+    function toggleVisualFullscreen() { document.getElementById('visualMode').classList.toggle('fullscreen'); }
 
     function updateVisualChunk() {
-      const row = STATE.data[STATE.currentPage]; if (!row) return;
+      const localIndex = STATE.currentPage - STATE.chunkOffset;
+      const row = STATE.data[localIndex]; if (!row) return;
       const audioLangSetting = document.getElementById("optAudioLang").value;
       
-      let effectivePureAr = (PLAY_STATE.bookId === STATE.currentBookId) ? PLAY_STATE.data[PLAY_STATE.page]?.arPure : row.arPure;
-      let effectivePureMl = (PLAY_STATE.bookId === STATE.currentBookId) ? PLAY_STATE.data[PLAY_STATE.page]?.mlPure : row.mlPure;
-      let effectivePureEn = (PLAY_STATE.bookId === STATE.currentBookId) ? PLAY_STATE.data[PLAY_STATE.page]?.enPure : row.enPure;
-
-      document.getElementById('visArText').innerHTML = generateVisualWords(effectivePureAr, audioLangSetting === 'ar-EG');
-      document.getElementById('visMlText').innerHTML = generateVisualWords(effectivePureMl, audioLangSetting === 'ml-IN');
-      document.getElementById('visEnText').innerHTML = generateVisualWords(effectivePureEn, audioLangSetting === 'en-US');
+      document.getElementById('visArText').innerHTML = generateVisualWords(row.arPure, audioLangSetting === 'ar-EG');
+      document.getElementById('visMlText').innerHTML = generateVisualWords(row.mlPure, audioLangSetting === 'ml-IN');
+      document.getElementById('visEnText').innerHTML = generateVisualWords(row.enPure, audioLangSetting === 'en-US');
     }
 
     function generateVisualWords(pureString, isCurrentAudioLang) {
       if(!pureString) return "...";
       let tokens = pureString.split(/(\s+)/);
       let activeTokenIdx = 0, acc = 0;
-      let effectiveOffset = PLAY_STATE.charOffset;
+      let effectiveOffset = STATE.charOffset;
       
       for(let i=0; i<tokens.length; i++) {
         if(acc <= effectiveOffset) activeTokenIdx = i;
@@ -1394,10 +1420,6 @@
       });
       return html || "...";
     }
-
-    function toggleVisualPlay() { togglePlay(); }
-    function changeVisualPage(delta) { changePage(delta); }
-    function stopVisualAudio() { stopAudio(); }
 
     function applyVisualBg() {
       const ytInput = document.getElementById('optYoutubeId').value.trim();
@@ -1434,103 +1456,65 @@
     }
 
     // ================================================================
-    // STRUCTURE INDEX: TABLE OF CONTENTS MODAL LOGIC
+    // TOC MODAL
     // ================================================================
-    function openTOC() {
+    async function openTOC() {
       openModal('tocModal');
-      buildTOCData();
-      tocPath = [{ title: 'Home', nodes: tocTree }];
-      renderTOCLevel();
-    }
-    
-    function buildTOCData() {
-      tocTree = [];
-      let currentPart = null, currentH1 = null, currentH2 = null;
-
-      STATE.data.forEach((row, index) => {
-        let partName = row.part || "1";
-        if (!currentPart || currentPart.name !== partName) {
-          currentPart = { type: 'part', name: partName, title: `ഭാഗം ${partName}`, children: [], index: index, page: row.page };
-          tocTree.push(currentPart);
-          currentH1 = null; currentH2 = null;
-        }
-
-        if (row.isHead) {
-          let trMlText = row.mlPure ? row.mlPure.substring(0, 10) : "";
-          let trEnText = row.enPure ? row.enPure.substring(0, 10) : "";
-          let subtitle = (trMlText || trEnText) ? `[ ${trMlText} / ${trEnText} ]` : "";
-          let node = { type: row.hTagLevel, title: row.headingAr, subtitle: subtitle, index: index, children: [], page: row.page, raw: row };
+      const list = document.getElementById('tocList');
+      list.innerHTML = `<div class="loading"><div class="spinner"></div>സൂചിക തയ്യാറാക്കുന്നു...</div>`;
+      
+      try {
+        const tableName = `${STATE.currentBookId}_contents`;
+        const { data, error } = await supabase
+          .from(tableName)
+          .select('"ID", "Part Number", "Page Number", "Malayalam Text"')
+          .order('ID', { ascending: true });
           
-          if (row.hTagLevel === 'h1') {
-            currentH1 = node; currentPart.children.push(currentH1); currentH2 = null;
-          } else if (row.hTagLevel === 'h2') {
-            currentH2 = node;
-            if (currentH1) currentH1.children.push(currentH2);
-            else currentPart.children.push(currentH2);
-          } else {
-            if (currentH2) currentH2.push(node);
-            else if (currentH1) currentH1.children.push(node);
-            else currentPart.children.push(node);
+        if (error) throw error;
+        
+        let html = '';
+        data.forEach((row, index) => {
+          if (index % 15 === 0 || index === STATE.currentPage) {
+            const isCurrent = index === STATE.currentPage;
+            const textSample = row['Malayalam Text'] ? row['Malayalam Text'].replace(/<[^>]+>/g, '').substring(0, 35) + '...' : '';
+            html += `
+              <div class="toc-item ${isCurrent ? 'current' : ''}" onclick="jumpToPage(${index})">
+                <div class="toc-badge">📄 പേജ് ${row['Page Number'] || '1'}</div>
+                <div class="toc-title-text">ഭാഗം ${row['Part Number'] || '1'}</div>
+                <div class="toc-translations">${textSample}</div>
+              </div>`;
           }
-        } else if (index % 5 === 0 || index === STATE.currentPage || index === 0 || index === STATE.data.length - 1) {
-          let node = { type: 'page', title: `പേജ് ${row.page}`, subtitle: row.mlPure.substring(0, 20) + "...", index: index, children: [], page: row.page, raw: row };
-          if (currentH2) currentH2.children.push(node);
-          else if (currentH1) currentH1.children.push(node);
-          else currentPart.children.push(node);
+        });
+        list.innerHTML = html;
+      } catch (err) {
+        list.innerHTML = `<div style="padding:20px; text-align:center; color:red;">സൂചിക ലോഡ് ചെയ്യാൻ കഴിഞ്ഞില്ല.</div>`;
+      }
+    }
+
+    async function jumpToPage(index) {
+      closeModal();
+      const success = await loadPageContext(index);
+      if (success) {
+        STATE.charOffset = 0;
+        saveState();
+        renderAllPages();
+        if (STATE.playing && PLAY_STATE.bookId === STATE.currentBookId) {
+          PLAY_STATE.page = STATE.currentPage;
+          PLAY_STATE.charOffset = 0;
+          playAudioLine();
         }
-      });
-    }
-
-    function renderTOCLevel() {
-      let currentLevel = tocPath[tocPath.length - 1];
-      document.getElementById('tocBreadcrumb').innerHTML = tocPath.map((p, i) => `<span onclick="navTOC(${i})">${p.title}</span>`).join(' <i class="fas fa-angle-right"></i> ');
-      document.getElementById('tocList').innerHTML = currentLevel.nodes.map((node, i) => {
-        if (node.children.length > 0) {
-          return `<div class="toc-item" onclick="drillTOC(${i})">
-            <div class="toc-badge">${node.type.toUpperCase()}</div>
-            <div class="toc-title-text" dir="rtl">${node.title}</div>
-            ${node.subtitle ? `<div class="toc-translations">${node.subtitle}</div>` : ''}
-            <div style="font-size:11px;color:var(--text-muted);margin-top:8px;"><i class="fas fa-folder-open"></i> ${node.children.length} items</div>
-          </div>`;
-        } else {
-          return `<div class="toc-item ${node.index === STATE.currentPage ? 'current' : ''}" onclick="closeModal(); jumpToPage(${node.index})">
-            <div class="toc-badge">📄 പേജ് ${node.page}</div>
-            <div class="toc-title-text">${node.title}</div>
-            ${node.subtitle ? `<div class="toc-translations">${node.subtitle}</div>` : ''}
-          </div>`;
-        }
-      }).join('');
-    }
-
-    function drillTOC(indexInCurrentList) {
-      let currentLevel = tocPath[tocPath.length - 1];
-      let node = currentLevel.nodes[indexInCurrentList];
-      tocPath.push({ title: node.title, nodes: node.children });
-      renderTOCLevel();
-    }
-
-    function navTOC(pathIndex) {
-      tocPath = tocPath.slice(0, pathIndex + 1);
-      renderTOCLevel();
-    }
-
-    function jumpToPage(index) {
-      STATE.currentPage = index; STATE.charOffset = 0; saveState();
-      renderAllPages();
-      if(STATE.playing && PLAY_STATE.bookId === STATE.currentBookId) {
-        PLAY_STATE.page = index; PLAY_STATE.charOffset = 0; playAudioLine();
       }
     }
 
     // ================================================================
-    // MEDIA COMPONENT INTERFACE INTEROPS
+    // CORE SYSTEM CONFIGURATIONS
     // ================================================================
     function setupMediaSession() {
       if('mediaSession' in navigator) {
         navigator.mediaSession.setActionHandler('play', togglePlay);
         navigator.mediaSession.setActionHandler('pause', togglePlay);
-        navigator.mediaSession.setActionHandler('nexttrack', () => { if(STATE.playing) changePage(1); });
-        navigator.mediaSession.setActionHandler('previoustrack', () => { if(STATE.playing) changePage(-1); });
+        navigator.mediaSession.setActionHandler('nexttrack', () => { changePage(1); });
+        navigator.mediaSession.setActionHandler('previoustrack', () => { changePage(-1); });
         navigator.mediaSession.setActionHandler('stop', stopAudio);
       }
     }
@@ -1538,10 +1522,9 @@
     function updateMediaSessionMeta() {
       if('mediaSession' in navigator && PLAY_STATE.bookId) {
         let activeBookMeta = STATE.books.find(b => b.id === PLAY_STATE.bookId);
-        let b = PLAY_STATE.data[PLAY_STATE.page];
         navigator.mediaSession.metadata = new MediaMetadata({
           title: activeBookMeta ? activeBookMeta.titleMl : 'Digital Library',
-          artist: `ഭാഗം ${b?.part || ''} - പേജ് ${b?.page || ''}`,
+          artist: `പേജ് ${STATE.currentPage + 1}`,
           album: 'Adventure Premium Sandbox'
         });
       }
@@ -1577,9 +1560,8 @@
       hideLoading();
     }
 
-    function openSettings() { openModal('settingsModal'); }
     function openModal(id) { document.getElementById('modalOverlay').classList.add('show'); document.getElementById(id).classList.add('show'); }
-    function closeModal() { document.getElementById('modalOverlay').classList.remove('show'); document.querySelectorAll('.modal-box').forEach(el => el.classList.remove('show')); }
+    function closeModal() { document.getElementById('modalOverlay').remove('show'); document.querySelectorAll('.modal-box').forEach(el => el.classList.remove('show')); }
     function goHome() { closeReader(); }
 
     function setTheme(theme) {
@@ -1594,7 +1576,7 @@
       const size = document.getElementById('optFontSize').value;
       document.documentElement.style.setProperty('--font-scale', size + 'px');
       localStorage.setItem('m_rb_fsize', size);
-      renderAllPages();
+      if(STATE.currentBookId) renderAllPages();
     }
     
     function applyFonts() {
@@ -1627,6 +1609,14 @@
       applyFontSize();
     }
 
+    document.getElementById('optVerticalScroll').addEventListener('change', toggleReadingStyle);
+
+    function toggleReadingStyle() {
+      const isVertical = document.getElementById('optVerticalScroll').checked;
+      STATE.scrollStyle = isVertical ? 'vertical' : 'page';
+      renderAllPages();
+    }
+
     function renderAllViews() {
       STATE.showAr = document.getElementById('optShowAr').checked;
       STATE.showMl = document.getElementById('optShowMl').checked;
@@ -1639,12 +1629,6 @@
     function searchBooks(q) {
       let filtered = STATE.books.filter(b => b.title.toLowerCase().includes(q.toLowerCase()) || (b.titleMl && b.titleMl.includes(q)));
       renderBooks(filtered);
-    }
-
-    function toggleReadingStyle() {
-      const isVertical = document.getElementById('optVerticalScroll').checked;
-      STATE.scrollStyle = isVertical ? 'vertical' : 'page';
-      renderAllPages();
     }
 
     function switchViewportTab(mode) {
@@ -1661,30 +1645,24 @@
       } else {
         document.getElementById('visualMode').classList.remove('show');
         document.getElementById('visualVideo').pause();
-        renderAllPages();
+        if(STATE.currentBookId) renderAllPages();
       }
       resumeAudioContext();
     }
 
     // ================================================================
-    // LIFECYCLE ROUTINES ENTRY POINT
+    // RUNTIME ENTRY POINT
     // ================================================================
     document.addEventListener('DOMContentLoaded', () => {
       loadPreferences();
       setupVoices();
-      initAudioContext();
-      
       if (synth.onvoiceschanged !== undefined) {
         synth.onvoiceschanged = setupVoices;
       }
-      
       window.addEventListener("resize", adjustVideoScale);
       setupMediaSession();
-      
-      // Auto-load config sequences from localStorage
       loadSupabaseConfig();
     });
   </script>
 </body>
 </html>
-
