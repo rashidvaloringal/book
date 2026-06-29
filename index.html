@@ -38,6 +38,7 @@
       --font-ar: 'Amiri', serif;
       --font-ml: 'Manjari', sans-serif;
       --font-en: sans-serif;
+      --highlight-color: #facc15;
     }
 
     [data-theme="dark"] {
@@ -374,6 +375,7 @@
       box-shadow: 0 2px 20px rgba(0,0,0,0.08);
       border: 1px solid var(--border);
       min-height: 60vh;
+      position: relative;
     }
     .head-badge {
       display: table;
@@ -414,20 +416,64 @@
       margin-top: 10px;
     }
 
+    /* ===== WORD HIGHLIGHT ===== */
     .word-token {
       cursor: pointer;
       transition: 0.15s;
       padding: 0 2px;
       border-radius: 4px;
       display: inline-block;
+      position: relative;
     }
     .word-hl {
-      background: #facc15 !important;
+      background: var(--highlight-color) !important;
       color: #000 !important;
       font-weight: bold;
       border-radius: 4px;
       box-shadow: 0 2px 12px rgba(250,204,21,0.4);
+      transform: scale(1.05);
     }
+    .word-hl-ar { background: #81d4fa !important; color: #000 !important; }
+    .word-hl-ml { background: #facc15 !important; color: #000 !important; }
+    .word-hl-en { background: #a8e6cf !important; color: #000 !important; }
+
+    /* ===== SPOKEN TEXT OVERLAY ===== */
+    .spoken-overlay {
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.8);
+      backdrop-filter: blur(10px);
+      color: white;
+      padding: 15px 30px;
+      border-radius: 16px;
+      font-size: 22px;
+      max-width: 90%;
+      text-align: center;
+      z-index: 3000;
+      display: none;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      border: 1px solid rgba(255,255,255,0.1);
+      transition: opacity 0.3s;
+    }
+    .spoken-overlay.show { display: block; }
+    .spoken-overlay .lang-badge {
+      display: inline-block;
+      font-size: 11px;
+      background: var(--primary-green);
+      color: white;
+      padding: 2px 12px;
+      border-radius: 20px;
+      margin-bottom: 8px;
+    }
+    .spoken-overlay .spoken-text {
+      font-family: var(--font-ar);
+      line-height: 2;
+      font-size: 24px;
+    }
+    .spoken-overlay .spoken-text.ml { font-family: var(--font-ml); font-size: 20px; }
+    .spoken-overlay .spoken-text.en { font-family: var(--font-en); font-size: 18px; font-style: italic; }
 
     .reader-pagination {
       display: flex;
@@ -590,6 +636,13 @@
       text-shadow: 2px 2px 5px rgba(0,0,0,0.9);
       color: #ddd;
     }
+    .vis-word-hl {
+      background: var(--highlight-color) !important;
+      color: #000 !important;
+      padding: 0 4px;
+      border-radius: 4px;
+      box-shadow: 0 0 20px rgba(250,204,21,0.6);
+    }
     .visual-controls {
       position: absolute;
       top: 30px;
@@ -737,12 +790,38 @@
       text-transform: uppercase;
     }
 
+    .lang-selector {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .lang-btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 2px solid var(--border);
+      background: var(--bg);
+      color: var(--text-dark);
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 13px;
+      transition: 0.2s;
+      flex: 1;
+    }
+    .lang-btn.active {
+      border-color: var(--primary-green);
+      background: var(--primary-light);
+      color: var(--primary-green);
+    }
+    .lang-btn:active { transform: scale(0.95); }
+
     @media (max-width: 600px) {
       .book-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
       .reader-page-card { padding: 20px 15px; }
       .ar-content { font-size: calc(var(--font-scale) + 2px); }
       .ml-content { font-size: var(--font-scale); }
       .visual-controls { gap: 12px; font-size: 18px; padding: 6px 15px; }
+      .spoken-overlay { font-size: 18px; padding: 12px 20px; bottom: 80px; }
+      .spoken-overlay .spoken-text { font-size: 20px; }
     }
   </style>
 </head>
@@ -766,6 +845,12 @@
   <audio id="bgMusic" loop playsinline src="Audio/nasheed_1.mp3"></audio>
   <audio id="ambRain" loop src="https://assets.mixkit.co/active_storage/sfx/2433/2433-84.wav"></audio>
   <audio id="ambWind" loop src="https://assets.mixkit.co/active_storage/sfx/2432/2432-84.wav"></audio>
+
+  <!-- ===== SPOKEN TEXT OVERLAY ===== -->
+  <div class="spoken-overlay" id="spokenOverlay">
+    <div class="lang-badge" id="spokenLangBadge">🇦🇪 Arabic</div>
+    <div class="spoken-text" id="spokenText">الحمد لله</div>
+  </div>
 
   <!-- ===== HOME VIEW ===== -->
   <div id="homeView">
@@ -827,7 +912,9 @@
         <div id="readerPageContainer">
           <div class="reader-page-card">
             <div class="head-badge">Loading...</div>
-            <div class="ar-content">📖 Loading page...</div>
+            <div class="ar-content" id="arContent">📖 Loading...</div>
+            <div class="ml-content" id="mlContent"></div>
+            <div class="en-content" id="enContent"></div>
           </div>
         </div>
         <div class="reader-pagination">
@@ -911,43 +998,65 @@
   <div class="modal-box" id="settingsModal">
     <div class="modal-header"><span>⚙️ ക്രമീകരണങ്ങൾ</span><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
+      <!-- Language Selector for Spoken Text -->
+      <div class="setting-group">
+        <label class="setting-label">🔊 Spoken Language</label>
+        <div class="lang-selector">
+          <button class="lang-btn active" id="lang-ar" onclick="setSpokenLang('ar')">🇦🇪 Arabic</button>
+          <button class="lang-btn" id="lang-ml" onclick="setSpokenLang('ml')">🇮🇳 Malayalam</button>
+          <button class="lang-btn" id="lang-en" onclick="setSpokenLang('en')">🇬🇧 English</button>
+        </div>
+      </div>
+
       <div class="setting-group">
         <label class="setting-label">🔤 Fonts</label>
         <div class="setting-row"><span>മലയാളം</span><select id="optFontMl" onchange="applyFonts()"><option value="'Manjari', sans-serif">Manjari</option><option value="'Chilanka', cursive">Chilanka</option><option value="'Gayathri', sans-serif">Gayathri</option></select></div>
         <div class="setting-row"><span>Arabic</span><select id="optFontAr" onchange="applyFonts()"><option value="'Amiri', serif">Amiri</option><option value="'Scheherazade New', serif">Scheherazade</option></select></div>
         <div class="setting-row"><span>English</span><select id="optFontEn" onchange="applyFonts()"><option value="sans-serif">Sans</option><option value="serif">Serif</option></select></div>
       </div>
+
       <div class="setting-group">
         <label class="setting-label">🎙️ TTS Voice</label>
         <select id="optAudioLang" onchange="setupVoices(); applyAudioSettings(true);"><option value="ml-IN">മലയാളം</option><option value="ar-EG">العربية</option><option value="en-US">English</option></select>
         <select id="optVoice" onchange="applyAudioSettings(true)" style="margin-top:5px;"></select>
       </div>
+
       <div class="setting-group">
         <label class="setting-label">📏 Speed</label>
         <input type="range" id="optSpeed" min="0.5" max="1.5" step="0.1" value="1.0" onchange="applyAudioSettings(true)">
       </div>
+
       <div class="setting-group">
         <label class="setting-label">📖 Display Layers</label>
         <div class="setting-row"><span>Arabic</span><input type="checkbox" id="optShowAr" checked onchange="renderAllViews()"></div>
         <div class="setting-row"><span>Malayalam</span><input type="checkbox" id="optShowMl" checked onchange="renderAllViews()"></div>
         <div class="setting-row"><span>English</span><input type="checkbox" id="optShowEn" checked onchange="renderAllViews()"></div>
       </div>
+
       <div class="setting-group">
         <label class="setting-label">📏 Font Size</label>
         <input type="range" id="optFontSize" min="14" max="30" value="18" onchange="applyFontSize()">
       </div>
+
       <div class="setting-group">
         <label class="setting-label">🎨 Theme</label>
         <div class="theme-grid"><div class="theme-btn active" id="th-light" onclick="setTheme('light')">☀️ Light</div><div class="theme-btn" id="th-dark" onclick="setTheme('dark')">🌙 Dark</div><div class="theme-btn" id="th-sepia" onclick="setTheme('sepia')">📜 Sepia</div></div>
       </div>
+
       <div class="setting-group">
         <label class="setting-label">🎵 Background Music</label>
         <select id="optBgMusic" onchange="handleBgMusic()"><option value="none">🔇 Off</option><option value="nasheed">🎵 Nasheed</option><option value="rain">🌧️ Rain</option><option value="wind">🍃 Wind</option></select>
       </div>
+
       <div class="setting-group">
         <label class="setting-label">🎬 YouTube Video BG ID</label>
         <input type="text" id="optYoutubeId" placeholder="e.g. dQw4w9WgXcQ" style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text-dark);">
         <button style="width:100%; margin-top:5px; padding:8px; background:var(--primary-green); color:white; border-radius:6px;" onclick="applyVisualBg()">Update</button>
+      </div>
+
+      <div class="setting-group">
+        <label class="setting-label">⚡ Auto Scroll</label>
+        <div class="setting-row"><span>Enable Auto Scroll</span><input type="checkbox" id="optAutoScroll" checked onchange="updateAutoScroll()"></div>
       </div>
     </div>
   </div>
@@ -974,6 +1083,12 @@
     let synth = window.speechSynthesis;
     let allVoices = [];
     let audioProgressInterval = null;
+    let spokenLang = 'ar'; // 'ar', 'ml', 'en'
+    let autoScrollEnabled = true;
+    let currentUtterance = null;
+    let wordIndex = 0;
+    let currentWordOffset = 0;
+    let activeLang = 'ar';
 
     const STATE = {
       showAr: true,
@@ -1018,7 +1133,6 @@
         return;
       }
 
-      // Try config.js first
       if (window.ENV_SUPABASE_URL && window.ENV_SUPABASE_KEY) {
         useConfigCredentials();
         return;
@@ -1189,6 +1303,7 @@
       document.getElementById('miniPlayer').classList.add('show');
       switchView('ebook');
       updateBookmarkUI();
+      document.getElementById('spokenOverlay').classList.add('show');
     }
 
     function closeReader() {
@@ -1197,10 +1312,11 @@
       if (!isPlaying) document.getElementById('miniPlayer').classList.remove('show');
       closeVisualMode();
       updateContinueReading();
+      document.getElementById('spokenOverlay').classList.remove('show');
     }
 
     // ================================================================
-    // RENDER PAGE
+    // RENDER PAGE WITH WORD TOKENS
     // ================================================================
     function renderCurrentPage() {
       if (!currentPages || currentPages.length === 0) return;
@@ -1214,13 +1330,22 @@
       const part = page['Part Number'] || '?';
       const pageNum = page['Page Number'] || '?';
 
+      // Clear previous highlights
+      document.querySelectorAll('.word-hl, .word-hl-ar, .word-hl-ml, .word-hl-en').forEach(el => {
+        el.classList.remove('word-hl', 'word-hl-ar', 'word-hl-ml', 'word-hl-en');
+      });
+
+      let arHtml = STATE.showAr && ar ? tokenizeText(ar, 'ar') : '';
+      let mlHtml = STATE.showMl && ml ? tokenizeText(ml, 'ml') : '';
+      let enHtml = STATE.showEn && en ? tokenizeText(en, 'en') : '';
+
       let html = `
         <div class="reader-page-card">
           <div class="head-badge">ഭാഗം ${part} - പേജ് ${pageNum}</div>
       `;
-      if (STATE.showAr && ar) html += `<div class="ar-content">${ar}</div>`;
-      if (STATE.showMl && ml) html += `<div class="ml-content">${ml}</div>`;
-      if (STATE.showEn && en) html += `<div class="en-content">${en}</div>`;
+      if (arHtml) html += `<div class="ar-content" id="arContent">${arHtml}</div>`;
+      if (mlHtml) html += `<div class="ml-content" id="mlContent">${mlHtml}</div>`;
+      if (enHtml) html += `<div class="en-content" id="enContent">${enHtml}</div>`;
       html += `</div>`;
 
       container.innerHTML = html;
@@ -1245,13 +1370,197 @@
       if (document.getElementById('visualMode').classList.contains('show')) {
         updateVisualChunk();
       }
+
+      // Apply highlight if playing
+      if (isPlaying && currentUtterance) {
+        highlightCurrentWord();
+      }
+
+      // Auto scroll
+      if (autoScrollEnabled && document.getElementById('optAutoScroll')?.checked !== false) {
+        setTimeout(autoScrollToHighlight, 100);
+      }
     }
 
-    function renderAllViews() {
-      STATE.showAr = document.getElementById('optShowAr').checked;
-      STATE.showMl = document.getElementById('optShowMl').checked;
-      STATE.showEn = document.getElementById('optShowEn').checked;
-      renderCurrentPage();
+    // ================================================================
+    // TOKENIZE TEXT FOR HIGHLIGHT
+    // ================================================================
+    function tokenizeText(text, lang) {
+      if (!text) return '';
+      // Remove HTML tags for pure text
+      const pureText = text.replace(/<[^>]+>/g, '').trim();
+      if (!pureText) return text;
+
+      // Split into words while preserving spaces
+      const tokens = pureText.split(/(\s+)/);
+      let offset = 0;
+      
+      return tokens.map(token => {
+        if (token.trim() === '') {
+          offset += token.length;
+          return token;
+        }
+        const word = token;
+        const startOffset = offset;
+        offset += token.length;
+        const isHighlighted = isPlaying && 
+                             currentWordOffset >= startOffset && 
+                             currentWordOffset < startOffset + token.length &&
+                             spokenLang === lang;
+        const hlClass = isHighlighted ? `word-hl word-hl-${lang}` : '';
+        return `<span class="word-token ${hlClass}" data-lang="${lang}" data-offset="${startOffset}" onclick="seekToWord(${startOffset}, '${lang}')">${word}</span>`;
+      }).join('');
+    }
+
+    function seekToWord(offset, lang) {
+      currentWordOffset = offset;
+      spokenLang = lang;
+      if (isPlaying) {
+        // Seek in TTS
+        if (currentUtterance) {
+          // Update highlight
+          highlightCurrentWord();
+          // Update spoken overlay
+          updateSpokenText();
+        }
+      } else {
+        togglePlay();
+      }
+    }
+
+    // ================================================================
+    // HIGHLIGHT CURRENT WORD
+    // ================================================================
+    function highlightCurrentWord() {
+      // Remove all highlights
+      document.querySelectorAll('.word-hl, .word-hl-ar, .word-hl-ml, .word-hl-en').forEach(el => {
+        el.classList.remove('word-hl', 'word-hl-ar', 'word-hl-ml', 'word-hl-en');
+      });
+
+      // Find the word at current offset
+      const langMap = { 'ar': 'arContent', 'ml': 'mlContent', 'en': 'enContent' };
+      const contentId = langMap[spokenLang];
+      if (!contentId) return;
+
+      const container = document.getElementById(contentId);
+      if (!container) return;
+
+      const tokens = container.querySelectorAll('.word-token');
+      let targetToken = null;
+      let targetOffset = 0;
+
+      for (const token of tokens) {
+        const offset = parseInt(token.dataset.offset);
+        if (offset <= currentWordOffset) {
+          targetToken = token;
+          targetOffset = offset;
+        }
+      }
+
+      if (targetToken) {
+        targetToken.classList.add('word-hl', `word-hl-${spokenLang}`);
+        // Scroll to highlighted word
+        if (autoScrollEnabled && document.getElementById('optAutoScroll')?.checked !== false) {
+          targetToken.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        // Update spoken overlay
+        updateSpokenText();
+      }
+    }
+
+    function autoScrollToHighlight() {
+      const highlighted = document.querySelector('.word-hl');
+      if (highlighted) {
+        highlighted.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+
+    function updateAutoScroll() {
+      autoScrollEnabled = document.getElementById('optAutoScroll').checked;
+    }
+
+    // ================================================================
+    // SPOKEN TEXT OVERLAY
+    // ================================================================
+    function updateSpokenText() {
+      const overlay = document.getElementById('spokenOverlay');
+      const textEl = document.getElementById('spokenText');
+      const badge = document.getElementById('spokenLangBadge');
+
+      const page = currentPages[currentPageIndex];
+      if (!page) return;
+
+      let fullText = '';
+      let langLabel = '';
+      let langClass = '';
+
+      if (spokenLang === 'ar') {
+        fullText = (page['Arabic Text'] || '').replace(/<[^>]+>/g, '').trim();
+        langLabel = '🇦🇪 Arabic';
+        langClass = '';
+      } else if (spokenLang === 'ml') {
+        fullText = (page['Malayalam Text'] || '').replace(/<[^>]+>/g, '').trim();
+        langLabel = '🇮🇳 Malayalam';
+        langClass = 'ml';
+      } else {
+        fullText = (page['English Text'] || '').replace(/<[^>]+>/g, '').trim();
+        langLabel = '🇬🇧 English';
+        langClass = 'en';
+      }
+
+      if (!fullText) {
+        overlay.classList.remove('show');
+        return;
+      }
+
+      // Show only few words around current position
+      const words = fullText.split(/\s+/);
+      let wordCount = 0;
+      let currentPos = 0;
+      let startIdx = 0;
+      let endIdx = 0;
+
+      for (let i = 0; i < words.length; i++) {
+        const wordLen = words[i].length + 1;
+        if (currentPos + wordLen <= currentWordOffset) {
+          startIdx = i + 1;
+        }
+        if (currentPos <= currentWordOffset + 20) {
+          endIdx = i;
+        }
+        currentPos += wordLen;
+      }
+
+      // Show 3-5 words
+      const displayWords = words.slice(Math.max(0, startIdx - 2), Math.min(words.length, startIdx + 4));
+      const displayText = displayWords.join(' ');
+
+      if (displayText.trim()) {
+        textEl.textContent = displayText + (displayWords.length < words.length ? '...' : '');
+        textEl.className = 'spoken-text ' + langClass;
+        badge.textContent = langLabel;
+        overlay.classList.add('show');
+      } else {
+        overlay.classList.remove('show');
+      }
+    }
+
+    function setSpokenLang(lang) {
+      spokenLang = lang;
+      document.querySelectorAll('.lang-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById('lang-' + lang).classList.add('active');
+      
+      // Update TTS language
+      const langMap = { 'ar': 'ar-EG', 'ml': 'ml-IN', 'en': 'en-US' };
+      document.getElementById('optAudioLang').value = langMap[lang];
+      setupVoices();
+      
+      if (isPlaying) {
+        stopAudio();
+        togglePlay();
+      }
+      
+      highlightCurrentWord();
     }
 
     // ================================================================
@@ -1260,22 +1569,16 @@
     function nextPage() {
       if (currentPageIndex < totalPages - 1) {
         currentPageIndex++;
+        currentWordOffset = 0;
         renderCurrentPage();
         if (isPlaying) playAudio();
-      } else {
-        // Load next chunk if needed
-        const nextChunkStart = currentPageIndex + 1;
-        if (nextChunkStart < totalPages) {
-          currentChunkStart = nextChunkStart;
-          currentChunkEnd = Math.min(currentChunkStart + CHUNK_SIZE, totalPages);
-          renderCurrentPage();
-        }
       }
     }
 
     function prevPage() {
       if (currentPageIndex > 0) {
         currentPageIndex--;
+        currentWordOffset = 0;
         renderCurrentPage();
         if (isPlaying) playAudio();
       }
@@ -1284,6 +1587,7 @@
     function jumpToPage(index) {
       if (index >= 0 && index < totalPages) {
         currentPageIndex = index;
+        currentWordOffset = 0;
         renderCurrentPage();
         if (isPlaying) playAudio();
         closeModal();
@@ -1353,23 +1657,68 @@
       if (!page) return;
 
       const lang = document.getElementById('optAudioLang').value;
-      let text = page['Malayalam Text'] || '';
-      if (lang === 'ar-EG') text = page['Arabic Text'] || '';
-      if (lang === 'en-US') text = page['English Text'] || '';
+      let text = '';
+      let langKey = 'ml';
+      
+      if (lang === 'ar-EG') {
+        text = page['Arabic Text'] || '';
+        langKey = 'ar';
+      } else if (lang === 'en-US') {
+        text = page['English Text'] || '';
+        langKey = 'en';
+      } else {
+        text = page['Malayalam Text'] || '';
+        langKey = 'ml';
+      }
 
       // Remove HTML tags
       text = text.replace(/<[^>]+>/g, '').trim();
-      if (!text) return;
+      if (!text) {
+        if (currentPageIndex < totalPages - 1) {
+          nextPage();
+        } else {
+          stopAudio();
+        }
+        return;
+      }
+
+      // Set spoken language
+      spokenLang = langKey;
+      document.querySelectorAll('.lang-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById('lang-' + langKey).classList.add('active');
+
+      // Start from current word offset
+      let startText = text;
+      if (currentWordOffset > 0 && currentWordOffset < text.length) {
+        startText = text.substring(currentWordOffset);
+      } else {
+        currentWordOffset = 0;
+      }
+
+      if (!startText.trim()) {
+        if (currentPageIndex < totalPages - 1) {
+          currentWordOffset = 0;
+          nextPage();
+        } else {
+          stopAudio();
+        }
+        return;
+      }
 
       synth.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = lang;
+      
+      // Store full text for boundary events
+      const fullText = text;
+      const startOffset = currentWordOffset;
+      
+      currentUtterance = new SpeechSynthesisUtterance(startText);
+      currentUtterance.lang = lang;
       const voiceName = document.getElementById('optVoice').value;
       if (voiceName) {
         const voice = allVoices.find(v => v.name === voiceName);
-        if (voice) utterance.voice = voice;
+        if (voice) currentUtterance.voice = voice;
       }
-      utterance.rate = parseFloat(document.getElementById('optSpeed').value) || 1.0;
+      currentUtterance.rate = parseFloat(document.getElementById('optSpeed').value) || 1.0;
 
       if (audioProgressInterval) clearInterval(audioProgressInterval);
       let progress = 0;
@@ -1382,9 +1731,28 @@
         document.getElementById('visProgressBar').style.width = progress + '%';
       }, 100);
 
-      utterance.onstart = () => {
+      currentUtterance.onboundary = (e) => {
+        if (typeof e.charIndex === 'number' && e.name === 'word') {
+          // Update word offset
+          const newOffset = startOffset + e.charIndex;
+          if (newOffset > currentWordOffset) {
+            currentWordOffset = newOffset;
+            // Update highlight
+            highlightCurrentWord();
+            // Update spoken overlay
+            updateSpokenText();
+            // Save progress
+            saveProgress();
+          }
+        }
+      };
+
+      currentUtterance.onstart = () => {
         document.getElementById('silentAudio').play().catch(()=>{});
         initAudioContext();
+        // Initial highlight
+        highlightCurrentWord();
+        updateSpokenText();
         // Save progress
         const row = currentPages[currentPageIndex];
         if (row) {
@@ -1393,10 +1761,10 @@
         }
       };
 
-      utterance.onend = () => {
+      currentUtterance.onend = () => {
         if (isPlaying) {
-          const autoNext = document.getElementById('optAutoNext')?.checked !== false;
-          if (autoNext && currentPageIndex < totalPages - 1) {
+          if (currentPageIndex < totalPages - 1) {
+            currentWordOffset = 0;
             nextPage();
           } else {
             stopAudio();
@@ -1404,17 +1772,36 @@
         }
       };
 
-      synth.speak(utterance);
+      currentUtterance.onerror = () => {
+        if (isPlaying && currentPageIndex < totalPages - 1) {
+          currentWordOffset = 0;
+          nextPage();
+        } else {
+          stopAudio();
+        }
+      };
+
+      synth.speak(currentUtterance);
     }
 
     function stopAudio() {
       synth.cancel();
       isPlaying = false;
+      currentUtterance = null;
       updatePlayIcon();
       if (audioProgressInterval) clearInterval(audioProgressInterval);
       document.getElementById('audioProgressBar').style.width = '0%';
       document.getElementById('visProgressBar').style.width = '0%';
       document.getElementById('silentAudio').pause();
+      document.getElementById('spokenOverlay').classList.remove('show');
+    }
+
+    function saveProgress() {
+      if (currentBookId) {
+        localStorage.setItem(currentBookId + '_index', currentPageIndex);
+        localStorage.setItem(currentBookId + '_offset', currentWordOffset);
+        localStorage.setItem(currentBookId + '_lang', spokenLang);
+      }
     }
 
     function updatePlayIcon() {
@@ -1463,9 +1850,43 @@
     function updateVisualChunk() {
       const page = currentPages[currentPageIndex];
       if (!page) return;
-      document.getElementById('visArText').innerHTML = page['Arabic Text'] || '...';
-      document.getElementById('visMlText').innerHTML = page['Malayalam Text'] || '...';
-      document.getElementById('visEnText').innerHTML = page['English Text'] || '...';
+      
+      // Show only few words
+      const arText = (page['Arabic Text'] || '').replace(/<[^>]+>/g, '').trim();
+      const mlText = (page['Malayalam Text'] || '').replace(/<[^>]+>/g, '').trim();
+      const enText = (page['English Text'] || '').replace(/<[^>]+>/g, '').trim();
+      
+      document.getElementById('visArText').innerHTML = getVisualWords(arText, 'ar');
+      document.getElementById('visMlText').innerHTML = getVisualWords(mlText, 'ml');
+      document.getElementById('visEnText').innerHTML = getVisualWords(enText, 'en');
+    }
+
+    function getVisualWords(text, lang) {
+      if (!text) return '...';
+      const words = text.split(/\s+/);
+      let currentPos = 0;
+      let startIdx = 0;
+      let endIdx = 0;
+
+      for (let i = 0; i < words.length; i++) {
+        const wordLen = words[i].length + 1;
+        if (currentPos + wordLen <= currentWordOffset) {
+          startIdx = i + 1;
+        }
+        if (currentPos <= currentWordOffset + 30) {
+          endIdx = i;
+        }
+        currentPos += wordLen;
+      }
+
+      const displayWords = words.slice(Math.max(0, startIdx - 3), Math.min(words.length, startIdx + 5));
+      const isActive = spokenLang === lang;
+      
+      return displayWords.map((word, idx) => {
+        const wordOffset = words.slice(0, startIdx + idx).join(' ').length + (idx > 0 ? 1 : 0);
+        const isHighlighted = isActive && wordOffset >= currentWordOffset - 5 && wordOffset <= currentWordOffset + 20;
+        return isHighlighted ? `<span class="vis-word-hl">${word}</span>` : word;
+      }).join(' ');
     }
 
     function applyVisualBg() {
@@ -1507,8 +1928,12 @@
 
       if (mode === 'visual') {
         openVisualMode();
+        document.getElementById('spokenOverlay').classList.remove('show');
       } else {
         closeVisualMode();
+        if (isPlaying) {
+          document.getElementById('spokenOverlay').classList.add('show');
+        }
       }
     }
 
@@ -1602,6 +2027,13 @@
       renderCurrentPage();
     }
 
+    function renderAllViews() {
+      STATE.showAr = document.getElementById('optShowAr').checked;
+      STATE.showMl = document.getElementById('optShowMl').checked;
+      STATE.showEn = document.getElementById('optShowEn').checked;
+      renderCurrentPage();
+    }
+
     function handleBgMusic() {
       const opt = document.getElementById('optBgMusic').value;
       const bg = document.getElementById('bgMusic');
@@ -1643,6 +2075,10 @@
         document.getElementById('optFontEn').value = en;
         applyFonts();
       }
+
+      // Load spoken language
+      const savedLang = localStorage.getItem('pref_spoken_lang') || 'ar';
+      setSpokenLang(savedLang);
     }
 
     // ================================================================
@@ -1657,7 +2093,6 @@
       const savedUrl = localStorage.getItem('supabase_url');
       const savedKey = localStorage.getItem('supabase_key');
 
-      // Check config.js first
       if (window.ENV_SUPABASE_URL && window.ENV_SUPABASE_KEY) {
         document.getElementById('supabaseUrl').value = window.ENV_SUPABASE_URL;
         document.getElementById('supabaseKey').value = window.ENV_SUPABASE_KEY;
