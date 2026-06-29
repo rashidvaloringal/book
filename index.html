@@ -3,13 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>📚 Adventure Digital Library</title>
+  <meta name="theme-color" content="#1b4d3e">
+  <title>📚 Islamic Digital Library</title>
   
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
-  <!-- Config File -->
+  <!-- Config & Database -->
   <script src="config.js"></script>
+  <script src="database.js"></script>
   
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -59,6 +61,16 @@
       --text-muted: #8c7a65;
       --border: #d6cbb5;
       --primary-light: #e8dcc8;
+    }
+
+    [data-theme="amoled"] {
+      --bg: #000000;
+      --surface: #0a0a0a;
+      --card-bg: #111111;
+      --text-dark: #ffffff;
+      --text-muted: #888888;
+      --border: #222222;
+      --primary-light: rgba(27,77,62,0.3);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -241,12 +253,6 @@
       cursor: pointer;
     }
     .book-card:active { transform: scale(0.97); }
-    .book-cover {
-      width: 100%;
-      height: 160px;
-      object-fit: cover;
-      background: #eee;
-    }
     .book-avatar-fallback {
       width: 100%;
       height: 160px;
@@ -292,6 +298,16 @@
     }
     .book-footer button:active { transform: scale(0.95); }
     .open-btn { color: var(--primary-green); }
+    .download-btn { color: #f59e0b; }
+    .status-badge {
+      font-size: 10px;
+      padding: 2px 10px;
+      border-radius: 20px;
+      display: inline-block;
+      margin-top: 4px;
+    }
+    .status-badge.downloaded { background: #d4edda; color: #155724; }
+    .status-badge.not-downloaded { background: #f8d7da; color: #721c24; }
 
     /* ===== BOTTOM NAV ===== */
     .bottom-nav {
@@ -443,8 +459,8 @@
       bottom: 100px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(0,0,0,0.8);
-      backdrop-filter: blur(10px);
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(12px);
       color: white;
       padding: 15px 30px;
       border-radius: 16px;
@@ -453,7 +469,7 @@
       text-align: center;
       z-index: 3000;
       display: none;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
       border: 1px solid rgba(255,255,255,0.1);
       transition: opacity 0.3s;
     }
@@ -750,7 +766,7 @@
     .setting-group input[type="range"] { width: 100%; accent-color: var(--primary-green); cursor: pointer; }
     .theme-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 8px;
     }
     .theme-btn {
@@ -759,7 +775,7 @@
       border-radius: 8px;
       text-align: center;
       font-weight: bold;
-      font-size: 13px;
+      font-size: 12px;
       cursor: pointer;
       background: var(--bg);
       color: var(--text-dark);
@@ -789,6 +805,10 @@
       width: fit-content;
       text-transform: uppercase;
     }
+    .toc-level-1 { padding-left: 0px; font-weight: bold; }
+    .toc-level-2 { padding-left: 20px; }
+    .toc-level-3 { padding-left: 40px; }
+    .toc-level-4 { padding-left: 60px; font-size: 14px; }
 
     .lang-selector {
       display: flex;
@@ -822,6 +842,7 @@
       .visual-controls { gap: 12px; font-size: 18px; padding: 6px 15px; }
       .spoken-overlay { font-size: 18px; padding: 12px 20px; bottom: 80px; }
       .spoken-overlay .spoken-text { font-size: 20px; }
+      .theme-grid { grid-template-columns: repeat(2, 1fr); }
     }
   </style>
 </head>
@@ -830,7 +851,7 @@
   <!-- ===== LOADER ===== -->
   <div id="loader">
     <div class="spinner"></div>
-    <div class="status" id="loadStatus">📚 Adventure Digital Library</div>
+    <div class="status" id="loadStatus">📚 Islamic Digital Library</div>
     <div id="setupBox">
       <input type="text" id="supabaseUrl" placeholder="Supabase URL (eg: https://xyz.supabase.co)">
       <input type="text" id="supabaseKey" placeholder="Supabase anon/public key">
@@ -856,10 +877,11 @@
   <div id="homeView">
     <header class="home-header">
       <div class="top-bar">
-        <div class="logo"><i class="fas fa-layer-group"></i> <span class="home-title">Adventure Library</span></div>
+        <div class="logo"><i class="fas fa-layer-group"></i> <span class="home-title">Islamic Library</span></div>
         <div class="actions">
           <i class="fas fa-search" onclick="toggleSearch()"></i>
-          <i class="fas fa-sync-alt sync-icon" onclick="refreshBooks()" title="Refresh Books"></i>
+          <i class="fas fa-sync-alt sync-icon" onclick="syncBooks()" title="Sync Books"></i>
+          <i class="fas fa-download" onclick="downloadAllBooks()" title="Download All"></i>
         </div>
       </div>
       <div class="search-bar" id="searchBar">
@@ -867,8 +889,8 @@
       </div>
       <div class="tabs">
         <div class="tab-item active" id="tab-all" onclick="filterBooks('all')">All Books</div>
-        <div class="tab-item" id="tab-cats" onclick="filterBooks('categories')">Categories</div>
-        <div class="tab-item" id="tab-auths" onclick="filterBooks('authors')">Authors</div>
+        <div class="tab-item" id="tab-downloaded" onclick="filterBooks('downloaded')"><i class="fas fa-check-circle"></i> Downloaded</div>
+        <div class="tab-item" id="tab-favorites" onclick="filterBooks('favorites')"><i class="fas fa-star"></i> Favorites</div>
       </div>
     </header>
 
@@ -998,9 +1020,51 @@
   <div class="modal-box" id="settingsModal">
     <div class="modal-header"><span>⚙️ ക്രമീകരണങ്ങൾ</span><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
-      <!-- Language Selector for Spoken Text -->
+      <!-- Theme -->
       <div class="setting-group">
-        <label class="setting-label">🔊 Spoken Language</label>
+        <label class="setting-label">🎨 Theme</label>
+        <div class="theme-grid">
+          <div class="theme-btn active" id="th-light" onclick="setTheme('light')">☀️ Light</div>
+          <div class="theme-btn" id="th-dark" onclick="setTheme('dark')">🌙 Dark</div>
+          <div class="theme-btn" id="th-amoled" onclick="setTheme('amoled')">⚫ AMOLED</div>
+          <div class="theme-btn" id="th-sepia" onclick="setTheme('sepia')">📜 Sepia</div>
+        </div>
+      </div>
+
+      <!-- Fonts -->
+      <div class="setting-group">
+        <label class="setting-label">🔤 Fonts</label>
+        <div class="setting-row"><span>മലയാളം</span><select id="optFontMl" onchange="applyFonts()"><option value="'Manjari', sans-serif">Manjari</option><option value="'Chilanka', cursive">Chilanka</option><option value="'Gayathri', sans-serif">Gayathri</option></select></div>
+        <div class="setting-row"><span>Arabic</span><select id="optFontAr" onchange="applyFonts()"><option value="'Amiri', serif">Amiri</option><option value="'Scheherazade New', serif">Scheherazade</option><option value="'Lateef', serif">Lateef</option></select></div>
+        <div class="setting-row"><span>English</span><select id="optFontEn" onchange="applyFonts()"><option value="sans-serif">Sans</option><option value="serif">Serif</option></select></div>
+      </div>
+
+      <!-- Reader -->
+      <div class="setting-group">
+        <label class="setting-label">📖 Reader Settings</label>
+        <div class="setting-row"><span>Font Size</span><input type="range" id="optFontSize" min="14" max="30" value="18" onchange="applyFontSize()"></div>
+        <div class="setting-row"><span>Auto Scroll</span><input type="checkbox" id="optAutoScroll" checked onchange="updateAutoScroll()"></div>
+        <div class="setting-row"><span>Display Arabic</span><input type="checkbox" id="optShowAr" checked onchange="renderAllViews()"></div>
+        <div class="setting-row"><span>Display Malayalam</span><input type="checkbox" id="optShowMl" checked onchange="renderAllViews()"></div>
+        <div class="setting-row"><span>Display English</span><input type="checkbox" id="optShowEn" checked onchange="renderAllViews()"></div>
+      </div>
+
+      <!-- Audio / TTS -->
+      <div class="setting-group">
+        <label class="setting-label">🎙️ TTS Settings</label>
+        <select id="optAudioLang" onchange="setupVoices(); applyAudioSettings(true);">
+          <option value="ml-IN">മലയാളം</option>
+          <option value="ar-EG">العربية</option>
+          <option value="en-US">English</option>
+        </select>
+        <select id="optVoice" onchange="applyAudioSettings(true)" style="margin-top:5px;"></select>
+        <div class="setting-row"><span>Speed</span><input type="range" id="optSpeed" min="0.5" max="1.5" step="0.1" value="1.0" onchange="applyAudioSettings(true)"></div>
+        <div class="setting-row"><span>Auto Next Page</span><input type="checkbox" id="optAutoNext" checked></div>
+      </div>
+
+      <!-- Spoken Language -->
+      <div class="setting-group">
+        <label class="setting-label">🔊 Spoken Language (Highlight)</label>
         <div class="lang-selector">
           <button class="lang-btn active" id="lang-ar" onclick="setSpokenLang('ar')">🇦🇪 Arabic</button>
           <button class="lang-btn" id="lang-ml" onclick="setSpokenLang('ml')">🇮🇳 Malayalam</button>
@@ -1008,55 +1072,33 @@
         </div>
       </div>
 
+      <!-- Visual Mode -->
       <div class="setting-group">
-        <label class="setting-label">🔤 Fonts</label>
-        <div class="setting-row"><span>മലയാളം</span><select id="optFontMl" onchange="applyFonts()"><option value="'Manjari', sans-serif">Manjari</option><option value="'Chilanka', cursive">Chilanka</option><option value="'Gayathri', sans-serif">Gayathri</option></select></div>
-        <div class="setting-row"><span>Arabic</span><select id="optFontAr" onchange="applyFonts()"><option value="'Amiri', serif">Amiri</option><option value="'Scheherazade New', serif">Scheherazade</option></select></div>
-        <div class="setting-row"><span>English</span><select id="optFontEn" onchange="applyFonts()"><option value="sans-serif">Sans</option><option value="serif">Serif</option></select></div>
+        <label class="setting-label">🎬 Visual Mode</label>
+        <input type="text" id="optYoutubeId" placeholder="YouTube Video ID (e.g. dQw4w9WgXcQ)" style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text-dark);">
+        <button style="width:100%; margin-top:5px; padding:8px; background:var(--primary-green); color:white; border-radius:6px;" onclick="applyVisualBg()">Update Background</button>
       </div>
 
-      <div class="setting-group">
-        <label class="setting-label">🎙️ TTS Voice</label>
-        <select id="optAudioLang" onchange="setupVoices(); applyAudioSettings(true);"><option value="ml-IN">മലയാളം</option><option value="ar-EG">العربية</option><option value="en-US">English</option></select>
-        <select id="optVoice" onchange="applyAudioSettings(true)" style="margin-top:5px;"></select>
-      </div>
-
-      <div class="setting-group">
-        <label class="setting-label">📏 Speed</label>
-        <input type="range" id="optSpeed" min="0.5" max="1.5" step="0.1" value="1.0" onchange="applyAudioSettings(true)">
-      </div>
-
-      <div class="setting-group">
-        <label class="setting-label">📖 Display Layers</label>
-        <div class="setting-row"><span>Arabic</span><input type="checkbox" id="optShowAr" checked onchange="renderAllViews()"></div>
-        <div class="setting-row"><span>Malayalam</span><input type="checkbox" id="optShowMl" checked onchange="renderAllViews()"></div>
-        <div class="setting-row"><span>English</span><input type="checkbox" id="optShowEn" checked onchange="renderAllViews()"></div>
-      </div>
-
-      <div class="setting-group">
-        <label class="setting-label">📏 Font Size</label>
-        <input type="range" id="optFontSize" min="14" max="30" value="18" onchange="applyFontSize()">
-      </div>
-
-      <div class="setting-group">
-        <label class="setting-label">🎨 Theme</label>
-        <div class="theme-grid"><div class="theme-btn active" id="th-light" onclick="setTheme('light')">☀️ Light</div><div class="theme-btn" id="th-dark" onclick="setTheme('dark')">🌙 Dark</div><div class="theme-btn" id="th-sepia" onclick="setTheme('sepia')">📜 Sepia</div></div>
-      </div>
-
+      <!-- Background Music -->
       <div class="setting-group">
         <label class="setting-label">🎵 Background Music</label>
-        <select id="optBgMusic" onchange="handleBgMusic()"><option value="none">🔇 Off</option><option value="nasheed">🎵 Nasheed</option><option value="rain">🌧️ Rain</option><option value="wind">🍃 Wind</option></select>
+        <select id="optBgMusic" onchange="handleBgMusic()">
+          <option value="none">🔇 Off</option>
+          <option value="nasheed">🎵 Nasheed</option>
+          <option value="rain">🌧️ Rain</option>
+          <option value="wind">🍃 Wind</option>
+        </select>
       </div>
 
+      <!-- Storage -->
       <div class="setting-group">
-        <label class="setting-label">🎬 YouTube Video BG ID</label>
-        <input type="text" id="optYoutubeId" placeholder="e.g. dQw4w9WgXcQ" style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text-dark);">
-        <button style="width:100%; margin-top:5px; padding:8px; background:var(--primary-green); color:white; border-radius:6px;" onclick="applyVisualBg()">Update</button>
-      </div>
-
-      <div class="setting-group">
-        <label class="setting-label">⚡ Auto Scroll</label>
-        <div class="setting-row"><span>Enable Auto Scroll</span><input type="checkbox" id="optAutoScroll" checked onchange="updateAutoScroll()"></div>
+        <label class="setting-label">💾 Storage</label>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <span style="font-size:13px; background:var(--bg); padding:8px 16px; border-radius:8px;"><i class="fas fa-book"></i> Books: <span id="storageBooks">0</span></span>
+          <span style="font-size:13px; background:var(--bg); padding:8px 16px; border-radius:8px;"><i class="fas fa-file-alt"></i> Pages: <span id="storagePages">0</span></span>
+          <span style="font-size:13px; background:var(--bg); padding:8px 16px; border-radius:8px;"><i class="fas fa-hdd"></i> Size: <span id="storageSize">0 MB</span></span>
+        </div>
+        <button onclick="clearAllData()" style="width:100%; margin-top:10px; padding:10px; background:#dc3545; color:white; border-radius:8px; font-weight:bold;">🗑 Clear All Data</button>
       </div>
     </div>
   </div>
@@ -1083,12 +1125,12 @@
     let synth = window.speechSynthesis;
     let allVoices = [];
     let audioProgressInterval = null;
-    let spokenLang = 'ar'; // 'ar', 'ml', 'en'
+    let spokenLang = 'ar';
     let autoScrollEnabled = true;
     let currentUtterance = null;
-    let wordIndex = 0;
     let currentWordOffset = 0;
     let activeLang = 'ar';
+    let currentBookData = null;
 
     const STATE = {
       showAr: true,
@@ -1123,6 +1165,34 @@
     // ================================================================
     // SUPABASE CONNECTION
     // ================================================================
+    async function initApp() {
+      try {
+        await DB.open();
+        const settings = await DB.getSettings();
+        if (settings && settings.supabase_url && settings.supabase_key) {
+          document.getElementById('supabaseUrl').value = settings.supabase_url;
+          document.getElementById('supabaseKey').value = settings.supabase_key;
+          connectSupabase();
+          return;
+        }
+        
+        // Check config.js
+        if (window.ENV_SUPABASE_URL && window.ENV_SUPABASE_KEY) {
+          document.getElementById('supabaseUrl').value = window.ENV_SUPABASE_URL;
+          document.getElementById('supabaseKey').value = window.ENV_SUPABASE_KEY;
+          useConfigCredentials();
+          return;
+        }
+        
+        document.getElementById('setupBox').classList.add('show');
+        document.getElementById('loadStatus').textContent = '🔌 Connect to Supabase';
+      } catch (err) {
+        console.error('Init error:', err);
+        document.getElementById('setupBox').classList.add('show');
+        document.getElementById('loadStatus').textContent = '❌ Database error';
+      }
+    }
+
     function connectSupabase() {
       const url = document.getElementById('supabaseUrl').value.trim();
       const key = document.getElementById('supabaseKey').value.trim();
@@ -1142,8 +1212,8 @@
 
       try {
         supabaseClient = window.supabase.createClient(url, key);
-        localStorage.setItem('supabase_url', url);
-        localStorage.setItem('supabase_key', key);
+        // Save settings
+        DB.saveSettings({ supabase_url: url, supabase_key: key });
         testConnection();
       } catch(err) {
         msg.innerHTML = `<div class="status-msg error">❌ ${err.message}</div>`;
@@ -1159,6 +1229,7 @@
       );
       document.getElementById('supabaseUrl').value = window.ENV_SUPABASE_URL;
       document.getElementById('supabaseKey').value = window.ENV_SUPABASE_KEY;
+      DB.saveSettings({ supabase_url: window.ENV_SUPABASE_URL, supabase_key: window.ENV_SUPABASE_KEY });
       testConnection();
     }
 
@@ -1179,17 +1250,39 @@
         document.getElementById('setupBox').style.display = 'none';
         document.getElementById('loader').classList.add('hidden');
         document.getElementById('homeView').classList.add('show');
-        await loadBooks();
+        
+        // Load from IndexedDB first, then sync
+        await loadBooksFromDB();
+        await syncBooks();
       } catch(err) {
         msg.innerHTML = `<div class="status-msg error">❌ ${err.message}</div>`;
       }
     }
 
     // ================================================================
-    // LOAD BOOKS
+    // LOAD BOOKS FROM INDEXEDDB
     // ================================================================
-    async function loadBooks() {
-      showLoading('📚 പുസ്തകങ്ങൾ ലോഡ് ചെയ്യുന്നു...');
+    async function loadBooksFromDB() {
+      try {
+        const catalog = await DB.getCatalog();
+        if (catalog && catalog.length > 0) {
+          allBooks = catalog;
+          renderBooks(allBooks);
+          updateContinueReading();
+          updateStorageInfo();
+        }
+      } catch(err) {
+        console.error('Load catalog error:', err);
+      }
+    }
+
+    // ================================================================
+    // SYNC BOOKS FROM SUPABASE
+    // ================================================================
+    async function syncBooks() {
+      if (!supabaseClient) return;
+      
+      showLoading('🔄 Syncing books...');
       try {
         const { data, error } = await supabaseClient
           .from('master_catalog')
@@ -1198,40 +1291,80 @@
 
         if (error) throw error;
 
-        allBooks = data || [];
-        renderBooks(allBooks);
-        updateContinueReading();
+        if (data && data.length > 0) {
+          // Merge with existing
+          const existing = await DB.getCatalog();
+          const existingMap = {};
+          existing.forEach(b => existingMap[b.id] = b);
+          
+          for (const book of data) {
+            if (existingMap[book.id]) {
+              // Update existing
+              Object.assign(existingMap[book.id], book);
+            } else {
+              existing.push(book);
+            }
+          }
+          
+          allBooks = existing;
+          await DB.saveCatalog(allBooks);
+          renderBooks(allBooks);
+          updateContinueReading();
+          updateStorageInfo();
+        }
+        
         hideLoading();
       } catch(err) {
         hideLoading();
-        document.getElementById('bookGrid').innerHTML = 
-          `<div style="grid-column:1/-1;text-align:center;padding:40px;color:#dc3545;">❌ Error: ${err.message}</div>`;
+        console.error('Sync error:', err);
       }
     }
 
+    // ================================================================
+    // RENDER BOOKS
+    // ================================================================
     function renderBooks(books) {
       const grid = document.getElementById('bookGrid');
       if (!books || books.length === 0) {
-        grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">📚 No books found</div>`;
+        grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">📚 No books found. Please sync.</div>`;
         return;
       }
 
-      grid.innerHTML = books.map(book => `
+      grid.innerHTML = books.map(book => {
+        const isDownloaded = book.downloaded || false;
+        return `
         <div class="book-card" onclick="openBook('${book.id}')">
           <span class="book-parts-badge">${book.parts || 0} Parts</span>
           <div class="book-avatar-fallback">${book.cover_url || '📖'}</div>
           <div class="book-details">
             <h3 dir="rtl">${book.title_ml || book.title_ar}</h3>
             <div class="book-author">${book.author || 'Unknown'}</div>
+            <span class="status-badge ${isDownloaded ? 'downloaded' : 'not-downloaded'}">
+              ${isDownloaded ? '✅ Downloaded' : '📥 Not Downloaded'}
+            </span>
           </div>
           <div class="book-footer">
             <button class="open-btn" onclick="event.stopPropagation();openBook('${book.id}')">📖 Open</button>
+            ${!isDownloaded ? `<button class="download-btn" onclick="event.stopPropagation();downloadBook('${book.id}')"><i class="fas fa-cloud-download-alt"></i></button>` : ''}
           </div>
-        </div>
-      `).join('');
+        </div>`;
+      }).join('');
     }
 
-    function refreshBooks() { loadBooks(); }
+    function filterBooks(type) {
+      document.querySelectorAll('.tab-item').forEach(el => el.classList.remove('active'));
+      const tabMap = { all: 'tab-all', downloaded: 'tab-downloaded', favorites: 'tab-favorites' };
+      document.getElementById(tabMap[type]).classList.add('active');
+      
+      if (type === 'all') renderBooks(allBooks);
+      else if (type === 'downloaded') {
+        const downloaded = allBooks.filter(b => b.downloaded);
+        renderBooks(downloaded);
+      } else if (type === 'favorites') {
+        const favorites = allBooks.filter(b => b.favorite);
+        renderBooks(favorites);
+      }
+    }
 
     function searchBooks(q) {
       if (!q || q.length < 2) { renderBooks(allBooks); return; }
@@ -1243,27 +1376,22 @@
       renderBooks(filtered);
     }
 
-    function filterBooks(type) {
-      document.querySelectorAll('.tab-item').forEach(el => el.classList.remove('active'));
-      document.getElementById('tab-' + (type === 'all' ? 'all' : (type === 'categories' ? 'cats' : 'auths'))).classList.add('active');
-      renderBooks(allBooks);
-    }
-
     function toggleSearch() { document.getElementById('searchBar').classList.toggle('show'); }
 
     // ================================================================
-    // OPEN BOOK - CHUNK BY CHUNK
+    // DOWNLOAD BOOK
     // ================================================================
-    async function openBook(bookId) {
-      currentBookId = bookId;
-      currentPageIndex = 0;
-      currentChunkStart = 0;
-
+    async function downloadBook(bookId) {
+      if (!supabaseClient) {
+        alert('Please connect to Supabase first.');
+        return;
+      }
+      
       const book = allBooks.find(b => b.id === bookId);
-      document.getElementById('readerTitle').textContent = book?.title_ml || book?.title_ar || 'Book';
-
-      showLoading('📖 പുസ്തകം ലോഡ് ചെയ്യുന്നു...');
-
+      if (!book) return;
+      
+      showLoading(`📥 Downloading ${book.title_ml || book.title_ar}...`);
+      
       try {
         const tableName = `${bookId}_contents`;
         const { data, error } = await supabaseClient
@@ -1272,25 +1400,119 @@
           .order('ID', { ascending: true });
 
         if (error) throw error;
-
+        
         if (!data || data.length === 0) {
           hideLoading();
           alert('No content found in ' + tableName);
           return;
         }
+        
+        // Save to IndexedDB
+        const chunks = data.map(item => ({
+          id: `${bookId}_${item.ID}`,
+          bookId: bookId,
+          sequence: item.ID,
+          part: item['Part Number'] || 1,
+          page: item['Page Number'] || 1,
+          Arabic: item['Arabic Text'] || '',
+          Malayalam: item['Malayalam Text'] || '',
+          English: item['English Text'] || '',
+          updated_at: new Date().toISOString()
+        }));
+        
+        await DB.saveBookChunks(chunks);
+        
+        // Update book status
+        book.downloaded = true;
+        book.total_pages = data.length;
+        await DB.updateBook(bookId, { downloaded: true, total_pages: data.length });
+        await DB.saveCatalog(allBooks);
+        
+        renderBooks(allBooks);
+        updateStorageInfo();
+        hideLoading();
+        alert(`✅ Downloaded ${data.length} pages!`);
+        
+      } catch(err) {
+        hideLoading();
+        alert('❌ Download failed: ' + err.message);
+      }
+    }
 
-        currentPages = data;
-        totalPages = data.length;
+    async function downloadAllBooks() {
+      if (!confirm('Download all books? This may take some time.')) return;
+      for (const book of allBooks) {
+        if (!book.downloaded) {
+          await downloadBook(book.id);
+        }
+      }
+    }
+
+    // ================================================================
+    // OPEN BOOK - FROM INDEXEDDB
+    // ================================================================
+    async function openBook(bookId) {
+      currentBookId = bookId;
+      currentPageIndex = 0;
+      currentWordOffset = 0;
+
+      const book = allBooks.find(b => b.id === bookId);
+      document.getElementById('readerTitle').textContent = book?.title_ml || book?.title_ar || 'Book';
+
+      showLoading('📖 Loading book...');
+
+      try {
+        // Check if downloaded
+        if (!book.downloaded) {
+          hideLoading();
+          if (confirm('This book is not downloaded. Download now?')) {
+            await downloadBook(bookId);
+            const updated = allBooks.find(b => b.id === bookId);
+            if (!updated?.downloaded) {
+              alert('Download failed.');
+              return;
+            }
+          } else {
+            return;
+          }
+        }
+        
+        // Load chunks from IndexedDB
+        const chunks = await DB.getBookChunks(bookId, 9999, 0);
+        if (!chunks || chunks.length === 0) {
+          hideLoading();
+          alert('No content found. Please download the book.');
+          return;
+        }
+        
+        // Sort by sequence
+        chunks.sort((a, b) => a.sequence - b.sequence);
+        currentPages = chunks;
+        totalPages = chunks.length;
         currentChunkEnd = Math.min(CHUNK_SIZE, totalPages);
-
-        // Save to localStorage for continue reading
-        localStorage.setItem('last_played_book_id', bookId);
-        localStorage.setItem('last_played_book_title', book?.title_ml || book?.title_ar || 'Book');
-
+        
+        // Get progress
+        const progress = await DB.getProgress(bookId);
+        if (progress && progress.sequence > 0) {
+          const idx = chunks.findIndex(c => c.sequence === progress.sequence);
+          if (idx >= 0) {
+            currentPageIndex = idx;
+            currentWordOffset = progress.character_offset || 0;
+          }
+        }
+        
+        // Get bookmarks
+        const bookmarks = await DB.getBookmarks(bookId);
+        // Store for later use
+        
+        // Get TOC
+        const toc = await DB.getBookTOC(bookId);
+        // Store for later use
+        
         hideLoading();
         openReader();
         renderCurrentPage();
-
+        
       } catch(err) {
         hideLoading();
         alert('❌ Error: ' + err.message);
@@ -1301,18 +1523,26 @@
       document.getElementById('readerView').classList.add('show');
       document.getElementById('homeView').classList.remove('show');
       document.getElementById('miniPlayer').classList.add('show');
+      document.getElementById('spokenOverlay').classList.add('show');
       switchView('ebook');
       updateBookmarkUI();
-      document.getElementById('spokenOverlay').classList.add('show');
     }
 
     function closeReader() {
+      // Save progress
+      if (currentBookId && currentPages.length > 0) {
+        const chunk = currentPages[currentPageIndex];
+        if (chunk) {
+          DB.saveProgress(currentBookId, chunk.sequence, currentWordOffset);
+        }
+      }
+      
       document.getElementById('readerView').classList.remove('show');
       document.getElementById('homeView').classList.add('show');
       if (!isPlaying) document.getElementById('miniPlayer').classList.remove('show');
       closeVisualMode();
-      updateContinueReading();
       document.getElementById('spokenOverlay').classList.remove('show');
+      updateContinueReading();
     }
 
     // ================================================================
@@ -1324,11 +1554,11 @@
       const page = currentPages[currentPageIndex];
       const container = document.getElementById('readerPageContainer');
 
-      const ar = page['Arabic Text'] || '';
-      const ml = page['Malayalam Text'] || '';
-      const en = page['English Text'] || '';
-      const part = page['Part Number'] || '?';
-      const pageNum = page['Page Number'] || '?';
+      const ar = page.Arabic || '';
+      const ml = page.Malayalam || '';
+      const en = page.English || '';
+      const part = page.part || '?';
+      const pageNum = page.page || '?';
 
       // Clear previous highlights
       document.querySelectorAll('.word-hl, .word-hl-ar, .word-hl-ml, .word-hl-en').forEach(el => {
@@ -1361,7 +1591,7 @@
       // Update mini player
       const row = currentPages[currentPageIndex];
       if (row) {
-        const mlText = (row['Malayalam Text'] || '').replace(/<[^>]+>/g, '').trim();
+        const mlText = (row.Malayalam || '').replace(/<[^>]+>/g, '').trim();
         document.getElementById('miniTitle').textContent = mlText.substring(0, 40) + '...';
         document.getElementById('miniProgress').textContent = `ഭാഗം ${part} - പേജ് ${pageNum}`;
         updateAudioUI();
@@ -1378,7 +1608,7 @@
 
       // Auto scroll
       if (autoScrollEnabled && document.getElementById('optAutoScroll')?.checked !== false) {
-        setTimeout(autoScrollToHighlight, 100);
+        setTimeout(autoScrollToHighlight, 150);
       }
     }
 
@@ -1387,11 +1617,9 @@
     // ================================================================
     function tokenizeText(text, lang) {
       if (!text) return '';
-      // Remove HTML tags for pure text
       const pureText = text.replace(/<[^>]+>/g, '').trim();
       if (!pureText) return text;
 
-      // Split into words while preserving spaces
       const tokens = pureText.split(/(\s+)/);
       let offset = 0;
       
@@ -1400,7 +1628,6 @@
           offset += token.length;
           return token;
         }
-        const word = token;
         const startOffset = offset;
         offset += token.length;
         const isHighlighted = isPlaying && 
@@ -1408,7 +1635,7 @@
                              currentWordOffset < startOffset + token.length &&
                              spokenLang === lang;
         const hlClass = isHighlighted ? `word-hl word-hl-${lang}` : '';
-        return `<span class="word-token ${hlClass}" data-lang="${lang}" data-offset="${startOffset}" onclick="seekToWord(${startOffset}, '${lang}')">${word}</span>`;
+        return `<span class="word-token ${hlClass}" data-lang="${lang}" data-offset="${startOffset}" onclick="seekToWord(${startOffset}, '${lang}')">${token}</span>`;
       }).join('');
     }
 
@@ -1416,11 +1643,8 @@
       currentWordOffset = offset;
       spokenLang = lang;
       if (isPlaying) {
-        // Seek in TTS
         if (currentUtterance) {
-          // Update highlight
           highlightCurrentWord();
-          // Update spoken overlay
           updateSpokenText();
         }
       } else {
@@ -1432,12 +1656,10 @@
     // HIGHLIGHT CURRENT WORD
     // ================================================================
     function highlightCurrentWord() {
-      // Remove all highlights
       document.querySelectorAll('.word-hl, .word-hl-ar, .word-hl-ml, .word-hl-en').forEach(el => {
         el.classList.remove('word-hl', 'word-hl-ar', 'word-hl-ml', 'word-hl-en');
       });
 
-      // Find the word at current offset
       const langMap = { 'ar': 'arContent', 'ml': 'mlContent', 'en': 'enContent' };
       const contentId = langMap[spokenLang];
       if (!contentId) return;
@@ -1447,23 +1669,19 @@
 
       const tokens = container.querySelectorAll('.word-token');
       let targetToken = null;
-      let targetOffset = 0;
 
       for (const token of tokens) {
         const offset = parseInt(token.dataset.offset);
         if (offset <= currentWordOffset) {
           targetToken = token;
-          targetOffset = offset;
         }
       }
 
       if (targetToken) {
         targetToken.classList.add('word-hl', `word-hl-${spokenLang}`);
-        // Scroll to highlighted word
         if (autoScrollEnabled && document.getElementById('optAutoScroll')?.checked !== false) {
           targetToken.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-        // Update spoken overlay
         updateSpokenText();
       }
     }
@@ -1488,22 +1706,25 @@
       const badge = document.getElementById('spokenLangBadge');
 
       const page = currentPages[currentPageIndex];
-      if (!page) return;
+      if (!page) {
+        overlay.classList.remove('show');
+        return;
+      }
 
       let fullText = '';
       let langLabel = '';
       let langClass = '';
 
       if (spokenLang === 'ar') {
-        fullText = (page['Arabic Text'] || '').replace(/<[^>]+>/g, '').trim();
+        fullText = (page.Arabic || '').replace(/<[^>]+>/g, '').trim();
         langLabel = '🇦🇪 Arabic';
         langClass = '';
       } else if (spokenLang === 'ml') {
-        fullText = (page['Malayalam Text'] || '').replace(/<[^>]+>/g, '').trim();
+        fullText = (page.Malayalam || '').replace(/<[^>]+>/g, '').trim();
         langLabel = '🇮🇳 Malayalam';
         langClass = 'ml';
       } else {
-        fullText = (page['English Text'] || '').replace(/<[^>]+>/g, '').trim();
+        fullText = (page.English || '').replace(/<[^>]+>/g, '').trim();
         langLabel = '🇬🇧 English';
         langClass = 'en';
       }
@@ -1513,25 +1734,18 @@
         return;
       }
 
-      // Show only few words around current position
       const words = fullText.split(/\s+/);
-      let wordCount = 0;
       let currentPos = 0;
       let startIdx = 0;
-      let endIdx = 0;
 
       for (let i = 0; i < words.length; i++) {
         const wordLen = words[i].length + 1;
         if (currentPos + wordLen <= currentWordOffset) {
           startIdx = i + 1;
         }
-        if (currentPos <= currentWordOffset + 20) {
-          endIdx = i;
-        }
         currentPos += wordLen;
       }
 
-      // Show 3-5 words
       const displayWords = words.slice(Math.max(0, startIdx - 2), Math.min(words.length, startIdx + 4));
       const displayText = displayWords.join(' ');
 
@@ -1549,8 +1763,8 @@
       spokenLang = lang;
       document.querySelectorAll('.lang-btn').forEach(el => el.classList.remove('active'));
       document.getElementById('lang-' + lang).classList.add('active');
+      localStorage.setItem('pref_spoken_lang', lang);
       
-      // Update TTS language
       const langMap = { 'ar': 'ar-EG', 'ml': 'ml-IN', 'en': 'en-US' };
       document.getElementById('optAudioLang').value = langMap[lang];
       setupVoices();
@@ -1572,6 +1786,10 @@
         currentWordOffset = 0;
         renderCurrentPage();
         if (isPlaying) playAudio();
+        // Save progress
+        if (currentPages[currentPageIndex]) {
+          DB.saveProgress(currentBookId, currentPages[currentPageIndex].sequence, 0);
+        }
       }
     }
 
@@ -1581,6 +1799,9 @@
         currentWordOffset = 0;
         renderCurrentPage();
         if (isPlaying) playAudio();
+        if (currentPages[currentPageIndex]) {
+          DB.saveProgress(currentBookId, currentPages[currentPageIndex].sequence, 0);
+        }
       }
     }
 
@@ -1590,6 +1811,9 @@
         currentWordOffset = 0;
         renderCurrentPage();
         if (isPlaying) playAudio();
+        if (currentPages[index]) {
+          DB.saveProgress(currentBookId, currentPages[index].sequence, 0);
+        }
         closeModal();
       }
     }
@@ -1661,17 +1885,16 @@
       let langKey = 'ml';
       
       if (lang === 'ar-EG') {
-        text = page['Arabic Text'] || '';
+        text = page.Arabic || '';
         langKey = 'ar';
       } else if (lang === 'en-US') {
-        text = page['English Text'] || '';
+        text = page.English || '';
         langKey = 'en';
       } else {
-        text = page['Malayalam Text'] || '';
+        text = page.Malayalam || '';
         langKey = 'ml';
       }
 
-      // Remove HTML tags
       text = text.replace(/<[^>]+>/g, '').trim();
       if (!text) {
         if (currentPageIndex < totalPages - 1) {
@@ -1682,12 +1905,10 @@
         return;
       }
 
-      // Set spoken language
       spokenLang = langKey;
       document.querySelectorAll('.lang-btn').forEach(el => el.classList.remove('active'));
       document.getElementById('lang-' + langKey).classList.add('active');
 
-      // Start from current word offset
       let startText = text;
       if (currentWordOffset > 0 && currentWordOffset < text.length) {
         startText = text.substring(currentWordOffset);
@@ -1707,7 +1928,6 @@
 
       synth.cancel();
       
-      // Store full text for boundary events
       const fullText = text;
       const startOffset = currentWordOffset;
       
@@ -1733,16 +1953,15 @@
 
       currentUtterance.onboundary = (e) => {
         if (typeof e.charIndex === 'number' && e.name === 'word') {
-          // Update word offset
           const newOffset = startOffset + e.charIndex;
           if (newOffset > currentWordOffset) {
             currentWordOffset = newOffset;
-            // Update highlight
             highlightCurrentWord();
-            // Update spoken overlay
             updateSpokenText();
             // Save progress
-            saveProgress();
+            if (currentPages[currentPageIndex]) {
+              DB.saveProgress(currentBookId, currentPages[currentPageIndex].sequence, currentWordOffset);
+            }
           }
         }
       };
@@ -1750,20 +1969,17 @@
       currentUtterance.onstart = () => {
         document.getElementById('silentAudio').play().catch(()=>{});
         initAudioContext();
-        // Initial highlight
         highlightCurrentWord();
         updateSpokenText();
-        // Save progress
-        const row = currentPages[currentPageIndex];
-        if (row) {
-          localStorage.setItem('last_played_page', row['Page Number'] || '1');
-          localStorage.setItem('last_played_part', row['Part Number'] || '1');
-        }
+        localStorage.setItem('last_played_book_id', currentBookId);
+        const book = allBooks.find(b => b.id === currentBookId);
+        localStorage.setItem('last_played_book_title', book?.title_ml || book?.title_ar || 'Book');
       };
 
       currentUtterance.onend = () => {
         if (isPlaying) {
-          if (currentPageIndex < totalPages - 1) {
+          const autoNext = document.getElementById('optAutoNext')?.checked !== false;
+          if (autoNext && currentPageIndex < totalPages - 1) {
             currentWordOffset = 0;
             nextPage();
           } else {
@@ -1796,14 +2012,6 @@
       document.getElementById('spokenOverlay').classList.remove('show');
     }
 
-    function saveProgress() {
-      if (currentBookId) {
-        localStorage.setItem(currentBookId + '_index', currentPageIndex);
-        localStorage.setItem(currentBookId + '_offset', currentWordOffset);
-        localStorage.setItem(currentBookId + '_lang', spokenLang);
-      }
-    }
-
     function updatePlayIcon() {
       const icon = isPlaying ? 'fa-pause' : 'fa-play';
       document.getElementById('miniPlayIcon').className = `fas ${icon}`;
@@ -1821,10 +2029,10 @@
     function updateAudioUI() {
       const page = currentPages[currentPageIndex];
       if (!page) return;
-      const mlText = (page['Malayalam Text'] || '').replace(/<[^>]+>/g, '').trim();
+      const mlText = (page.Malayalam || '').replace(/<[^>]+>/g, '').trim();
       document.getElementById('audioTitle').textContent = mlText.substring(0, 50) + '...';
       document.getElementById('audioMeta').textContent = 
-        `ഭാഗം ${page['Part Number'] || '?'} - പേജ് ${page['Page Number'] || '?'} / ${totalPages}`;
+        `ഭാഗം ${page.part || '?'} - പേജ് ${page.page || '?'} / ${totalPages}`;
     }
 
     // ================================================================
@@ -1835,12 +2043,16 @@
       updateVisualChunk();
       applyVisualBg();
       if (!isPlaying) togglePlay();
+      document.getElementById('spokenOverlay').classList.remove('show');
     }
 
     function closeVisualMode() {
       document.getElementById('visualMode').classList.remove('show');
       document.getElementById('visualVideo').pause();
       document.getElementById('visualYoutube').src = '';
+      if (isPlaying) {
+        document.getElementById('spokenOverlay').classList.add('show');
+      }
     }
 
     function toggleVisualFullscreen() {
@@ -1851,10 +2063,9 @@
       const page = currentPages[currentPageIndex];
       if (!page) return;
       
-      // Show only few words
-      const arText = (page['Arabic Text'] || '').replace(/<[^>]+>/g, '').trim();
-      const mlText = (page['Malayalam Text'] || '').replace(/<[^>]+>/g, '').trim();
-      const enText = (page['English Text'] || '').replace(/<[^>]+>/g, '').trim();
+      const arText = (page.Arabic || '').replace(/<[^>]+>/g, '').trim();
+      const mlText = (page.Malayalam || '').replace(/<[^>]+>/g, '').trim();
+      const enText = (page.English || '').replace(/<[^>]+>/g, '').trim();
       
       document.getElementById('visArText').innerHTML = getVisualWords(arText, 'ar');
       document.getElementById('visMlText').innerHTML = getVisualWords(mlText, 'ml');
@@ -1866,15 +2077,11 @@
       const words = text.split(/\s+/);
       let currentPos = 0;
       let startIdx = 0;
-      let endIdx = 0;
 
       for (let i = 0; i < words.length; i++) {
         const wordLen = words[i].length + 1;
         if (currentPos + wordLen <= currentWordOffset) {
           startIdx = i + 1;
-        }
-        if (currentPos <= currentWordOffset + 30) {
-          endIdx = i;
         }
         currentPos += wordLen;
       }
@@ -1882,10 +2089,8 @@
       const displayWords = words.slice(Math.max(0, startIdx - 3), Math.min(words.length, startIdx + 5));
       const isActive = spokenLang === lang;
       
-      return displayWords.map((word, idx) => {
-        const wordOffset = words.slice(0, startIdx + idx).join(' ').length + (idx > 0 ? 1 : 0);
-        const isHighlighted = isActive && wordOffset >= currentWordOffset - 5 && wordOffset <= currentWordOffset + 20;
-        return isHighlighted ? `<span class="vis-word-hl">${word}</span>` : word;
+      return displayWords.map((word) => {
+        return isActive ? `<span class="vis-word-hl">${word}</span>` : word;
       }).join(' ');
     }
 
@@ -1928,7 +2133,6 @@
 
       if (mode === 'visual') {
         openVisualMode();
-        document.getElementById('spokenOverlay').classList.remove('show');
       } else {
         closeVisualMode();
         if (isPlaying) {
@@ -1940,47 +2144,56 @@
     // ================================================================
     // BOOKMARKS
     // ================================================================
-    function toggleBookmark() {
-      if (!currentBookId) return;
-      const key = currentBookId + '_bookmarks';
-      let bookmarks = JSON.parse(localStorage.getItem(key) || '[]');
-      const idx = bookmarks.indexOf(currentPageIndex);
-      if (idx > -1) bookmarks.splice(idx, 1);
-      else bookmarks.push(currentPageIndex);
-      localStorage.setItem(key, JSON.stringify(bookmarks));
+    async function toggleBookmark() {
+      if (!currentBookId || !currentPages.length) return;
+      const chunk = currentPages[currentPageIndex];
+      if (!chunk) return;
+      
+      const bookmarks = await DB.getBookmarks(currentBookId);
+      const exists = bookmarks.find(b => b.sequence === chunk.sequence);
+      
+      if (exists) {
+        await DB.removeBookmark(exists.id);
+      } else {
+        await DB.addBookmark(currentBookId, chunk.sequence);
+      }
       updateBookmarkUI();
     }
 
-    function updateBookmarkUI() {
-      if (!currentBookId) return;
-      const key = currentBookId + '_bookmarks';
-      const bookmarks = JSON.parse(localStorage.getItem(key) || '[]');
-      document.getElementById('readerBookmark').classList.toggle('active-bm', bookmarks.includes(currentPageIndex));
+    async function updateBookmarkUI() {
+      if (!currentBookId || !currentPages.length) return;
+      const chunk = currentPages[currentPageIndex];
+      if (!chunk) return;
+      
+      const bookmarks = await DB.getBookmarks(currentBookId);
+      const exists = bookmarks.find(b => b.sequence === chunk.sequence);
+      document.getElementById('readerBookmark').classList.toggle('active-bm', !!exists);
     }
 
     // ================================================================
-    // TOC
+    // TOC - From IndexedDB
     // ================================================================
-    function openTOC() {
-      if (!currentPages || currentPages.length === 0) return;
+    async function openTOC() {
+      if (!currentBookId || !currentPages.length) return;
+      
       const modal = document.getElementById('tocModal');
       document.getElementById('modalOverlay').classList.add('show');
       modal.classList.add('show');
 
       const list = document.getElementById('tocList');
       let html = '';
+      
       currentPages.forEach((page, index) => {
         const isCurrent = index === currentPageIndex;
-        const part = page['Part Number'] || '?';
-        const pageNum = page['Page Number'] || '?';
-        const mlText = (page['Malayalam Text'] || '').replace(/<[^>]+>/g, '').trim().substring(0, 30);
+        const mlText = (page.Malayalam || '').replace(/<[^>]+>/g, '').trim().substring(0, 30);
         html += `
           <div class="toc-item ${isCurrent ? 'current' : ''}" onclick="jumpToPage(${index})">
-            <div class="toc-badge">ഭാഗം ${part} - പേജ് ${pageNum}</div>
+            <div class="toc-badge">ഭാഗം ${page.part || '?'} - പേജ് ${page.page || '?'}</div>
             <div>${mlText || '...'}</div>
           </div>
         `;
       });
+      
       list.innerHTML = html || '<div style="padding:20px;text-align:center;color:var(--text-muted);">No content</div>';
     }
 
@@ -2046,6 +2259,58 @@
     }
 
     // ================================================================
+    // STORAGE INFO
+    // ================================================================
+    async function updateStorageInfo() {
+      try {
+        const catalog = await DB.getCatalog();
+        let totalPages = 0;
+        let totalSize = 0;
+        let downloaded = 0;
+        
+        for (const book of catalog) {
+          if (book.downloaded) {
+            downloaded++;
+            const chunks = await DB.getBookChunks(book.id, 9999, 0);
+            totalPages += chunks.length;
+            totalSize += chunks.reduce((sum, c) => sum + (c.Arabic || '').length + (c.Malayalam || '').length + (c.English || '').length, 0);
+          }
+        }
+        
+        document.getElementById('storageBooks').textContent = downloaded;
+        document.getElementById('storagePages').textContent = totalPages.toLocaleString();
+        document.getElementById('storageSize').textContent = (totalSize / 1024 / 1024).toFixed(1) + ' MB';
+      } catch(err) {
+        console.error('Storage info error:', err);
+      }
+    }
+
+    async function clearAllData() {
+      if (!confirm('⚠️ Remove all downloaded books and data? This cannot be undone!')) return;
+      
+      try {
+        await DB.clearStore(DB.STORES.CHUNKS);
+        await DB.clearStore(DB.STORES.BOOKMARKS);
+        await DB.clearStore(DB.STORES.PROGRESS);
+        await DB.clearStore(DB.STORES.TOC);
+        
+        const catalog = await DB.getCatalog();
+        for (const book of catalog) {
+          book.downloaded = false;
+          book.total_pages = 0;
+          await DB.updateBook(book.id, { downloaded: false, total_pages: 0 });
+        }
+        
+        allBooks = catalog;
+        renderBooks(allBooks);
+        updateStorageInfo();
+        alert('✅ All data cleared!');
+      } catch(err) {
+        alert('Error clearing data: ' + err.message);
+      }
+    }
+
+    // ================================================================
     // LOADING HELPERS
     // ================================================================
     function showLoading(text) {
@@ -2076,7 +2341,6 @@
         applyFonts();
       }
 
-      // Load spoken language
       const savedLang = localStorage.getItem('pref_spoken_lang') || 'ar';
       setSpokenLang(savedLang);
     }
@@ -2088,26 +2352,8 @@
       loadPreferences();
       setupVoices();
       if (synth.onvoiceschanged !== undefined) synth.onvoiceschanged = setupVoices;
-
-      // Check saved config
-      const savedUrl = localStorage.getItem('supabase_url');
-      const savedKey = localStorage.getItem('supabase_key');
-
-      if (window.ENV_SUPABASE_URL && window.ENV_SUPABASE_KEY) {
-        document.getElementById('supabaseUrl').value = window.ENV_SUPABASE_URL;
-        document.getElementById('supabaseKey').value = window.ENV_SUPABASE_KEY;
-        useConfigCredentials();
-        return;
-      }
-
-      if (savedUrl && savedKey) {
-        document.getElementById('supabaseUrl').value = savedUrl;
-        document.getElementById('supabaseKey').value = savedKey;
-        connectSupabase();
-      } else {
-        document.getElementById('setupBox').classList.add('show');
-        document.getElementById('loadStatus').textContent = '🔌 Supabase-ലേക്ക് കണക്റ്റ് ചെയ്യുക';
-      }
+      
+      initApp();
     });
   </script>
 </body>
