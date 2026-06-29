@@ -9,8 +9,9 @@
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
-  <!-- Config -->
+  <!-- Config & Database -->
   <script src="config.js"></script>
+  <script src="database.js"></script>
   
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -771,7 +772,25 @@
     .toc-level-3 { padding-left: 40px; font-size: 14px; }
     .toc-level-4 { padding-left: 60px; font-size: 13px; color: var(--text-muted); }
     .toc-level-page { padding-left: 20px; font-size: 13px; color: var(--text-muted); }
-    .toc-children { padding-left: 10px; }
+
+    .toc-breadcrumb {
+      padding: 10px 15px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      font-weight: bold;
+      color: var(--text-muted);
+      flex-shrink: 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+    .toc-breadcrumb span {
+      cursor: pointer;
+      color: var(--primary-green);
+      transition: 0.2s;
+    }
+    .toc-breadcrumb span:hover { text-decoration: underline; }
 
     .lang-selector {
       display: flex;
@@ -797,25 +816,6 @@
     }
     .lang-btn:active { transform: scale(0.95); }
 
-    .toc-breadcrumb {
-      padding: 10px 15px;
-      background: var(--bg);
-      border-bottom: 1px solid var(--border);
-      font-size: 13px;
-      font-weight: bold;
-      color: var(--text-muted);
-      flex-shrink: 0;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 5px;
-    }
-    .toc-breadcrumb span {
-      cursor: pointer;
-      color: var(--primary-green);
-      transition: 0.2s;
-    }
-    .toc-breadcrumb span:hover { text-decoration: underline; }
-
     @media (max-width: 600px) {
       .book-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
       .reader-page-card { padding: 20px 15px; }
@@ -833,7 +833,7 @@
     <div class="spinner"></div>
     <div class="status" id="loadStatus">📚 Islamic Digital Library</div>
     <div id="setupBox">
-      <input type="text" id="supabaseUrl" placeholder="Supabase URL (eg: https://xyz.supabase.co)">
+      <input type="text" id="supabaseUrl" placeholder="Supabase URL">
       <input type="text" id="supabaseKey" placeholder="Supabase anon/public key">
       <button onclick="connectSupabase()"><i class="fas fa-plug"></i> Connect to Supabase</button>
       <div class="setup-hint">💡 Supabase Dashboard → Project Settings → API</div>
@@ -1016,7 +1016,7 @@
         <div class="setting-row"><span>Display Arabic</span><input type="checkbox" id="optShowAr" checked onchange="renderAllViews()"></div>
         <div class="setting-row"><span>Display Malayalam</span><input type="checkbox" id="optShowMl" checked onchange="renderAllViews()"></div>
         <div class="setting-row"><span>Display English</span><input type="checkbox" id="optShowEn" checked onchange="renderAllViews()"></div>
-        <div class="setting-row"><span>Chunk Size (Pages)</span><select id="optChunkSize" onchange="updateChunkSize()"><option value="10">10</option><option value="20" selected>20</option><option value="30">30</option><option value="50">50</option></select></div>
+        <div class="setting-row"><span>Chunk Size</span><select id="optChunkSize" onchange="updateChunkSize()"><option value="10">10</option><option value="20" selected>20</option><option value="30">30</option><option value="50">50</option></select></div>
       </div>
 
       <div class="setting-group">
@@ -1043,7 +1043,7 @@
       <div class="setting-group">
         <label class="setting-label">🎬 Visual Mode</label>
         <input type="text" id="optYoutubeId" placeholder="YouTube Video ID" style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text-dark);">
-        <button style="width:100%; margin-top:5px; padding:8px; background:var(--primary-green); color:white; border-radius:6px;" onclick="applyVisualBg()">Update Background</button>
+        <button style="width:100%; margin-top:5px; padding:8px; background:var(--primary-green); color:white; border-radius:6px;" onclick="applyVisualBg()">Update</button>
       </div>
 
       <div class="setting-group">
@@ -1081,9 +1081,11 @@
     let supabaseClient = null;
     let allBooks = [];
     let currentBookId = null;
-    let currentSequence = 0;
+    let currentChunkNo = 0;
     let currentPageIndex = 0;
+    let currentPages = []; // Current chunk pages
     let totalPages = 0;
+    let CHUNK_SIZE = 20;
     let isPlaying = false;
     let synth = window.speechSynthesis;
     let allVoices = [];
@@ -1092,13 +1094,11 @@
     let autoScrollEnabled = true;
     let currentUtterance = null;
     let currentWordOffset = 0;
-    let CHUNK_SIZE = 20;
-    let bookPages = [];
     let isDownloading = false;
     let downloadProgress = 0;
-    let totalBookPages = 0;
     let tocData = [];
     let tocPath = [];
+    let currentSequence = 0;
 
     const STATE = {
       showAr: true,
@@ -1145,6 +1145,28 @@
     // ================================================================
     async function initApp() {
       try {
+        await DB.open();
+        
+        // Load settings from IndexedDB
+        const settings = await DB.getSettings();
+        if (settings.theme) setTheme(settings.theme);
+        if (settings.font_size) {
+          document.getElementById('optFontSize').value = settings.font_size;
+          applyFontSize();
+        }
+        
+        // Load books from IndexedDB
+        const books = await DB.getBooks();
+        if (books && books.length > 0) {
+          allBooks = books;
+          renderBooks(allBooks);
+          updateContinueReading();
+          updateStorageInfo();
+          document.getElementById('loader').classList.add('hidden');
+          document.getElementById('homeView').classList.add('show');
+        }
+        
+        // Check Supabase config
         const savedUrl = localStorage.getItem('supabase_url');
         const savedKey = localStorage.getItem('supabase_key');
         
@@ -1224,17 +1246,19 @@
         document.getElementById('loader').classList.add('hidden');
         document.getElementById('homeView').classList.add('show');
         
-        await loadBooks();
+        await syncBooksFromSupabase();
       } catch(err) {
         msg.innerHTML = `<div class="status-msg error">❌ ${err.message}</div>`;
       }
     }
 
     // ================================================================
-    // LOAD BOOKS
+    // SYNC BOOKS FROM SUPABASE
     // ================================================================
-    async function loadBooks() {
-      showLoading('📚 പുസ്തകങ്ങൾ ലോഡ് ചെയ്യുന്നു...');
+    async function syncBooksFromSupabase() {
+      if (!supabaseClient) return;
+      
+      showLoading('📚 Syncing books...');
       try {
         const { data, error } = await supabaseClient
           .from('master_catalog')
@@ -1243,18 +1267,48 @@
 
         if (error) throw error;
 
-        allBooks = data || [];
-        renderBooks(allBooks);
-        updateContinueReading();
-        updateStorageInfo();
+        if (data && data.length > 0) {
+          // Merge with existing
+          const existing = await DB.getBooks();
+          const existingMap = {};
+          existing.forEach(b => existingMap[b.id] = b);
+          
+          for (const book of data) {
+            if (existingMap[book.id]) {
+              Object.assign(existingMap[book.id], book);
+            } else {
+              book.downloaded = false;
+              book.total_pages = 0;
+              existing.push(book);
+            }
+          }
+          
+          allBooks = existing;
+          await DB.saveBooks(allBooks);
+          renderBooks(allBooks);
+          updateContinueReading();
+          updateStorageInfo();
+        }
+        
         hideLoading();
       } catch(err) {
         hideLoading();
-        document.getElementById('bookGrid').innerHTML = 
-          `<div style="grid-column:1/-1;text-align:center;padding:40px;color:#dc3545;">❌ Error: ${err.message}</div>`;
+        console.error('Sync error:', err);
       }
     }
 
+    async function syncBooks() {
+      if (!supabaseClient) {
+        alert('Please connect to Supabase first.');
+        return;
+      }
+      await syncBooksFromSupabase();
+      alert('✅ Books synced!');
+    }
+
+    // ================================================================
+    // RENDER BOOKS
+    // ================================================================
     function renderBooks(books) {
       const grid = document.getElementById('bookGrid');
       if (!books || books.length === 0) {
@@ -1264,16 +1318,16 @@
 
       grid.innerHTML = books.map(book => {
         const isDownloaded = book.downloaded || false;
+        const statusClass = isDownloaded ? 'downloaded' : 'not-downloaded';
+        const statusText = isDownloaded ? '✅ Downloaded' : '📥 Online';
         return `
         <div class="book-card" onclick="openBook('${book.id}')">
-          <span class="book-parts-badge">${book.parts || 0} Parts</span>
+          <span class="book-parts-badge">${book.total_pages || 0} Pages</span>
           <div class="book-avatar-fallback">${book.cover_url || '📖'}</div>
           <div class="book-details">
             <h3 dir="rtl">${book.title_ml || book.title_ar}</h3>
             <div class="book-author">${book.author || 'Unknown'}</div>
-            <span class="status-badge ${isDownloaded ? 'downloaded' : 'not-downloaded'}">
-              ${isDownloaded ? '✅ Downloaded' : '📥 Online'}
-            </span>
+            <span class="status-badge ${statusClass}">${statusText}</span>
           </div>
           <div class="book-footer">
             <button class="open-btn" onclick="event.stopPropagation();openBook('${book.id}')">📖 Read</button>
@@ -1306,72 +1360,77 @@
 
     function toggleSearch() { document.getElementById('searchBar').classList.toggle('show'); }
 
-    async function syncBooks() {
-      if (!supabaseClient) return;
-      await loadBooks();
-      alert('✅ Books synced!');
-    }
-
     // ================================================================
-    // OPEN BOOK - CHUNK LOADING
+    // OPEN BOOK
     // ================================================================
     async function openBook(bookId) {
       currentBookId = bookId;
-      currentSequence = 0;
+      currentChunkNo = 0;
       currentPageIndex = 0;
       currentWordOffset = 0;
-      bookPages = [];
+      currentPages = [];
+      currentSequence = 0;
 
-      const book = allBooks.find(b => b.id === bookId);
-      document.getElementById('readerTitle').textContent = book?.title_ml || book?.title_ar || 'Book';
+      const book = await DB.getBook(bookId);
+      if (!book) {
+        alert('Book not found.');
+        return;
+      }
+      
+      document.getElementById('readerTitle').textContent = book.title_ml || book.title_ar || 'Book';
 
-      // Load progress
-      const progressKey = `progress_${bookId}`;
-      const savedProgress = localStorage.getItem(progressKey);
-      if (savedProgress) {
-        const prog = JSON.parse(savedProgress);
-        currentSequence = prog.sequence || 0;
-        currentWordOffset = prog.offset || 0;
+      // Load progress from IndexedDB
+      const progress = await DB.getProgress(bookId);
+      if (progress && progress.sequence > 0) {
+        currentSequence = progress.sequence;
+        currentWordOffset = progress.word_offset || 0;
       }
 
-      // Load bookmarks
-      const bookmarkKey = `bookmarks_${bookId}`;
-      const savedBookmarks = localStorage.getItem(bookmarkKey);
-      const bookmarks = savedBookmarks ? JSON.parse(savedBookmarks) : [];
-
-      // Load TOC
-      const tocKey = `toc_${bookId}`;
-      const savedTOC = localStorage.getItem(tocKey);
-      if (savedTOC) {
-        tocData = JSON.parse(savedTOC);
-      } else {
-        tocData = [];
-      }
+      // Load TOC from IndexedDB
+      tocData = await DB.getTOC(bookId) || [];
 
       showLoading('📖 Opening book...');
 
       try {
-        // Get total pages count
-        const countTable = `${bookId}_contents`;
-        const { count, error: countError } = await supabaseClient
-          .from(countTable)
-          .select('*', { count: 'exact', head: true });
+        // Get total pages if not known
+        if (!book.total_pages || book.total_pages === 0) {
+          const tableName = `${bookId}_contents`;
+          const { count, error } = await supabaseClient
+            .from(tableName)
+            .select('*', { count: 'exact', head: true });
+          if (!error && count) {
+            book.total_pages = count;
+            await DB.saveBook(book);
+            totalPages = count;
+          }
+        } else {
+          totalPages = book.total_pages;
+        }
 
-        if (countError) throw countError;
-        totalBookPages = count || 0;
-        totalPages = totalBookPages;
+        // Load the chunk containing current sequence
+        const chunkNo = Math.floor(currentSequence / CHUNK_SIZE);
+        await loadChunkFromDB(chunkNo);
+        
+        // If chunk not in DB, load from Supabase
+        if (currentPages.length === 0) {
+          await loadChunkFromSupabase(chunkNo);
+        }
 
-        // Load first chunk
-        await loadChunk(currentSequence || 0);
-
-        // Start background download
-        if (!book.downloaded) {
-          startBackgroundDownload(bookId);
+        // Find current page index
+        if (currentPages.length > 0 && currentSequence > 0) {
+          const idx = currentPages.findIndex(p => p.sequence === currentSequence);
+          if (idx >= 0) currentPageIndex = idx;
+          else currentPageIndex = 0;
         }
 
         hideLoading();
         openReader();
         renderCurrentPage();
+
+        // Start background download if not fully downloaded
+        if (!book.downloaded) {
+          startBackgroundDownload(bookId);
+        }
 
       } catch(err) {
         hideLoading();
@@ -1380,79 +1439,74 @@
     }
 
     // ================================================================
+    // LOAD CHUNK FROM INDEXEDDB
+    // ================================================================
+    async function loadChunkFromDB(chunkNo) {
+      const chunk = await DB.getChunk(currentBookId, chunkNo);
+      if (chunk && chunk.pages) {
+        currentPages = chunk.pages;
+        currentChunkNo = chunkNo;
+        return true;
+      }
+      return false;
+    }
+
+    // ================================================================
     // LOAD CHUNK FROM SUPABASE
     // ================================================================
-    async function loadChunk(startSequence) {
-      if (!supabaseClient) return;
+    async function loadChunkFromSupabase(chunkNo) {
+      if (!supabaseClient) return false;
 
       try {
+        const startSeq = chunkNo * CHUNK_SIZE;
+        const endSeq = startSeq + CHUNK_SIZE;
         const tableName = `${currentBookId}_contents`;
+        
         const { data, error } = await supabaseClient
           .from(tableName)
           .select('*')
-          .gte('ID', startSequence)
-          .lt('ID', startSequence + CHUNK_SIZE)
+          .gte('ID', startSeq)
+          .lt('ID', endSeq)
           .order('ID', { ascending: true });
 
         if (error) throw error;
 
-        if (!data || data.length === 0) return;
+        if (data && data.length > 0) {
+          const pages = data.map(item => ({
+            sequence: item.ID,
+            part: item['Part Number'] || 1,
+            page: item['Page Number'] || 1,
+            Arabic: item['Arabic Text'] || '',
+            Malayalam: item['Malayalam Text'] || '',
+            English: item['English Text'] || ''
+          }));
 
-        // Store in memory
-        const pages = data.map(item => ({
-          sequence: item.ID,
-          part: item['Part Number'] || 1,
-          page: item['Page Number'] || 1,
-          Arabic: item['Arabic Text'] || '',
-          Malayalam: item['Malayalam Text'] || '',
-          English: item['English Text'] || ''
-        }));
+          currentPages = pages;
+          currentChunkNo = chunkNo;
 
-        // Merge with existing pages
-        const existingSeq = new Set(bookPages.map(p => p.sequence));
-        for (const page of pages) {
-          if (!existingSeq.has(page.sequence)) {
-            bookPages.push(page);
-            existingSeq.add(page.sequence);
-          }
-        }
+          // Save to IndexedDB
+          await DB.saveChunk(currentBookId, chunkNo, pages);
 
-        // Sort by sequence
-        bookPages.sort((a, b) => a.sequence - b.sequence);
-
-        // Update current page index
-        if (bookPages.length > 0) {
-          const idx = bookPages.findIndex(p => p.sequence === currentSequence);
-          if (idx >= 0) currentPageIndex = idx;
-          else currentPageIndex = 0;
-        }
-
-        // Save to localStorage cache
-        const cacheKey = `book_${currentBookId}`;
-        localStorage.setItem(cacheKey, JSON.stringify(bookPages));
-
-        // Update download progress
-        downloadProgress = Math.min(bookPages.length, totalBookPages);
-        document.getElementById('downloadProgress').textContent = 
-          `📥 Downloaded ${downloadProgress}/${totalBookPages} pages`;
-
-        // Check if book is fully downloaded
-        if (bookPages.length >= totalBookPages) {
-          const book = allBooks.find(b => b.id === currentBookId);
+          // Update book status
+          const book = await DB.getBook(currentBookId);
           if (book) {
             book.downloaded = true;
-            book.total_pages = totalBookPages;
-            localStorage.setItem('library_books', JSON.stringify(allBooks));
+            await DB.saveBook(book);
           }
-          document.getElementById('downloadProgress').textContent = '✅ Book downloaded!';
-          isDownloading = false;
+
+          // Extract TOC if not exists
+          if (tocData.length === 0) {
+            tocData = buildTOC(pages);
+            await DB.saveTOC(currentBookId, tocData);
+          }
+
+          return true;
         }
 
-        return pages;
-
+        return false;
       } catch(err) {
         console.error('Load chunk error:', err);
-        return [];
+        return false;
       }
     }
 
@@ -1463,21 +1517,61 @@
       if (isDownloading) return;
       isDownloading = true;
 
-      let startSeq = bookPages.length > 0 ? bookPages[bookPages.length - 1].sequence + 1 : 0;
-
-      while (startSeq < totalBookPages) {
-        await loadChunk(startSeq);
-        startSeq += CHUNK_SIZE;
-        
-        // Update UI periodically
-        if (bookPages.length > 0) {
-          const progress = Math.min(bookPages.length, totalBookPages);
-          document.getElementById('downloadProgress').textContent = 
-            `📥 Downloading ${progress}/${totalBookPages} pages...`;
+      let chunkNo = 0;
+      while (true) {
+        // Check if chunk exists in DB
+        const chunk = await DB.getChunk(bookId, chunkNo);
+        if (chunk && chunk.pages) {
+          chunkNo++;
+          continue;
         }
 
-        // Small delay to not block UI
-        await new Promise(r => setTimeout(r, 50));
+        // Load from Supabase
+        const startSeq = chunkNo * CHUNK_SIZE;
+        if (startSeq >= totalPages) break;
+
+        try {
+          const tableName = `${bookId}_contents`;
+          const { data, error } = await supabaseClient
+            .from(tableName)
+            .select('*')
+            .gte('ID', startSeq)
+            .lt('ID', startSeq + CHUNK_SIZE)
+            .order('ID', { ascending: true });
+
+          if (error || !data || data.length === 0) break;
+
+          const pages = data.map(item => ({
+            sequence: item.ID,
+            part: item['Part Number'] || 1,
+            page: item['Page Number'] || 1,
+            Arabic: item['Arabic Text'] || '',
+            Malayalam: item['Malayalam Text'] || '',
+            English: item['English Text'] || ''
+          }));
+
+          await DB.saveChunk(bookId, chunkNo, pages);
+
+          downloadProgress = Math.min((chunkNo + 1) * CHUNK_SIZE, totalPages);
+          document.getElementById('downloadProgress').textContent = 
+            `📥 Downloading ${downloadProgress}/${totalPages} pages...`;
+
+          chunkNo++;
+          await new Promise(r => setTimeout(r, 10));
+        } catch(err) {
+          console.error('Background download error:', err);
+          break;
+        }
+      }
+
+      // Mark book as downloaded
+      const book = await DB.getBook(bookId);
+      if (book) {
+        book.downloaded = true;
+        await DB.saveBook(book);
+        document.getElementById('downloadProgress').textContent = '✅ Book downloaded!';
+        renderBooks(allBooks);
+        updateStorageInfo();
       }
 
       isDownloading = false;
@@ -1499,13 +1593,10 @@
     }
 
     function closeReader() {
-      if (currentBookId && bookPages.length > 0) {
+      if (currentBookId && currentPages.length > 0) {
         const page = getCurrentPage();
         if (page) {
-          localStorage.setItem(`progress_${currentBookId}`, JSON.stringify({
-            sequence: page.sequence,
-            offset: currentWordOffset
-          }));
+          DB.saveProgress(currentBookId, page.sequence, currentWordOffset);
         }
       }
       
@@ -1517,7 +1608,7 @@
     }
 
     function getCurrentPage() {
-      return bookPages[currentPageIndex] || null;
+      return currentPages[currentPageIndex] || null;
     }
 
     // ================================================================
@@ -1557,7 +1648,7 @@
 
       container.innerHTML = html;
       document.getElementById('readerPageNum').textContent = 
-        `${currentPageIndex + 1} / ${totalBookPages || bookPages.length}`;
+        `${currentPageIndex + 1} / ${totalPages || currentPages.length}`;
 
       // Update mini player
       document.getElementById('miniTitle').textContent = (ml || '').replace(/<[^>]+>/g, '').substring(0, 40) + '...';
@@ -1668,8 +1759,8 @@
     // ================================================================
     // NAVIGATION
     // ================================================================
-    function nextPage() {
-      if (currentPageIndex < bookPages.length - 1) {
+    async function nextPage() {
+      if (currentPageIndex < currentPages.length - 1) {
         currentPageIndex++;
         currentWordOffset = 0;
         const page = getCurrentPage();
@@ -1677,30 +1768,26 @@
         renderCurrentPage();
         if (isPlaying) playAudio();
         saveProgress();
-        
-        // Preload next chunk if needed
-        if (currentPageIndex >= bookPages.length - 2 && bookPages.length < totalBookPages) {
-          const nextSeq = bookPages[bookPages.length - 1].sequence + 1;
-          loadChunk(nextSeq);
-        }
-      } else if (bookPages.length < totalBookPages) {
+      } else {
         // Load next chunk
-        const nextSeq = bookPages.length > 0 ? bookPages[bookPages.length - 1].sequence + 1 : 0;
-        loadChunk(nextSeq).then(() => {
-          if (currentPageIndex < bookPages.length - 1) {
-            currentPageIndex++;
-            currentWordOffset = 0;
-            const page = getCurrentPage();
-            if (page) currentSequence = page.sequence;
-            renderCurrentPage();
-            if (isPlaying) playAudio();
-            saveProgress();
-          }
-        });
+        const nextChunk = currentChunkNo + 1;
+        let loaded = await loadChunkFromDB(nextChunk);
+        if (!loaded) {
+          loaded = await loadChunkFromSupabase(nextChunk);
+        }
+        if (loaded && currentPages.length > 0) {
+          currentPageIndex = 0;
+          currentWordOffset = 0;
+          const page = getCurrentPage();
+          if (page) currentSequence = page.sequence;
+          renderCurrentPage();
+          if (isPlaying) playAudio();
+          saveProgress();
+        }
       }
     }
 
-    function prevPage() {
+    async function prevPage() {
       if (currentPageIndex > 0) {
         currentPageIndex--;
         currentWordOffset = 0;
@@ -1709,46 +1796,64 @@
         renderCurrentPage();
         if (isPlaying) playAudio();
         saveProgress();
+      } else if (currentChunkNo > 0) {
+        // Load previous chunk
+        const prevChunk = currentChunkNo - 1;
+        let loaded = await loadChunkFromDB(prevChunk);
+        if (!loaded) {
+          loaded = await loadChunkFromSupabase(prevChunk);
+        }
+        if (loaded && currentPages.length > 0) {
+          currentPageIndex = currentPages.length - 1;
+          currentWordOffset = 0;
+          const page = getCurrentPage();
+          if (page) currentSequence = page.sequence;
+          renderCurrentPage();
+          if (isPlaying) playAudio();
+          saveProgress();
+        }
       }
     }
 
-    function jumpToPage(index) {
-      if (index >= 0 && index < bookPages.length) {
-        currentPageIndex = index;
-        currentWordOffset = 0;
-        const page = getCurrentPage();
-        if (page) currentSequence = page.sequence;
-        renderCurrentPage();
-        if (isPlaying) playAudio();
-        saveProgress();
-        closeModal();
-      } else if (index < bookPages.length) {
-        // Try to load the chunk
-        const seq = index + 1;
-        loadChunk(seq).then(() => {
-          const idx = bookPages.findIndex(p => p.sequence === seq);
-          if (idx >= 0) {
-            currentPageIndex = idx;
-            currentWordOffset = 0;
-            const page = getCurrentPage();
-            if (page) currentSequence = page.sequence;
-            renderCurrentPage();
-            if (isPlaying) playAudio();
-            saveProgress();
-          }
-          closeModal();
-        });
+    async function jumpToPage(seq) {
+      const chunkNo = Math.floor(seq / CHUNK_SIZE);
+      if (chunkNo === currentChunkNo) {
+        const idx = currentPages.findIndex(p => p.sequence === seq);
+        if (idx >= 0) {
+          currentPageIndex = idx;
+          currentWordOffset = 0;
+          currentSequence = seq;
+          renderCurrentPage();
+          if (isPlaying) playAudio();
+          saveProgress();
+          return;
+        }
       }
+
+      // Load the chunk
+      let loaded = await loadChunkFromDB(chunkNo);
+      if (!loaded) {
+        loaded = await loadChunkFromSupabase(chunkNo);
+      }
+      if (loaded) {
+        const idx = currentPages.findIndex(p => p.sequence === seq);
+        if (idx >= 0) {
+          currentPageIndex = idx;
+          currentWordOffset = 0;
+          currentSequence = seq;
+          renderCurrentPage();
+          if (isPlaying) playAudio();
+          saveProgress();
+        }
+      }
+      closeModal();
     }
 
     function saveProgress() {
       if (currentBookId) {
         const page = getCurrentPage();
         if (page) {
-          localStorage.setItem(`progress_${currentBookId}`, JSON.stringify({
-            sequence: page.sequence,
-            offset: currentWordOffset
-          }));
+          DB.saveProgress(currentBookId, page.sequence, currentWordOffset);
         }
       }
     }
@@ -1834,7 +1939,7 @@
 
       text = text.replace(/<[^>]+>/g, '').trim();
       if (!text) {
-        if (currentPageIndex < bookPages.length - 1) {
+        if (currentPageIndex < currentPages.length - 1 || currentChunkNo < Math.ceil(totalPages / CHUNK_SIZE) - 1) {
           nextPage();
         } else {
           stopAudio();
@@ -1854,12 +1959,7 @@
       }
 
       if (!startText.trim()) {
-        if (currentPageIndex < bookPages.length - 1) {
-          currentWordOffset = 0;
-          nextPage();
-        } else {
-          stopAudio();
-        }
+        nextPage();
         return;
       }
 
@@ -1918,8 +2018,7 @@
       currentUtterance.onend = () => {
         if (isPlaying) {
           const autoNext = document.getElementById('optAutoNext')?.checked !== false;
-          if (autoNext && currentPageIndex < bookPages.length - 1) {
-            currentWordOffset = 0;
+          if (autoNext) {
             nextPage();
           } else {
             stopAudio();
@@ -1928,8 +2027,7 @@
       };
 
       currentUtterance.onerror = () => {
-        if (isPlaying && currentPageIndex < bookPages.length - 1) {
-          currentWordOffset = 0;
+        if (isPlaying) {
           nextPage();
         } else {
           stopAudio();
@@ -1977,7 +2075,7 @@
       const mlText = (page.Malayalam || '').replace(/<[^>]+>/g, '').trim();
       document.getElementById('audioTitle').textContent = mlText.substring(0, 50) + '...';
       document.getElementById('audioMeta').textContent = 
-        `ഭാഗം ${page.part || '?'} - പേജ് ${page.page || '?'} / ${totalBookPages || bookPages.length}`;
+        `ഭാഗം ${page.part || '?'} - പേജ് ${page.page || '?'} / ${totalPages || currentPages.length}`;
     }
 
     function setSpokenLang(lang) {
@@ -2107,32 +2205,28 @@
     // ================================================================
     // BOOKMARKS
     // ================================================================
-    function toggleBookmark() {
+    async function toggleBookmark() {
       if (!currentBookId) return;
       const page = getCurrentPage();
       if (!page) return;
       
-      const key = `bookmarks_${currentBookId}`;
-      let bookmarks = JSON.parse(localStorage.getItem(key) || '[]');
+      const bookmarks = await DB.getBookmarks(currentBookId);
       const exists = bookmarks.find(b => b.sequence === page.sequence);
       
       if (exists) {
-        bookmarks = bookmarks.filter(b => b.sequence !== page.sequence);
+        await DB.removeBookmark(currentBookId, page.sequence);
       } else {
-        bookmarks.push({ sequence: page.sequence, part: page.part, page: page.page });
+        await DB.addBookmark(currentBookId, page.sequence);
       }
-      
-      localStorage.setItem(key, JSON.stringify(bookmarks));
       updateBookmarkUI();
     }
 
-    function updateBookmarkUI() {
+    async function updateBookmarkUI() {
       if (!currentBookId) return;
       const page = getCurrentPage();
       if (!page) return;
       
-      const key = `bookmarks_${currentBookId}`;
-      const bookmarks = JSON.parse(localStorage.getItem(key) || '[]');
+      const bookmarks = await DB.getBookmarks(currentBookId);
       const exists = bookmarks.find(b => b.sequence === page.sequence);
       document.getElementById('readerBookmark').classList.toggle('active-bm', !!exists);
     }
@@ -2140,12 +2234,23 @@
     // ================================================================
     // TOC - HIERARCHICAL
     // ================================================================
-    function openTOC() {
-      if (!currentBookId || bookPages.length === 0) return;
+    async function openTOC() {
+      if (!currentBookId) return;
       
-      // Build TOC from pages
-      tocData = buildTOC(bookPages);
-      
+      // Load TOC from IndexedDB if not loaded
+      if (tocData.length === 0) {
+        tocData = await DB.getTOC(currentBookId) || [];
+        if (tocData.length === 0 && currentPages.length > 0) {
+          tocData = buildTOC(currentPages);
+          await DB.saveTOC(currentBookId, tocData);
+        }
+      }
+
+      if (tocData.length === 0) {
+        alert('No TOC available for this book.');
+        return;
+      }
+
       const modal = document.getElementById('tocModal');
       document.getElementById('modalOverlay').classList.add('show');
       modal.classList.add('show');
@@ -2160,11 +2265,10 @@
       let currentH1 = null;
       let currentH2 = null;
 
-      pages.forEach((page, index) => {
+      pages.forEach((page) => {
         const arText = page.Arabic || '';
         const mlText = (page.Malayalam || '').replace(/<[^>]+>/g, '').trim();
         
-        // Extract headings
         const h1Match = arText.match(/<h1[^>]*>(.*?)<\/h1>/i);
         const h2Match = arText.match(/<h2[^>]*>(.*?)<\/h2>/i);
         const h3Match = arText.match(/<h3[^>]*>(.*?)<\/h3>/i);
@@ -2176,8 +2280,7 @@
             type: 'part',
             title: `ഭാഗം ${partName}`,
             children: [],
-            index: index,
-            page: page.page
+            sequence: page.sequence
           };
           tree.push(currentPart);
           currentH1 = null;
@@ -2190,8 +2293,7 @@
             type: 'h1',
             title: title,
             children: [],
-            index: index,
-            page: page.page
+            sequence: page.sequence
           };
           currentPart.children.push(currentH1);
           currentH2 = null;
@@ -2201,8 +2303,7 @@
             type: 'h2',
             title: title,
             children: [],
-            index: index,
-            page: page.page
+            sequence: page.sequence
           };
           if (currentH1) currentH1.children.push(currentH2);
           else currentPart.children.push(currentH2);
@@ -2212,8 +2313,7 @@
             type: 'h3',
             title: title,
             children: [],
-            index: index,
-            page: page.page
+            sequence: page.sequence
           };
           if (currentH2) currentH2.children.push(node);
           else if (currentH1) currentH1.children.push(node);
@@ -2224,8 +2324,7 @@
             type: 'h4',
             title: title,
             children: [],
-            index: index,
-            page: page.page
+            sequence: page.sequence
           };
           if (currentH2 && currentH2.children.length > 0) {
             const lastH3 = currentH2.children[currentH2.children.length - 1];
@@ -2233,22 +2332,12 @@
             else currentH2.children.push(node);
           } else if (currentH1) currentH1.children.push(node);
           else currentPart.children.push(node);
-        } else if (index % 10 === 0 || index === 0 || index === pages.length - 1) {
-          // Add page markers
-          const node = {
-            type: 'page',
-            title: `പേജ് ${page.page}`,
-            subtitle: mlText.substring(0, 30) + '...',
-            children: [],
-            index: index,
-            page: page.page
-          };
-          if (currentH2) currentH2.children.push(node);
-          else if (currentH1) currentH1.children.push(node);
-          else currentPart.children.push(node);
         }
       });
 
+      // Add page nodes for chapters
+      // (Skip for now to keep TOC clean)
+      
       return tree;
     }
 
@@ -2259,8 +2348,8 @@
       ).join(' <i class="fas fa-angle-right"></i> ');
 
       const list = document.getElementById('tocList');
-      list.innerHTML = currentLevel.nodes.map((node, i) => {
-        const isCurrent = node.index === currentPageIndex;
+      list.innerHTML = currentLevel.nodes.map((node) => {
+        const isCurrent = node.sequence === currentSequence;
         const levelClass = node.type === 'part' ? 'toc-level-1' :
                           node.type === 'h1' ? 'toc-level-1' :
                           node.type === 'h2' ? 'toc-level-2' :
@@ -2268,7 +2357,7 @@
                           node.type === 'h4' ? 'toc-level-4' : 'toc-level-page';
 
         if (node.children && node.children.length > 0) {
-          return `<div class="toc-item ${levelClass}" onclick="drillTOC(${i})">
+          return `<div class="toc-item ${levelClass}" onclick="drillTOC('${node.title}')">
             <div class="toc-badge">${node.type.toUpperCase()}</div>
             <div dir="rtl">${node.title}</div>
             <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">
@@ -2276,23 +2365,20 @@
             </div>
           </div>`;
         } else {
-          return `<div class="toc-item ${levelClass} ${isCurrent ? 'current' : ''}" onclick="jumpToTOC(${node.index})">
-            <div class="toc-badge">📄 പേജ് ${node.page}</div>
+          return `<div class="toc-item ${levelClass} ${isCurrent ? 'current' : ''}" onclick="jumpToTOC(${node.sequence})">
+            <div class="toc-badge">📄 ${node.type.toUpperCase()}</div>
             <div dir="rtl">${node.title}</div>
-            ${node.subtitle ? `<div style="font-size:12px;color:var(--text-muted);">${node.subtitle}</div>` : ''}
           </div>`;
         }
       }).join('') || '<div style="padding:20px;text-align:center;color:var(--text-muted);">No content</div>';
     }
 
-    function drillTOC(index) {
+    function drillTOC(title) {
       const currentLevel = tocPath[tocPath.length - 1];
-      const node = currentLevel.nodes[index];
-      if (node.children && node.children.length > 0) {
+      const node = currentLevel.nodes.find(n => n.title === title);
+      if (node && node.children && node.children.length > 0) {
         tocPath.push({ title: node.title, nodes: node.children });
         renderTOCLevel();
-      } else {
-        jumpToTOC(node.index);
       }
     }
 
@@ -2301,16 +2387,9 @@
       renderTOCLevel();
     }
 
-    function jumpToTOC(index) {
-      if (index >= 0 && index < bookPages.length) {
-        currentPageIndex = index;
-        currentWordOffset = 0;
-        const page = getCurrentPage();
-        if (page) currentSequence = page.sequence;
-        renderCurrentPage();
-        if (isPlaying) playAudio();
-        saveProgress();
-        closeModal();
+    function jumpToTOC(sequence) {
+      if (sequence >= 0) {
+        jumpToPage(sequence);
       }
     }
 
@@ -2335,12 +2414,15 @@
       localStorage.setItem('m_rb_theme', theme);
       document.querySelectorAll('.theme-btn').forEach(el => el.classList.remove('active'));
       document.getElementById('th-' + theme).classList.add('active');
+      // Save to IndexedDB
+      DB.saveSettings({ theme });
     }
 
     function applyFontSize() {
       const size = document.getElementById('optFontSize').value;
       document.documentElement.style.setProperty('--font-scale', size + 'px');
       localStorage.setItem('m_rb_fsize', size);
+      DB.saveSettings({ font_size: parseInt(size) });
       renderCurrentPage();
     }
 
@@ -2380,19 +2462,19 @@
     // ================================================================
     async function updateStorageInfo() {
       try {
+        const books = await DB.getBooks();
         let totalPages = 0;
         let totalSize = 0;
         let downloaded = 0;
         
-        for (const book of allBooks) {
+        for (const book of books) {
           if (book.downloaded) {
             downloaded++;
-            const key = `book_${book.id}`;
-            const cached = localStorage.getItem(key);
-            if (cached) {
-              const data = JSON.parse(cached);
-              totalPages += data.length;
-              totalSize += data.reduce((sum, c) => sum + (c.Arabic || '').length + (c.Malayalam || '').length + (c.English || '').length, 0);
+            const chunks = await DB.getChunks(book.id, 9999, 0);
+            for (const chunk of chunks) {
+              totalPages += chunk.pages.length;
+              totalSize += chunk.pages.reduce((sum, p) => 
+                sum + (p.Arabic || '').length + (p.Malayalam || '').length + (p.English || '').length, 0);
             }
           }
         }
@@ -2409,16 +2491,18 @@
       if (!confirm('⚠️ Remove all downloaded books and data? This cannot be undone!')) return;
       
       try {
-        for (const book of allBooks) {
-          localStorage.removeItem(`book_${book.id}`);
-          localStorage.removeItem(`progress_${book.id}`);
-          localStorage.removeItem(`bookmarks_${book.id}`);
-          localStorage.removeItem(`toc_${book.id}`);
+        const books = await DB.getBooks();
+        for (const book of books) {
+          await DB.deleteChunks(book.id);
           book.downloaded = false;
           book.total_pages = 0;
+          await DB.saveBook(book);
         }
-        localStorage.setItem('library_books', JSON.stringify(allBooks));
-        bookPages = [];
+        await DB.clearStore(DB.STORES.TOC);
+        await DB.clearStore(DB.STORES.BOOKMARKS);
+        await DB.clearStore(DB.STORES.PROGRESS);
+        
+        allBooks = books;
         renderBooks(allBooks);
         updateStorageInfo();
         alert('✅ All data cleared!');
@@ -2443,7 +2527,9 @@
     // LOAD PREFERENCES
     // ================================================================
     function loadPreferences() {
-      setTheme(localStorage.getItem('m_rb_theme') || 'light');
+      const theme = localStorage.getItem('m_rb_theme') || 'light';
+      setTheme(theme);
+      
       const size = localStorage.getItem('m_rb_fsize') || '18';
       document.getElementById('optFontSize').value = size;
       applyFontSize();
