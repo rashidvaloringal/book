@@ -1,9 +1,9 @@
 // ================================================================
-// DATABASE LAYER - IndexedDB
+// DATABASE LAYER - IndexedDB with Pagination Support
 // ================================================================
 
 const DB_NAME = "IslamicDigitalLibrary";
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 const STORES = {
   BOOKS: "books",
@@ -15,24 +15,36 @@ const STORES = {
 };
 
 let dbInstance = null;
+let dbReady = false;
+const pendingOperations = [];
 
 // ================================================================
 // OPEN DATABASE
 // ================================================================
 function openDB() {
   return new Promise((resolve, reject) => {
+    // Already open
+    if (dbInstance && dbReady) {
+      resolve(dbInstance);
+      return;
+    }
+
     const request = indexedDB.open(DB_NAME, DB_VERSION);
-    
+
     request.onupgradeneeded = (event) => {
       const db = event.target.result;
+      
+      // Delete old stores if needed (clean upgrade)
+      const oldVersion = event.oldVersion;
       
       for (const key in STORES) {
         if (!db.objectStoreNames.contains(STORES[key])) {
           const store = db.createObjectStore(STORES[key], { keyPath: "id" });
-          
+
           if (key === "CHUNKS") {
             store.createIndex("bookId", "bookId", { unique: false });
             store.createIndex("chunkNo", "chunkNo", { unique: false });
+            store.createIndex("sequence", "sequence", { unique: false });
           }
           if (key === "BOOKMARKS") {
             store.createIndex("bookId", "bookId", { unique: false });
@@ -46,20 +58,44 @@ function openDB() {
         }
       }
     };
-    
+
     request.onsuccess = (event) => {
       dbInstance = event.target.result;
+      dbReady = true;
+      
+      // Handle pending operations
+      while (pendingOperations.length > 0) {
+        const op = pendingOperations.shift();
+        op.resolve(dbInstance);
+      }
+      
       resolve(dbInstance);
     };
-    
+
     request.onerror = (event) => {
       reject(event.target.error);
     };
   });
 }
 
+// Wait for DB to be ready
+function ensureDB() {
+  return new Promise((resolve) => {
+    if (dbInstance && dbReady) {
+      resolve(dbInstance);
+      return;
+    }
+    // Queue the operation
+    pendingOperations.push({ resolve });
+    // Try to open if not already
+    if (!dbInstance) {
+      openDB().catch(() => {});
+    }
+  });
+}
+
 // ================================================================
-// GENERIC CRUD
+// GENERIC CRUD with auto-open
 // ================================================================
 function getStore(storeName, mode = "readonly") {
   if (!dbInstance) throw new Error("Database not open");
@@ -68,6 +104,7 @@ function getStore(storeName, mode = "readonly") {
 }
 
 async function putData(storeName, data) {
+  await ensureDB();
   return new Promise((resolve, reject) => {
     try {
       const store = getStore(storeName, "readwrite");
@@ -79,6 +116,7 @@ async function putData(storeName, data) {
 }
 
 async function getData(storeName, id) {
+  await ensureDB();
   return new Promise((resolve, reject) => {
     try {
       const store = getStore(storeName, "readonly");
@@ -90,6 +128,7 @@ async function getData(storeName, id) {
 }
 
 async function getAllData(storeName) {
+  await ensureDB();
   return new Promise((resolve, reject) => {
     try {
       const store = getStore(storeName, "readonly");
@@ -101,6 +140,7 @@ async function getAllData(storeName) {
 }
 
 async function deleteData(storeName, id) {
+  await ensureDB();
   return new Promise((resolve, reject) => {
     try {
       const store = getStore(storeName, "readwrite");
@@ -112,6 +152,7 @@ async function deleteData(storeName, id) {
 }
 
 async function clearStore(storeName) {
+  await ensureDB();
   return new Promise((resolve, reject) => {
     try {
       const store = getStore(storeName, "readwrite");
@@ -155,32 +196,44 @@ async function updateBook(bookId, updates) {
 }
 
 // ================================================================
-// CHUNKS
+// CHUNKS - IMPROVED WITH FULL LOADING
 // ================================================================
 async function getChunk(bookId, chunkNo) {
   const id = `${bookId}_${chunkNo}`;
   return await getData(STORES.CHUNKS, id);
 }
 
-async function getChunks(bookId, limit = 9999, offset = 0) {
+/**
+ * Get all chunks for a book with pagination support
+ * @param {string} bookId - Book ID
+ * @param {number} limit - Max chunks to return (0 = all)
+ * @param {number} offset - Start offset
+ * @param {boolean} loadAll - If true, load ALL chunks (ignores limit)
+ */
+async function getChunks(bookId, limit = 0, offset = 0, loadAll = false) {
+  await ensureDB();
+  
   return new Promise((resolve, reject) => {
     try {
       const store = getStore(STORES.CHUNKS, "readonly");
       const index = store.index("bookId");
       const range = IDBKeyRange.only(bookId);
       const request = index.openCursor(range, "next");
-      
+
       const results = [];
       let skipped = 0;
       let count = 0;
       
+      // If loadAll is true, ignore limit and get everything
+      const effectiveLimit = loadAll ? Infinity : (limit || Infinity);
+
       request.onsuccess = (event) => {
         const cursor = event.target.result;
         if (cursor) {
           if (skipped < offset) {
             skipped++;
             cursor.continue();
-          } else if (count < limit) {
+          } else if (count < effectiveLimit) {
             results.push(cursor.value);
             count++;
             cursor.continue();
@@ -196,18 +249,100 @@ async function getChunks(bookId, limit = 9999, offset = 0) {
   });
 }
 
-async function saveChunk(bookId, chunkNo, pages) {
+/**
+ * Get ALL chunks for a book (no limit)
+ */
+async function getAllChunks(bookId) {
+  return await getChunks(bookId, 0, 0, true);
+}
+
+/**
+ * Get chunk count for a book
+ */
+async function getChunkCount(bookId) {
+  await ensureDB();
+  return new Promise((resolve, reject) => {
+    try {
+      const store = getStore(STORES.CHUNKS, "readonly");
+      const index = store.index("bookId");
+      const range = IDBKeyRange.only(bookId);
+      const request = index.count(range);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    } catch (err) { reject(err); }
+  });
+}
+
+/**
+ * Save a chunk with pages data
+ */
+async function saveChunk(bookId, chunkNo, pages, sequence = null) {
   const id = `${bookId}_${chunkNo}`;
-  const data = { id, bookId, chunkNo, pages, updated_at: new Date().toISOString() };
+  const data = { 
+    id, 
+    bookId, 
+    chunkNo, 
+    pages, 
+    sequence: sequence || chunkNo,
+    updated_at: new Date().toISOString() 
+  };
   return await putData(STORES.CHUNKS, data);
 }
 
+/**
+ * Save multiple chunks at once (batch operation)
+ */
+async function saveChunks(bookId, chunksData) {
+  const promises = chunksData.map(({ chunkNo, pages, sequence }) => 
+    saveChunk(bookId, chunkNo, pages, sequence)
+  );
+  return await Promise.all(promises);
+}
+
+/**
+ * Delete all chunks for a book
+ */
 async function deleteChunks(bookId) {
-  const chunks = await getChunks(bookId);
+  const chunks = await getAllChunks(bookId);
   for (const chunk of chunks) {
     await deleteData(STORES.CHUNKS, chunk.id);
   }
   return chunks;
+}
+
+/**
+ * Check if book has cached chunks
+ */
+async function hasCachedChunks(bookId) {
+  const count = await getChunkCount(bookId);
+  return count > 0;
+}
+
+/**
+ * Get chunks by sequence range (for paginated reading)
+ */
+async function getChunksBySequence(bookId, startSeq, endSeq) {
+  await ensureDB();
+  return new Promise((resolve, reject) => {
+    try {
+      const store = getStore(STORES.CHUNKS, "readonly");
+      const index = store.index("sequence");
+      const range = IDBKeyRange.bound(startSeq, endSeq);
+      const request = index.openCursor(range, "next");
+
+      const results = [];
+      request.onsuccess = (event) => {
+        const cursor = event.target.result;
+        if (cursor) {
+          results.push(cursor.value);
+          cursor.continue();
+        } else {
+          resolve(results);
+        }
+      };
+      request.onerror = () => reject(request.error);
+    } catch (err) { reject(err); }
+  });
 }
 
 // ================================================================
@@ -219,12 +354,16 @@ async function getTOC(bookId) {
 }
 
 async function saveTOC(bookId, toc) {
-  return await putData(STORES.TOC, { id: bookId, bookId, toc, updated_at: new Date().toISOString() });
+  return await putData(STORES.TOC, { 
+    id: bookId, 
+    bookId, 
+    toc, 
+    updated_at: new Date().toISOString() 
+  });
 }
 
 async function appendTOC(bookId, tocItems) {
   let existing = await getTOC(bookId) || [];
-  // Merge new items (avoid duplicates by sequence)
   const seqMap = new Map();
   existing.forEach(item => seqMap.set(item.sequence, item));
   tocItems.forEach(item => {
@@ -295,45 +434,107 @@ async function saveSettings(settings) {
 }
 
 // ================================================================
+// STORAGE INFO
+// ================================================================
+async function getStorageInfo() {
+  await ensureDB();
+  let totalSize = 0;
+  let totalChunks = 0;
+  let bookCount = 0;
+
+  try {
+    const books = await getBooks();
+    bookCount = books.length;
+
+    for (const book of books) {
+      const chunks = await getAllChunks(book.id);
+      totalChunks += chunks.length;
+      
+      // Estimate size
+      for (const chunk of chunks) {
+        const json = JSON.stringify(chunk);
+        totalSize += json.length;
+      }
+    }
+  } catch(e) {}
+
+  return {
+    bookCount,
+    totalChunks,
+    totalSize: (totalSize / 1024 / 1024).toFixed(2) + ' MB',
+    totalSizeBytes: totalSize
+  };
+}
+
+// ================================================================
+// CLEANUP
+// ================================================================
+async function clearAllData() {
+  for (const key in STORES) {
+    await clearStore(STORES[key]);
+  }
+}
+
+// ================================================================
 // EXPORT
 // ================================================================
-window.DB = {
+const DB = {
   open: openDB,
+  ensure: ensureDB,
   getData,
   putData,
   getAllData,
   deleteData,
   clearStore,
   STORES,
-  
+  getStorageInfo,
+  clearAllData,
+
   // Books
   getBooks,
   getBook,
   saveBook,
   saveBooks,
   updateBook,
-  
-  // Chunks
+
+  // Chunks - UPDATED
   getChunk,
   getChunks,
+  getAllChunks,
+  getChunkCount,
+  hasCachedChunks,
   saveChunk,
+  saveChunks,
   deleteChunks,
-  
+  getChunksBySequence,
+
   // TOC
   getTOC,
   saveTOC,
   appendTOC,
-  
+
   // Bookmarks
   getBookmarks,
   addBookmark,
   removeBookmark,
-  
+
   // Progress
   getProgress,
   saveProgress,
-  
+
   // Settings
   getSettings,
   saveSettings
 };
+
+// Auto-open on load
+if (typeof window !== 'undefined') {
+  window.DB = DB;
+  // Open database automatically
+  openDB().catch(console.error);
+}
+
+// Export for module use
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = DB;
+}
