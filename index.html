@@ -280,18 +280,24 @@
       font-weight: bold;
       z-index: 5;
     }
-    .book-footer { display: flex; border-top: 1px solid var(--border); }
+    .book-footer { display: flex; border-top: 1px solid var(--border); background: var(--bg); }
     .book-footer button {
       flex: 1;
-      padding: 10px;
+      padding: 10px 5px;
       border: none;
       background: none;
       font-weight: bold;
-      font-size: 13px;
+      font-size: 12px;
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
     }
+    .book-footer button:first-child { border-right: 1px solid var(--border); }
     .book-footer button:active { transform: scale(0.95); }
     .open-btn { color: var(--primary-green); }
+    .dl-btn { color: #2563eb; }
     .status-badge {
       font-size: 10px;
       padding: 2px 10px;
@@ -771,11 +777,26 @@
     .toc-item {
       padding: 12px 15px;
       border-bottom: 1px solid var(--border);
-      cursor: pointer;
       color: var(--text-dark);
       transition: 0.15s;
     }
-    .toc-item:active { background: var(--bg); }
+    .toc-item-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
+    .toc-clickable-area {
+      flex: 1;
+      cursor: pointer;
+      padding-right: 10px;
+    }
+    .toc-toggle-btn {
+      padding: 8px 12px;
+      cursor: pointer;
+      color: var(--primary-green);
+      font-size: 14px;
+    }
     .toc-item.current { background: var(--primary-light); border-left: 4px solid var(--primary-green); }
     .toc-badge {
       display: inline-block;
@@ -789,7 +810,7 @@
       width: fit-content;
       text-transform: uppercase;
     }
-    .toc-title-text { font-size: 16px; font-weight: bold; }
+    .toc-title-text { font-size: 15px; font-weight: bold; }
     .toc-translations { font-size: 12px; color: var(--text-muted); margin-top: 5px; }
 
     .lang-selector {
@@ -843,6 +864,16 @@
       font-weight: bold;
       white-space: nowrap;
       font-size: 13px;
+    }
+
+    @media (max-width: 600px) {
+      .book-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+      .reader-page-card { padding: 20px 15px; }
+      .ar-content { font-size: calc(var(--font-scale) + 2px); }
+      .ml-content { font-size: var(--font-scale); }
+      .visual-controls { gap: 12px; font-size: 18px; padding: 6px 15px; }
+      .vis-text { font-size: 24px; }
+      .theme-grid { grid-template-columns: repeat(2, 1fr); }
     }
   </style>
 </head>
@@ -1115,6 +1146,7 @@
     let dbCache = {};
     let tocTree = [];
     let tocPath = [];
+    let isDownloadingInstance = false;
 
     const STATE = {
       showAr: true,
@@ -1126,56 +1158,56 @@
     };
 
     // ================================================================
-    // INDEXEDDB DATABASE MANAGER (സുരക്ഷിതമായി ഓഫ്‌ലൈൻ സംഭരണത്തിന്)
+    // INDEXEDDB ENGINE (അതിവേഗം ഡാറ്റ സൂക്ഷിക്കാൻ)
     // ================================================================
     const IDB = {
-      dbName: "IslamicDigitalLibraryProDB",
+      dbName: "IslamicLibraryIDB",
       version: 1,
       db: null,
       init() {
         return new Promise((resolve, reject) => {
-          const request = indexedDB.open(this.dbName, this.version);
-          request.onupgradeneeded = (e) => {
-            const db = e.target.result;
-            if (!db.objectStoreNames.contains("cached_books")) {
-              db.createObjectStore("cached_books", { keyPath: "id" });
+          let req = indexedDB.open(this.dbName, this.version);
+          req.onupgradeneeded = (e) => {
+            let db = e.target.result;
+            if (!db.objectStoreNames.contains("books_content")) {
+              db.createObjectStore("books_content", { keyPath: "bookId" });
             }
           };
-          request.onsuccess = (e) => {
+          req.onsuccess = (e) => {
             this.db = e.target.result;
             resolve(this.db);
           };
-          request.onerror = (e) => reject(e.target.error);
+          req.onerror = (e) => reject(e.target.error);
         });
       },
-      get(key) {
-        return new Promise((resolve, reject) => {
+      get(bookId) {
+        return new Promise((resolve) => {
           if (!this.db) return resolve(null);
-          const transaction = this.db.transaction("cached_books", "readonly");
-          const store = transaction.objectStore("cached_books");
-          const request = store.get(key);
-          request.onsuccess = () => resolve(request.result ? request.result.data : null);
-          request.onerror = () => reject(request.error);
+          let tx = this.db.transaction("books_content", "readonly");
+          let store = tx.objectStore("books_content");
+          let req = store.get(bookId);
+          req.onsuccess = () => resolve(req.result ? req.result.data : null);
+          req.onerror = () => resolve(null);
         });
       },
-      set(key, val) {
-        return new Promise((resolve, reject) => {
+      set(bookId, data) {
+        return new Promise((resolve) => {
           if (!this.db) return resolve();
-          const transaction = this.db.transaction("cached_books", "readwrite");
-          const store = transaction.objectStore("cached_books");
-          const request = store.put({ id: key, data: val });
-          request.onsuccess = () => resolve();
-          request.onerror = () => reject(request.error);
+          let tx = this.db.transaction("books_content", "readwrite");
+          let store = tx.objectStore("books_content");
+          let req = store.put({ bookId: bookId, data: data });
+          req.onsuccess = () => resolve();
+          req.onerror = () => resolve();
         });
       },
-      delete(key) {
-        return new Promise((resolve, reject) => {
+      delete(bookId) {
+        return new Promise((resolve) => {
           if (!this.db) return resolve();
-          const transaction = this.db.transaction("cached_books", "readwrite");
-          const store = transaction.objectStore("cached_books");
-          const request = store.delete(key);
-          request.onsuccess = () => resolve();
-          request.onerror = () => reject(request.error);
+          let tx = this.db.transaction("books_content", "readwrite");
+          let store = tx.objectStore("books_content");
+          let req = store.delete(bookId);
+          req.onsuccess = () => resolve();
+          req.onerror = () => resolve();
         });
       }
     };
@@ -1201,7 +1233,6 @@
     document.addEventListener('click', initAudioContext, { once: true });
     document.addEventListener('touchstart', initAudioContext, { once: true });
 
-    // WakeLock for screen off audio
     let wakeLock = null;
     async function requestWakeLock() {
       try {
@@ -1221,9 +1252,8 @@
     // ================================================================
     async function initApp() {
       try {
-        await IDB.init(); // Initialize IndexedDB Database Structure
+        await IDB.init();
         
-        // Load from localStorage cache
         const cachedBooks = localStorage.getItem('library_books');
         if (cachedBooks) {
           allBooks = JSON.parse(cachedBooks);
@@ -1231,7 +1261,6 @@
           updateContinueReading();
         }
         
-        // Check saved config
         const savedUrl = localStorage.getItem('supabase_url');
         const savedKey = localStorage.getItem('supabase_key');
         
@@ -1246,13 +1275,11 @@
           document.getElementById('supabaseUrl').value = savedUrl;
           document.getElementById('supabaseKey').value = savedKey;
           
-          // Auto initialization without requesting configuration details every time
           supabaseClient = window.supabase.createClient(savedUrl, savedKey);
           document.getElementById('setupBox').style.display = 'none';
           document.getElementById('loader').classList.add('hidden');
           document.getElementById('homeView').classList.add('show');
-          
-          loadBooks();
+          await loadBooks();
           return;
         }
         
@@ -1332,17 +1359,6 @@
     async function loadBooks() {
       showLoading('📚 പുസ്തകങ്ങൾ ലോഡ് ചെയ്യുന്നു...');
       try {
-        if (!supabaseClient) {
-          // Offline mode fallback using cache if network fails
-          const cachedBooks = localStorage.getItem('library_books');
-          if (cachedBooks) {
-            allBooks = JSON.parse(cachedBooks);
-            renderBooks(allBooks);
-          }
-          hideLoading();
-          return;
-        }
-
         const { data, error } = await supabaseClient
           .from('master_catalog')
           .select('*')
@@ -1358,15 +1374,8 @@
         hideLoading();
       } catch(err) {
         hideLoading();
-        // If query fails due to network, check local assets
-        const cachedBooks = localStorage.getItem('library_books');
-        if (cachedBooks) {
-          allBooks = JSON.parse(cachedBooks);
-          renderBooks(allBooks);
-        } else {
-          document.getElementById('bookGrid').innerHTML = 
-            `<div style="grid-column:1/-1;text-align:center;padding:40px;color:#dc3545;">❌ Error: ${err.message}</div>`;
-        }
+        document.getElementById('bookGrid').innerHTML = 
+          `<div style="grid-column:1/-1;text-align:center;padding:40px;color:#dc3545;">❌ Error: ${err.message}</div>`;
       }
     }
 
@@ -1391,7 +1400,8 @@
             </span>
           </div>
           <div class="book-footer">
-            <button class="open-btn" onclick="event.stopPropagation();openBook('${book.id}')">📖 Read</button>
+            <button class="open-btn" onclick="event.stopPropagation(); openBook('${book.id}')"><i class="fas fa-book-open"></i> Read</button>
+            <button class="dl-btn" onclick="event.stopPropagation(); downloadBookBackground('${book.id}')"><i class="fas fa-download"></i> Download</button>
           </div>
         </div>`;
       }).join('');
@@ -1422,16 +1432,13 @@
     function toggleSearch() { document.getElementById('searchBar').classList.toggle('show'); }
 
     async function syncBooks() {
-      if (!supabaseClient) {
-        alert('കണക്ഷൻ ലഭ്യമല്ല. ദയവായി നെറ്റ്‌വർക്ക് പരിശോധിക്കുക.');
-        return;
-      }
+      if (!supabaseClient) return;
       await loadBooks();
       alert('✅ Books synced!');
     }
 
     // ================================================================
-    // OPEN BOOK - BATCH LOADING WITH PREFERENTIAL INDEXEDDB LOADING
+    // OPEN BOOK - HYBRID STREAMING WITH FIX FOR TOTAL PAGES COUNT
     // ================================================================
     async function openBook(bookId) {
       currentBookId = bookId;
@@ -1441,74 +1448,38 @@
       const book = allBooks.find(b => b.id === bookId);
       document.getElementById('readerTitle').textContent = book?.title_ml || book?.title_ar || 'Book';
 
-      showLoading('📖 Opening book...');
+      showLoading('📖 Opening book contents...');
 
       try {
-        const cacheKey = `book_${bookId}`;
+        let idbData = await IDB.get(bookId);
         
-        // 1. Attempt to fetch content data structural entity directly from IndexedDB
-        let data = await IDB.get(cacheKey);
-        
-        // 2. Fallback check for transition layer cache migration
-        if (!data) {
-          const rawLocalData = localStorage.getItem(cacheKey);
-          if (rawLocalData) {
-            data = JSON.parse(rawLocalData);
-            // Migrate architecture up to IDB instantly
-            await IDB.set(cacheKey, data);
-            localStorage.removeItem(cacheKey);
-          }
-        }
-        
-        if (!data) {
-          if (!supabaseClient) {
-            hideLoading();
-            alert('ഈ പുസ്തകം ഓഫ്‌ലൈനായി ലഭ്യമല്ല! ദയവായി ഇന്റർനെറ്റ് കണക്ട് ചെയ്യുക.');
-            return;
-          }
-
+        if (idbData && idbData.length > 0) {
+          currentPages = idbData;
+          totalPages = idbData.length;
+        } else {
           const tableName = `${bookId}_contents`;
-          const BATCH_SIZE = 500;
-          let allData = [];
-          let page = 0;
-          let hasMore = true;
-          let totalCount = 0;
+          
+          // ടോട്ടൽ കൗണ്ട് Supabase-ൽ നിന്ന് കൃത്യമായി എടുക്കാനുള്ള ഫിക്സ്
+          const { count, error: countError } = await supabaseClient
+            .from(tableName)
+            .select('*', { count: 'exact', head: true });
+          const actualTotalPages = countError ? 0 : (count || 0);
 
-          try {
-            const { count, error: countError } = await supabaseClient
-              .from(tableName)
-              .select('*', { count: 'exact', head: true });
-            if (!countError) totalCount = count || 0;
-          } catch(e) {}
+          const { data: chunk, error } = await supabaseClient
+            .from(tableName)
+            .select('*')
+            .order('ID', { ascending: true })
+            .range(0, 499);
 
-          while (hasMore) {
-            const { data: supabaseData, error } = await supabaseClient
-              .from(tableName)
-              .select('*')
-              .order('ID', { ascending: true })
-              .range(page * BATCH_SIZE, (page + 1) * BATCH_SIZE - 1);
+          if (error) throw error;
 
-            if (error) throw error;
-            
-            if (supabaseData && supabaseData.length > 0) {
-              allData = allData.concat(supabaseData);
-              page++;
-              
-              const progress = totalCount > 0 ? Math.round((allData.length / totalCount) * 100) : 
-                              Math.min(Math.round((allData.length / (page * BATCH_SIZE)) * 100), 90);
-              showLoading(`📖 Loading ${allData.length} pages... (${progress}%)`);
-            } else {
-              hasMore = false;
-            }
-          }
-
-          if (allData.length === 0) {
+          if (!chunk || chunk.length === 0) {
             hideLoading();
-            alert('No content found in ' + tableName);
+            alert('No content found in database table.');
             return;
           }
-          
-          data = allData.map(item => ({
+
+          currentPages = chunk.map(item => ({
             id: item.ID,
             sequence: item.ID,
             part: item['Part Number'] || 1,
@@ -1518,30 +1489,15 @@
             English: item['English Text'] || ''
           }));
           
-          dbCache[cacheKey] = data;
-          
-          // Secure layout matrix transaction schema to IndexedDB
-          await IDB.set(cacheKey, data);
-          
-          const bookUpdate = allBooks.find(b => b.id === bookId);
-          if (bookUpdate) {
-            bookUpdate.downloaded = true;
-            bookUpdate.total_pages = data.length;
-            localStorage.setItem('library_books', JSON.stringify(allBooks));
-            renderBooks(allBooks);
-          }
-        } else {
-          dbCache[cacheKey] = data;
+          // ടോട്ടൽ കൗണ്ട് ശരിയായി ഇവിടെ അസൈൻ ചെയ്യുന്നു
+          totalPages = actualTotalPages > 0 ? actualTotalPages : currentPages.length;
         }
-        
-        currentPages = data;
-        totalPages = data.length;
         
         const progressKey = `progress_${bookId}`;
         const savedProgress = localStorage.getItem(progressKey);
         if (savedProgress) {
           const prog = JSON.parse(savedProgress);
-          const idx = data.findIndex(c => c.sequence === prog.sequence);
+          const idx = currentPages.findIndex(c => c.sequence === prog.sequence);
           if (idx >= 0) {
             currentPageIndex = idx;
             currentWordOffset = prog.offset || 0;
@@ -1551,11 +1507,96 @@
         hideLoading();
         openReader();
         renderCurrentPage();
-        buildTOCData();
+        buildTOCData(); 
         
       } catch(err) {
         hideLoading();
         alert('❌ Error: ' + err.message);
+      }
+    }
+
+    // BACKGROUND DOWNLOAD INTO INDEXEDDB
+    async function downloadBookBackground(bookId) {
+      if (isDownloadingInstance) {
+        alert("മറ്റൊരു ഡൗൺലോഡ് പ്രോസസ്സ് നടക്കുന്നുണ്ട്. ദയവായി കാത്തിരിക്കുക!");
+        return;
+      }
+      
+      const book = allBooks.find(b => b.id === bookId);
+      if (!book) return;
+
+      isDownloadingInstance = true;
+      showLoading(`📥 Downloading ${book.title_ml || 'Book'} in Background...`);
+
+      try {
+        const tableName = `${bookId}_contents`;
+        const BATCH_SIZE = 500;
+        let allData = [];
+        let page = 0;
+        let hasMore = true;
+        let totalCount = 0;
+
+        try {
+          const { count, error: countError } = await supabaseClient
+            .from(tableName)
+            .select('*', { count: 'exact', head: true });
+          if (!countError) totalCount = count || 0;
+        } catch(e) {}
+
+        while (hasMore) {
+          const { data: supabaseData, error } = await supabaseClient
+            .from(tableName)
+            .select('*')
+            .order('ID', { ascending: true })
+            .range(page * BATCH_SIZE, (page + 1) * BATCH_SIZE - 1);
+
+          if (error) throw error;
+          
+          if (supabaseData && supabaseData.length > 0) {
+            const parsed = supabaseData.map(item => ({
+              id: item.ID,
+              sequence: item.ID,
+              part: item['Part Number'] || 1,
+              page: item['Page Number'] || 1,
+              Arabic: item['Arabic Text'] || '',
+              Malayalam: item['Malayalam Text'] || '',
+              English: item['English Text'] || ''
+            }));
+            
+            allData = allData.concat(parsed);
+            page++;
+            
+            if (currentBookId === bookId) {
+              currentPages = allData;
+              // ഇവിടെയും ടോട്ടൽ കൗണ്ടിന്റെ സുരക്ഷ നിലനിർത്തുന്നു
+              totalPages = totalCount > 0 ? totalCount : allData.length;
+              renderCurrentPage();
+              buildTOCData();
+            }
+
+            const progress = totalCount > 0 ? Math.round((allData.length / totalCount) * 100) : 90;
+            showLoading(`📥 Downloading Pages: ${allData.length}... (${progress}%)`);
+          } else {
+            hasMore = false;
+          }
+        }
+
+        await IDB.set(bookId, allData);
+        
+        book.downloaded = true;
+        book.total_pages = allData.length;
+        localStorage.setItem('library_books', JSON.stringify(allBooks));
+        renderBooks(allBooks);
+        updateStorageInfo();
+        
+        hideLoading();
+        isDownloadingInstance = false;
+        alert(`✅ ${book.title_ml || 'Book'} വിജയകരമായി ഡൗൺലോഡ് ചെയ്ത് IndexedDB-ൽ സൂക്ഷിച്ചിരിക്കുന്നു!`);
+
+      } catch(err) {
+        hideLoading();
+        isDownloadingInstance = false;
+        alert('❌ Download Error: ' + err.message);
       }
     }
 
@@ -1592,6 +1633,8 @@
       if (!currentPages || currentPages.length === 0) return;
 
       const page = currentPages[currentPageIndex];
+      if (!page) return; // സുരക്ഷിതമായി ബൗണ്ട് ചെക്ക് ചെയ്യുന്നു
+
       const container = document.getElementById('readerPageContainer');
 
       const ar = page.Arabic || '';
@@ -1610,7 +1653,7 @@
 
       let html = `
         <div class="reader-page-card">
-          <div class="head-badge">ഭാഗം ${part} - പേജ് ${pageNum} (${currentPageIndex + 1}/${totalPages})</div>
+          <div class="head-badge">` + (page.page ? `ഭാഗം ${part} - പേജ് ${pageNum}` : `സീക്വൻസ് ${page.sequence}`) + ` (${currentPageIndex + 1}/${totalPages})</div>
       `;
       if (arHtml) html += `<div class="ar-content" id="arContent">${arHtml}</div>`;
       if (mlHtml) html += `<div class="ml-content" id="mlContent">${mlHtml}</div>`;
@@ -1621,13 +1664,10 @@
       document.getElementById('readerPageNum').textContent = 
         `${currentPageIndex + 1} / ${totalPages}`;
 
-      const row = currentPages[currentPageIndex];
-      if (row) {
-        const mlText = (row.Malayalam || '').replace(/<[^>]+>/g, '').trim();
-        document.getElementById('miniTitle').textContent = mlText.substring(0, 40) + '...';
-        document.getElementById('miniProgress').textContent = `ഭാഗം ${part} - പേജ് ${pageNum}`;
-        updateAudioUI();
-      }
+      const mlText = (ml || '').replace(/<[^>]+>/g, '').trim();
+      document.getElementById('miniTitle').textContent = mlText.substring(0, 40) + '...';
+      document.getElementById('miniProgress').textContent = `ഭാഗം ${part} - പേജ് ${pageNum}`;
+      updateAudioUI();
 
       if (isVisualMode) {
         updateVisualChunk();
@@ -1642,9 +1682,6 @@
       }
     }
 
-    // ================================================================
-    // TOKENIZE TEXT FOR HIGHLIGHT
-    // ================================================================
     function tokenizeText(text, lang) {
       if (!text) return '';
       const pureText = text.replace(/<[^>]+>/g, '').trim();
@@ -1682,9 +1719,6 @@
       }
     }
 
-    // ================================================================
-    // HIGHLIGHT CURRENT WORD - Only in Ebook
-    // ================================================================
     function highlightCurrentWord() {
       if (isVisualMode) return; 
       
@@ -1729,7 +1763,7 @@
     }
 
     // ================================================================
-    // VISUAL MODE - Spoken Text Only
+    // VISUAL MODE
     // ================================================================
     function openVisualMode() {
       isVisualMode = true;
@@ -1787,6 +1821,12 @@
       }).join(' ');
     }
 
+    // EXTRACT YOUTUBE ID ഫംഗ്ഷൻ ശരിയായി ഇവിടെ ഫിക്സ് ചെയ്തിരിക്കുന്നു
+    function extractYoutubeId(url) {
+      const match = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
+      return (match && match[2].length === 11) ? match[2] : url;
+    }
+
     function applyVisualBg() {
       const id = document.getElementById('optYoutubeId').value.trim();
       const video = document.getElementById('visualVideo');
@@ -1806,11 +1846,6 @@
       }
     }
 
-    function extractYoutubeId(url) {
-      const match = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
-      return (match && match[2].length === 11) ? match[2] : url;
-    }
-
     // ================================================================
     // NAVIGATION
     // ================================================================
@@ -1818,9 +1853,14 @@
       if (currentPageIndex < totalPages - 1) {
         currentPageIndex++;
         currentWordOffset = 0;
-        renderCurrentPage();
-        if (isPlaying) playAudio();
-        saveProgress();
+        // താൽക്കാലികമായി ഡൗൺലോഡ് ആകാത്ത പേജ് ആണെങ്കിൽ ഓൺലൈൻ സ്ട്രീം ചെയ്യാം
+        if (!currentPages[currentPageIndex]) {
+          fetchSinglePageOnline(currentPageIndex);
+        } else {
+          renderCurrentPage();
+          if (isPlaying) playAudio();
+          saveProgress();
+        }
       } else {
         if (totalPages > 0) {
           if (navigator.vibrate) navigator.vibrate(50);
@@ -1838,13 +1878,50 @@
       }
     }
 
+    async function fetchSinglePageOnline(targetIndex) {
+      showLoading('📖 Loading page online...');
+      try {
+        const tableName = `${currentBookId}_contents`;
+        const { data, error } = await supabaseClient
+          .from(tableName)
+          .select('*')
+          .order('ID', { ascending: true })
+          .range(targetIndex, targetIndex);
+
+        if (!error && data && data.length > 0) {
+          const item = data[0];
+          currentPages[targetIndex] = {
+            id: item.ID,
+            sequence: item.ID,
+            part: item['Part Number'] || 1,
+            page: item['Page Number'] || 1,
+            Arabic: item['Arabic Text'] || '',
+            Malayalam: item['Malayalam Text'] || '',
+            English: item['English Text'] || ''
+          };
+          hideLoading();
+          renderCurrentPage();
+          if (isPlaying) playAudio();
+          saveProgress();
+        } else {
+          hideLoading();
+        }
+      } catch(e) {
+        hideLoading();
+      }
+    }
+
     function jumpToPage(index) {
       if (index >= 0 && index < totalPages) {
         currentPageIndex = index;
         currentWordOffset = 0;
-        renderCurrentPage();
-        if (isPlaying) playAudio();
-        saveProgress();
+        if (!currentPages[currentPageIndex]) {
+          fetchSinglePageOnline(currentPageIndex);
+        } else {
+          renderCurrentPage();
+          if (isPlaying) playAudio();
+          saveProgress();
+        }
       }
     }
 
@@ -1920,9 +1997,6 @@
       }
     }
 
-    // ================================================================
-    // PLAY AUDIO
-    // ================================================================
     function playAudio() {
       const page = currentPages[currentPageIndex];
       if (!page) return;
@@ -2088,7 +2162,7 @@
       const mlText = (page.Malayalam || '').replace(/<[^>]+>/g, '').trim();
       document.getElementById('audioTitle').textContent = mlText.substring(0, 50) + '...';
       document.getElementById('audioMeta').textContent = 
-        `ഭാഗം ${page.part || '?'} - പേജ് ${page.page || '?'} / ${totalPages}`;
+        `भागം ${page.part || '?'} - പേജ് ${page.page || '?'} / ${totalPages}`;
     }
 
     function setSpokenLang(lang) {
@@ -2170,7 +2244,7 @@
     }
 
     // ================================================================
-    // TOC - ENHANCED HIERARCHICAL DRILL-DOWN WITH JUMP & DROP-TOGGLE
+    // TOC - ACCORDION DROPDOWN SYSTEM
     // ================================================================
     function buildTOCData() {
       if (!currentPages || currentPages.length === 0) return;
@@ -2181,6 +2255,7 @@
       let currentH2 = null;
 
       currentPages.forEach((page, index) => {
+        if (!page) return;
         const arText = page.Arabic || '';
         const mlText = (page.Malayalam || '').replace(/<[^>]+>/g, '').trim().substring(0, 30);
         const enText = (page.English || '').replace(/<[^>]+>/g, '').trim().substring(0, 30);
@@ -2220,7 +2295,7 @@
           if (currentH2) currentH2.children.push(node);
           else if (currentH1) currentH1.children.push(node);
           else currentPart.children.push(node);
-        } else if (index % 10 === 0 || index === currentPageIndex || index === 0 || index === currentPages.length - 1) {
+        } else if (index % 10 === 0 || index === currentPageIndex || index === 0) {
           const node = { type: 'page', title: `പേജ് ${page.page || index + 1}`, subtitle: mlText.substring(0, 30) + '...', children: [], index: index, page: page.page };
           if (currentH2) currentH2.children.push(node);
           else if (currentH1) currentH1.children.push(node);
@@ -2231,7 +2306,7 @@
 
     function openTOC() {
       if (!currentBookId || !currentPages.length) return;
-      if (tocTree.length === 0) buildTOCData();
+      buildTOCData(); // ഉള്ളടക്കം അപ്ഡേറ്റ് ആയിട്ടുണ്ടെങ്കിൽ വീണ്ടും TOC ബിൽഡ് ചെയ്യുന്നു
       
       const modal = document.getElementById('tocModal');
       document.getElementById('modalOverlay').classList.add('show');
@@ -2243,7 +2318,6 @@
 
     function renderTOCLevel() {
       const currentLevel = tocPath[tocPath.length - 1];
-      
       const breadcrumb = document.getElementById('tocBreadcrumb');
       if (breadcrumb) {
         breadcrumb.innerHTML = tocPath.map((p, i) => 
@@ -2252,9 +2326,7 @@
       }
 
       const list = document.getElementById('tocList');
-      let html = '';
-
-      html += `
+      let html = `
         <div class="jump-to-page-container">
           <input type="number" id="jumpPageInput" min="1" max="${totalPages}" placeholder="Jump to page...">
           <button onclick="jumpToPageNumber()"><i class="fas fa-arrow-right"></i> Go</button>
@@ -2267,18 +2339,17 @@
           const hasChildren = node.children && node.children.length > 0;
           const typeIcon = { part: '📖', h1: '📑', h2: '📄', h3: '🔹', h4: '🔸', page: '📌' }[node.type] || '📄';
           
-          // Layout design matching exact visual matrix style
           html += `
-            <div class="toc-item ${isCurrent ? 'current' : ''}" onclick="selectTOCItem(${idx})">
-              <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                <div style="flex: 1;">
-                  <div class="toc-badge">${typeIcon} ${node.type.toUpperCase()}</div>
+            <div class="toc-item ${isCurrent ? 'current' : ''}">
+              <div class="toc-item-row">
+                <div class="toc-clickable-area" onclick="jumpToPage(${node.index}); closeModal();">
+                  <div class="toc-badge">${typeIcon} ${node.type.toUpperCase()} ${node.page ? '- പേജ് ' + node.page : ''}</div>
                   <div class="toc-title-text" dir="rtl">${node.title}</div>
                   ${node.subtitle ? `<div class="toc-translations">${node.subtitle}</div>` : ''}
                 </div>
                 ${hasChildren ? `
-                  <div style="padding: 10px; color: var(--primary-green); font-size: 14px;">
-                    <i class="fas fa-chevron-down"></i>
+                  <div class="toc-toggle-btn" onclick="drillTOC(${idx})">
+                    <i class="fas fa-chevron-right" style="font-size:16px;"></i>
                   </div>
                 ` : ''}
               </div>
@@ -2292,22 +2363,12 @@
       list.innerHTML = html;
     }
 
-    // Directly jumps to page context AND opens nested child toggle hierarchy dynamically
-    function selectTOCItem(indexInCurrentList) {
+    function drillTOC(idx) {
       const currentLevel = tocPath[tocPath.length - 1];
-      const node = currentLevel.nodes[indexInCurrentList];
-      
-      if (node) {
-        // Execute instant page transition jump directly
-        jumpToPage(node.index);
-        
-        // If nested nodes are present, toggle down the sub chapters sequence tree layout
-        if (node.children && node.children.length > 0) {
-          tocPath.push({ title: node.title.substring(0, 15) + '...', nodes: node.children });
-          renderTOCLevel();
-        } else {
-          closeModal();
-        }
+      const node = currentLevel.nodes[idx];
+      if (node && node.children && node.children.length > 0) {
+        tocPath.push({ title: node.title.substring(0, 15) + '...', nodes: node.children });
+        renderTOCLevel();
       }
     }
 
@@ -2343,6 +2404,7 @@
 
     function goHome() { closeReader(); }
 
+    // (Preferences settings stay unchanged)
     function setTheme(theme) {
       STATE.theme = theme;
       document.documentElement.setAttribute('data-theme', theme);
@@ -2390,7 +2452,7 @@
     }
 
     // ================================================================
-    // STORAGE INFO (INDEXEDDB ADAPTIVE STRUCTURE)
+    // STORAGE INFO
     // ================================================================
     async function updateStorageInfo() {
       try {
@@ -2401,8 +2463,7 @@
         for (const book of allBooks) {
           if (book.downloaded) {
             downloadedCount++;
-            const key = `book_${book.id}`;
-            const data = await IDB.get(key);
+            let data = await IDB.get(book.id);
             if (data) {
               totalPagesCount += data.length;
               totalSize += data.reduce((sum, c) => sum + (c.Arabic || '').length + (c.Malayalam || '').length + (c.English || '').length, 0);
@@ -2423,7 +2484,7 @@
       
       try {
         for (const book of allBooks) {
-          await IDB.delete(`book_${book.id}`);
+          await IDB.delete(book.id);
           localStorage.removeItem(`progress_${book.id}`);
           localStorage.removeItem(`bookmarks_${book.id}`);
           book.downloaded = false;
@@ -2439,9 +2500,6 @@
       }
     }
 
-    // ================================================================
-    // LOADING HELPERS
-    // ================================================================
     function showLoading(text) {
       document.getElementById('loadingText').textContent = text || '📖 Loading...';
       document.getElementById('loadingOverlay').classList.add('show');
@@ -2451,9 +2509,6 @@
       document.getElementById('loadingOverlay').classList.remove('show');
     }
 
-    // ================================================================
-    // LOAD PREFERENCES
-    // ================================================================
     function loadPreferences() {
       setTheme(localStorage.getItem('m_rb_theme') || 'light');
       const size = localStorage.getItem('m_rb_fsize') || '18';
@@ -2472,19 +2527,6 @@
 
       const savedLang = localStorage.getItem('pref_spoken_lang') || 'ar';
       setSpokenLang(savedLang);
-      
-      const bgPlay = localStorage.getItem('pref_bg_play');
-      if (bgPlay !== null) {
-        document.getElementById('optBgPlay').checked = bgPlay === 'true';
-      }
-      document.getElementById('optBgPlay').addEventListener('change', function() {
-        localStorage.setItem('pref_bg_play', this.checked);
-        if (this.checked) {
-          document.getElementById('silentAudio').loop = true;
-        } else {
-          document.getElementById('silentAudio').loop = false;
-        }
-      });
     }
 
     // ================================================================
