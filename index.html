@@ -1157,7 +1157,7 @@
         { name: "🎤 Prabhat - Indian English", id: "en-IN-PrabhatNeural", lang: "en-IN" }
     ];
 
-    const EDGE_API = "https://edge-tts-proxy.vercel.app/api/tts";
+    const EDGE_PROXY_URL = window.ENV_EDGE_TTS_API || "https://edge-tts-proxy.vercel.app/api/tts";
     let edgeAudio = null;
 
     // ================================================================
@@ -1207,24 +1207,24 @@
           renderBooks(allBooks);
           updateContinueReading();
         }
-        
+
         const savedUrl = localStorage.getItem('supabase_url');
         const savedKey = localStorage.getItem('supabase_key');
-        
+
         if (window.ENV_SUPABASE_URL && window.ENV_SUPABASE_KEY) {
           document.getElementById('supabaseUrl').value = window.ENV_SUPABASE_URL;
           document.getElementById('supabaseKey').value = window.ENV_SUPABASE_KEY;
           useConfigCredentials();
           return;
         }
-        
+
         if (savedUrl && savedKey) {
           document.getElementById('supabaseUrl').value = savedUrl;
           document.getElementById('supabaseKey').value = savedKey;
           connectSupabase();
           return;
         }
-        
+
         document.getElementById('setupBox').classList.add('show');
         document.getElementById('loadStatus').textContent = '🔌 Connect to Supabase';
         document.getElementById('loadSubStatus').textContent = 'Enter your Supabase credentials';
@@ -1288,7 +1288,7 @@
         document.getElementById('loader').classList.add('hidden');
         document.getElementById('homeView').classList.add('show');
         document.getElementById('loadSubStatus').textContent = 'Ready!';
-        
+
         await loadBooks();
       } catch(err) {
         msg.innerHTML = `<div class="status-msg error">❌ ${err.message}</div>`;
@@ -1379,7 +1379,7 @@
     }
 
     // ================================================================
-    // OPEN BOOK - INDEXEDDB OFFLINE-FIRST ARCHITECTURE (FIXED)
+    // OPEN BOOK - OFFLINE-FIRST WITH STREAMING & INDEXEDDB FIX
     // ================================================================
     async function openBook(bookId) {
       currentBookId = bookId;
@@ -1392,10 +1392,8 @@
       showLoading('📖 പുസ്തകം ലോഡ് ചെയ്യുന്നു...');
 
       try {
-        // 1. ആദ്യം IndexedDB-യിൽ ഡാറ്റയുണ്ടോ എന്ന് നോക്കുന്നു
         let cachedData = await window.DB.getAllChunks(bookId);
 
-        // 2. ഡാറ്റ ഇല്ലെങ്കിൽ മാത്രം Supabase സ്ട്രീമിംഗ് വഴി ഡൗൺലോഡ് ചെയ്യുന്നു
         if (!cachedData || cachedData.length === 0) {
           showLoading('☁️ ആദ്യതവണ ഇന്റർനെറ്റിൽ നിന്ന് ഡൗൺലോഡ് ചെയ്യുന്നു...');
           const tableName = `${bookId}_contents`;
@@ -1447,7 +1445,6 @@
             English: item['English Text'] || ''
           }));
 
-          // QuotaExceededError ഒഴിവാക്കാൻ പൂർണ്ണമായും IndexedDB-ലേക്ക് മാറ്റുന്നു
           showLoading('💾 ഡാറ്റാബേസിലേക്ക് സൂക്ഷിക്കുന്നു...');
           await window.DB.saveChunks(bookId, formattedChunks);
           cachedData = formattedChunks;
@@ -1460,11 +1457,9 @@
           }
         }
 
-        // 3. പേജുകൾ സിൻക്രോണസ് ആയി ലോഡ് ചെയ്യുന്നു
         currentPages = cachedData;
         totalPages = cachedData.length;
 
-        // പ്രോഗ്രസ് പുനഃസ്ഥാപിക്കുന്നു (Progress Restore)
         const progress = await window.DB.getProgress(bookId);
         if (progress && progress.sequence > 0) {
           const idx = cachedData.findIndex(c => c.sequence === progress.sequence);
@@ -1603,7 +1598,7 @@
     }
 
     // ================================================================
-    // HIGHLIGHT CURRENT WORD - Only in Ebook
+    // HIGHLIGHT CURRENT WORD
     // ================================================================
     function highlightCurrentWord() {
       if (isVisualMode) return;
@@ -1722,8 +1717,11 @@
 
       text = text.replace(/<[^>]+>/g, '').trim();
       if (!text) {
-        if (currentPageIndex < totalPages - 1) nextPage();
-        else stopAudio();
+        if (currentPageIndex < totalPages - 1) {
+          nextPage();
+        } else {
+          stopAudio();
+        }
         return;
       }
 
@@ -1838,6 +1836,37 @@
         if (edgeAudio) edgeAudio.pause();
         playAudio();
       }
+    }
+
+    // ================================================================
+    // CONTINUOUS APP HELPERS (RESTORED MISSING CORE FUNCTIONS)
+    // ================================================================
+    function updateContinueReading() {
+      const card = document.getElementById('continueCard');
+      const info = document.getElementById('continueInfo');
+      const bookId = localStorage.getItem('last_played_book_id');
+      const title = localStorage.getItem('last_played_book_title');
+
+      if (bookId && title) {
+        card.style.display = 'flex';
+        info.textContent = `${title}`;
+      } else {
+        card.style.display = 'none';
+      }
+    }
+
+    function continueReading() {
+      const bookId = localStorage.getItem('last_played_book_id');
+      if (bookId) openBook(bookId);
+    }
+
+    function showLoading(text) {
+      document.getElementById('loadingText').textContent = text || '📖 Loading...';
+      document.getElementById('loadingOverlay').classList.add('show');
+    }
+
+    function hideLoading() {
+      document.getElementById('loadingOverlay').classList.remove('show');
     }
 
     function updateAudioUI() {
@@ -2096,6 +2125,7 @@
 
     function goHome() { closeReader(); }
 
+    // Theme, Fonts and Scale Controllers
     function setTheme(theme) {
       STATE.theme = theme;
       document.documentElement.setAttribute('data-theme', theme);
