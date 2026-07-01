@@ -675,7 +675,7 @@
       backdrop-filter: blur(3px);
       z-index: 3000;
     }
-    .modal-overlay.show { block; }
+    .modal-overlay.show { display: block; }
     .modal-box {
       position: fixed;
       bottom: -100%;
@@ -769,15 +769,13 @@
     .toc-breadcrumb span:hover { text-decoration: underline; }
     
     .toc-item {
-      padding: 15px;
+      padding: 12px 15px;
       border-bottom: 1px solid var(--border);
       cursor: pointer;
       color: var(--text-dark);
       transition: 0.15s;
-      display: flex;
-      flex-direction: column;
     }
-    .toc-item:active { background: var(--bg); padding-left: 20px; }
+    .toc-item:active { background: var(--bg); }
     .toc-item.current { background: var(--primary-light); border-left: 4px solid var(--primary-green); }
     .toc-badge {
       display: inline-block;
@@ -793,10 +791,6 @@
     }
     .toc-title-text { font-size: 16px; font-weight: bold; }
     .toc-translations { font-size: 12px; color: var(--text-muted); margin-top: 5px; }
-    .toc-level-1 { padding-left: 0px; font-weight: bold; font-size: 16px; }
-    .toc-level-2 { padding-left: 20px; }
-    .toc-level-3 { padding-left: 40px; font-size: 14px; }
-    .toc-level-4 { padding-left: 60px; font-size: 13px; color: var(--text-muted); }
 
     .lang-selector {
       display: flex;
@@ -849,16 +843,6 @@
       font-weight: bold;
       white-space: nowrap;
       font-size: 13px;
-    }
-
-    @media (max-width: 600px) {
-      .book-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
-      .reader-page-card { padding: 20px 15px; }
-      .ar-content { font-size: calc(var(--font-scale) + 2px); }
-      .ml-content { font-size: var(--font-scale); }
-      .visual-controls { gap: 12px; font-size: 18px; padding: 6px 15px; }
-      .vis-text { font-size: 24px; }
-      .theme-grid { grid-template-columns: repeat(2, 1fr); }
     }
   </style>
 </head>
@@ -1142,19 +1126,19 @@
     };
 
     // ================================================================
-    // INDEXEDDB MANAGER (ലോക്കൽ സ്റ്റോറേജിന് പകരം സുരക്ഷിതമായി ഡാറ്റ സൂക്ഷിക്കാൻ)
+    // INDEXEDDB DATABASE MANAGER (സുരക്ഷിതമായി ഓഫ്‌ലൈൻ സംഭരണത്തിന്)
     // ================================================================
     const IDB = {
-      dbName: "IslamicLibraryDB",
+      dbName: "IslamicDigitalLibraryProDB",
       version: 1,
       db: null,
       init() {
         return new Promise((resolve, reject) => {
-          let request = indexedDB.open(this.dbName, this.version);
+          const request = indexedDB.open(this.dbName, this.version);
           request.onupgradeneeded = (e) => {
-            let db = e.target.result;
-            if (!db.objectStoreNames.contains("books_content")) {
-              db.createObjectStore("books_content", { keyPath: "bookId" });
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains("cached_books")) {
+              db.createObjectStore("cached_books", { keyPath: "id" });
             }
           };
           request.onsuccess = (e) => {
@@ -1164,34 +1148,34 @@
           request.onerror = (e) => reject(e.target.error);
         });
       },
-      get(bookId) {
+      get(key) {
         return new Promise((resolve, reject) => {
           if (!this.db) return resolve(null);
-          let tx = this.db.transaction("books_content", "readonly");
-          let store = tx.objectStore("books_content");
-          let req = store.get(bookId);
-          req.onsuccess = () => resolve(req.result ? req.result.data : null);
-          req.onerror = () => reject(req.error);
+          const transaction = this.db.transaction("cached_books", "readonly");
+          const store = transaction.objectStore("cached_books");
+          const request = store.get(key);
+          request.onsuccess = () => resolve(request.result ? request.result.data : null);
+          request.onerror = () => reject(request.error);
         });
       },
-      set(bookId, data) {
+      set(key, val) {
         return new Promise((resolve, reject) => {
           if (!this.db) return resolve();
-          let tx = this.db.transaction("books_content", "readwrite");
-          let store = tx.objectStore("books_content");
-          let req = store.put({ bookId: bookId, data: data });
-          req.onsuccess = () => resolve();
-          req.onerror = () => reject(req.error);
+          const transaction = this.db.transaction("cached_books", "readwrite");
+          const store = transaction.objectStore("cached_books");
+          const request = store.put({ id: key, data: val });
+          request.onsuccess = () => resolve();
+          request.onerror = () => reject(request.error);
         });
       },
-      delete(bookId) {
+      delete(key) {
         return new Promise((resolve, reject) => {
           if (!this.db) return resolve();
-          let tx = this.db.transaction("books_content", "readwrite");
-          let store = tx.objectStore("books_content");
-          let req = store.delete(bookId);
-          req.onsuccess = () => resolve();
-          req.onerror = () => reject(req.error);
+          const transaction = this.db.transaction("cached_books", "readwrite");
+          const store = transaction.objectStore("cached_books");
+          const request = store.delete(key);
+          request.onsuccess = () => resolve();
+          request.onerror = () => reject(request.error);
         });
       }
     };
@@ -1237,7 +1221,7 @@
     // ================================================================
     async function initApp() {
       try {
-        await IDB.init(); // Initialize IndexedDB first
+        await IDB.init(); // Initialize IndexedDB Database Structure
         
         // Load from localStorage cache
         const cachedBooks = localStorage.getItem('library_books');
@@ -1261,7 +1245,14 @@
         if (savedUrl && savedKey) {
           document.getElementById('supabaseUrl').value = savedUrl;
           document.getElementById('supabaseKey').value = savedKey;
-          connectSupabase();
+          
+          // Auto initialization without requesting configuration details every time
+          supabaseClient = window.supabase.createClient(savedUrl, savedKey);
+          document.getElementById('setupBox').style.display = 'none';
+          document.getElementById('loader').classList.add('hidden');
+          document.getElementById('homeView').classList.add('show');
+          
+          loadBooks();
           return;
         }
         
@@ -1341,6 +1332,17 @@
     async function loadBooks() {
       showLoading('📚 പുസ്തകങ്ങൾ ലോഡ് ചെയ്യുന്നു...');
       try {
+        if (!supabaseClient) {
+          // Offline mode fallback using cache if network fails
+          const cachedBooks = localStorage.getItem('library_books');
+          if (cachedBooks) {
+            allBooks = JSON.parse(cachedBooks);
+            renderBooks(allBooks);
+          }
+          hideLoading();
+          return;
+        }
+
         const { data, error } = await supabaseClient
           .from('master_catalog')
           .select('*')
@@ -1356,8 +1358,15 @@
         hideLoading();
       } catch(err) {
         hideLoading();
-        document.getElementById('bookGrid').innerHTML = 
-          `<div style="grid-column:1/-1;text-align:center;padding:40px;color:#dc3545;">❌ Error: ${err.message}</div>`;
+        // If query fails due to network, check local assets
+        const cachedBooks = localStorage.getItem('library_books');
+        if (cachedBooks) {
+          allBooks = JSON.parse(cachedBooks);
+          renderBooks(allBooks);
+        } else {
+          document.getElementById('bookGrid').innerHTML = 
+            `<div style="grid-column:1/-1;text-align:center;padding:40px;color:#dc3545;">❌ Error: ${err.message}</div>`;
+        }
       }
     }
 
@@ -1413,13 +1422,16 @@
     function toggleSearch() { document.getElementById('searchBar').classList.toggle('show'); }
 
     async function syncBooks() {
-      if (!supabaseClient) return;
+      if (!supabaseClient) {
+        alert('കണക്ഷൻ ലഭ്യമല്ല. ദയവായി നെറ്റ്‌വർക്ക് പരിശോധിക്കുക.');
+        return;
+      }
       await loadBooks();
       alert('✅ Books synced!');
     }
 
     // ================================================================
-    // OPEN BOOK - INDEXEDDB BATCH LOADING FOR 8000+ PAGES
+    // OPEN BOOK - BATCH LOADING WITH PREFERENTIAL INDEXEDDB LOADING
     // ================================================================
     async function openBook(bookId) {
       currentBookId = bookId;
@@ -1432,10 +1444,29 @@
       showLoading('📖 Opening book...');
 
       try {
-        // Read data from IndexedDB instead of localStorage
-        let data = await IDB.get(bookId);
+        const cacheKey = `book_${bookId}`;
+        
+        // 1. Attempt to fetch content data structural entity directly from IndexedDB
+        let data = await IDB.get(cacheKey);
+        
+        // 2. Fallback check for transition layer cache migration
+        if (!data) {
+          const rawLocalData = localStorage.getItem(cacheKey);
+          if (rawLocalData) {
+            data = JSON.parse(rawLocalData);
+            // Migrate architecture up to IDB instantly
+            await IDB.set(cacheKey, data);
+            localStorage.removeItem(cacheKey);
+          }
+        }
         
         if (!data) {
+          if (!supabaseClient) {
+            hideLoading();
+            alert('ഈ പുസ്തകം ഓഫ്‌ലൈനായി ലഭ്യമല്ല! ദയവായി ഇന്റർനെറ്റ് കണക്ട് ചെയ്യുക.');
+            return;
+          }
+
           const tableName = `${bookId}_contents`;
           const BATCH_SIZE = 500;
           let allData = [];
@@ -1487,8 +1518,10 @@
             English: item['English Text'] || ''
           }));
           
-          // Save perfectly into IndexedDB
-          await IDB.set(bookId, data);
+          dbCache[cacheKey] = data;
+          
+          // Secure layout matrix transaction schema to IndexedDB
+          await IDB.set(cacheKey, data);
           
           const bookUpdate = allBooks.find(b => b.id === bookId);
           if (bookUpdate) {
@@ -1497,6 +1530,8 @@
             localStorage.setItem('library_books', JSON.stringify(allBooks));
             renderBooks(allBooks);
           }
+        } else {
+          dbCache[cacheKey] = data;
         }
         
         currentPages = data;
@@ -1516,7 +1551,7 @@
         hideLoading();
         openReader();
         renderCurrentPage();
-        buildTOCData(); 
+        buildTOCData();
         
       } catch(err) {
         hideLoading();
@@ -1648,7 +1683,7 @@
     }
 
     // ================================================================
-    // HIGHLIGHT CURRENT WORD
+    // HIGHLIGHT CURRENT WORD - Only in Ebook
     // ================================================================
     function highlightCurrentWord() {
       if (isVisualMode) return; 
@@ -1694,7 +1729,7 @@
     }
 
     // ================================================================
-    // VISUAL MODE
+    // VISUAL MODE - Spoken Text Only
     // ================================================================
     function openVisualMode() {
       isVisualMode = true;
@@ -1810,7 +1845,6 @@
         renderCurrentPage();
         if (isPlaying) playAudio();
         saveProgress();
-        closeModal();
       }
     }
 
@@ -1886,6 +1920,9 @@
       }
     }
 
+    // ================================================================
+    // PLAY AUDIO
+    // ================================================================
     function playAudio() {
       const page = currentPages[currentPageIndex];
       if (!page) return;
@@ -2133,7 +2170,7 @@
     }
 
     // ================================================================
-    // TOC - ENHANCED HIERARCHICAL DRILL-DOWN / DROP-DOWN
+    // TOC - ENHANCED HIERARCHICAL DRILL-DOWN WITH JUMP & DROP-TOGGLE
     // ================================================================
     function buildTOCData() {
       if (!currentPages || currentPages.length === 0) return;
@@ -2206,6 +2243,7 @@
 
     function renderTOCLevel() {
       const currentLevel = tocPath[tocPath.length - 1];
+      
       const breadcrumb = document.getElementById('tocBreadcrumb');
       if (breadcrumb) {
         breadcrumb.innerHTML = tocPath.map((p, i) => 
@@ -2214,7 +2252,9 @@
       }
 
       const list = document.getElementById('tocList');
-      let html = `
+      let html = '';
+
+      html += `
         <div class="jump-to-page-container">
           <input type="number" id="jumpPageInput" min="1" max="${totalPages}" placeholder="Jump to page...">
           <button onclick="jumpToPageNumber()"><i class="fas fa-arrow-right"></i> Go</button>
@@ -2227,16 +2267,20 @@
           const hasChildren = node.children && node.children.length > 0;
           const typeIcon = { part: '📖', h1: '📑', h2: '📄', h3: '🔹', h4: '🔸', page: '📌' }[node.type] || '📄';
           
-          // If it has children, allow selection to navigate to it AND open its dropdown sub-nodes
+          // Layout design matching exact visual matrix style
           html += `
-            <div class="toc-item ${isCurrent ? 'current' : ''}" onclick="handleTOCSelection(${idx})">
-              <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
-                <div>
-                  <div class="toc-badge">${typeIcon} ${node.type.toUpperCase()} ${node.page ? '- പേജ് ' + node.page : ''}</div>
+            <div class="toc-item ${isCurrent ? 'current' : ''}" onclick="selectTOCItem(${idx})">
+              <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <div style="flex: 1;">
+                  <div class="toc-badge">${typeIcon} ${node.type.toUpperCase()}</div>
                   <div class="toc-title-text" dir="rtl">${node.title}</div>
                   ${node.subtitle ? `<div class="toc-translations">${node.subtitle}</div>` : ''}
                 </div>
-                ${hasChildren ? `<div style="font-size:12px; color:var(--primary-green); background:var(--primary-light); padding:4px 8px; border-radius:4px;"><i class="fas fa-folder-open"></i> ${node.children.length}</div>` : ''}
+                ${hasChildren ? `
+                  <div style="padding: 10px; color: var(--primary-green); font-size: 14px;">
+                    <i class="fas fa-chevron-down"></i>
+                  </div>
+                ` : ''}
               </div>
             </div>
           `;
@@ -2248,21 +2292,21 @@
       list.innerHTML = html;
     }
 
-    // Handles selecting the heading directly OR opening its dropdown children hierarchy
-    function handleTOCSelection(idx) {
+    // Directly jumps to page context AND opens nested child toggle hierarchy dynamically
+    function selectTOCItem(indexInCurrentList) {
       const currentLevel = tocPath[tocPath.length - 1];
-      const node = currentLevel.nodes[idx];
+      const node = currentLevel.nodes[indexInCurrentList];
       
       if (node) {
+        // Execute instant page transition jump directly
+        jumpToPage(node.index);
+        
+        // If nested nodes are present, toggle down the sub chapters sequence tree layout
         if (node.children && node.children.length > 0) {
-          // Drill down hierarchy tree (Drop-down logic)
-          tocPath.push({ title: node.title.substring(0,20)+'...', nodes: node.children });
+          tocPath.push({ title: node.title.substring(0, 15) + '...', nodes: node.children });
           renderTOCLevel();
-          // Instantly snap reader to that heading section as well
-          jumpToPage(node.index);
         } else {
           closeModal();
-          jumpToPage(node.index);
         }
       }
     }
@@ -2285,7 +2329,7 @@
     }
 
     // ================================================================
-    // SETTINGS & THEMES
+    // SETTINGS
     // ================================================================
     function openSettings() {
       document.getElementById('modalOverlay').classList.add('show');
@@ -2304,8 +2348,7 @@
       document.documentElement.setAttribute('data-theme', theme);
       localStorage.setItem('m_rb_theme', theme);
       document.querySelectorAll('.theme-btn').forEach(el => el.classList.remove('active'));
-      const target = document.getElementById('th-' + theme);
-      if (target) target.classList.add('active');
+      document.getElementById('th-' + theme).classList.add('active');
     }
 
     function applyFontSize() {
@@ -2347,27 +2390,28 @@
     }
 
     // ================================================================
-    // STORAGE INFO (INDEXEDDB COMPATIBLE)
+    // STORAGE INFO (INDEXEDDB ADAPTIVE STRUCTURE)
     // ================================================================
     async function updateStorageInfo() {
       try {
-        let totalDownloadedPages = 0;
+        let totalPagesCount = 0;
         let totalSize = 0;
         let downloadedCount = 0;
         
         for (const book of allBooks) {
           if (book.downloaded) {
             downloadedCount++;
-            const data = await IDB.get(book.id);
+            const key = `book_${book.id}`;
+            const data = await IDB.get(key);
             if (data) {
-              totalDownloadedPages += data.length;
+              totalPagesCount += data.length;
               totalSize += data.reduce((sum, c) => sum + (c.Arabic || '').length + (c.Malayalam || '').length + (c.English || '').length, 0);
             }
           }
         }
         
         document.getElementById('storageBooks').textContent = downloadedCount;
-        document.getElementById('storagePages').textContent = totalDownloadedPages.toLocaleString();
+        document.getElementById('storagePages').textContent = totalPagesCount.toLocaleString();
         document.getElementById('storageSize').textContent = (totalSize / 1024 / 1024).toFixed(1) + ' MB';
       } catch(err) {
         console.error('Storage info error:', err);
@@ -2379,13 +2423,14 @@
       
       try {
         for (const book of allBooks) {
-          await IDB.delete(book.id); // Wipe IndexedDB cleanly
+          await IDB.delete(`book_${book.id}`);
           localStorage.removeItem(`progress_${book.id}`);
           localStorage.removeItem(`bookmarks_${book.id}`);
           book.downloaded = false;
           book.total_pages = 0;
         }
         localStorage.setItem('library_books', JSON.stringify(allBooks));
+        dbCache = {};
         renderBooks(allBooks);
         updateStorageInfo();
         alert('✅ All data cleared!');
