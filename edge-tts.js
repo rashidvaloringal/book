@@ -1,236 +1,147 @@
 // ================================================================
-// EDGE NATURAL TTS MODULE - PROFESSIONAL DIGITAL READER
-// Version: 2.1 - Enhanced Performance & Strict HTML Overrides
+// EDGE NATURAL TTS ENGINE - ALL BROWSERS
 // ================================================================
 
-// വിശ്വസനീയമായ പബ്ലിക് എഡ്ജ് TTS പ്രോക്സി എൻഡ്പോയിന്റ് 
+// പബ്ലിക് API ലിങ്ക് (ഇത് വഴിയാണ് Edge Voice വരുന്നത്)
 const EDGE_PROXY_URL = window.ENV_EDGE_TTS_API || "https://edge-tts-proxy.vercel.app/api/tts";
 
-// വോയിസ് ഡാറ്റാബേസ് (മലയാളം, അറബിക്, ഇംഗ്ലീഷ്)
-const EDGE_VOICES_DATA = [
-    { name: "🎤 Midhun (Natural) - മലയാളം", shortName: "ml-IN-MidhunNeural", lang: "ml-IN", gender: "Male" },
-    { name: "🎤 Sobhana (Natural) - മലയാളം", shortName: "ml-IN-SobhanaNeural", lang: "ml-IN", gender: "Female" },
-    { name: "🎤 Shakir (Natural) - العربية", shortName: "ar-EG-ShakirNeural", lang: "ar-EG", gender: "Male" },
-    { name: "🎤 Salma (Natural) - العربية", shortName: "ar-EG-SalmaNeural", lang: "ar-EG", gender: "Female" },
-    { name: "🎤 Zariyah (Natural) - العربية", shortName: "ar-SA-ZariyahNeural", lang: "ar-SA", gender: "Female" },
-    { name: "🎤 Hamed (Natural) - العربية", shortName: "ar-SA-HamedNeural", lang: "ar-SA", gender: "Male" },
-    { name: "🎤 Jenny (Natural) - English", shortName: "en-US-JennyNeural", lang: "en-US", gender: "Female" },
-    { name: "🎤 Andrew (Natural) - English", shortName: "en-US-AndrewNeural", lang: "en-US", gender: "Male" }
+// പുതിയ വോയിസുകളുടെ ലിസ്റ്റ് (മലയാളം, അറബിക്, ഇംഗ്ലീഷ്)
+const EDGE_VOICES = [
+    { name: "🎤 Midhun (Natural) - മലയാളം", id: "ml-IN-MidhunNeural", lang: "ml-IN" },
+    { name: "🎤 Sobhana (Natural) - മലയാളം", id: "ml-IN-SobhanaNeural", lang: "ml-IN" },
+    { name: "🎤 Shakir (Natural) - العربية", id: "ar-EG-ShakirNeural", lang: "ar-EG" },
+    { name: "🎤 Salma (Natural) - العربية", id: "ar-EG-SalmaNeural", lang: "ar-EG" },
+    { name: "🎤 Jenny (Natural) - English", id: "en-US-JennyNeural", lang: "en-US" },
+    { name: "🎤 Guy (Natural) - English", id: "en-US-GuyNeural", lang: "en-US" }
 ];
 
-let edgeAudioNode = null;
-let edgeProgressInterval = null;
-let edgeIsPlaying = false;
+let edgeAudio = null;
 
-// ================================================================
-// OVERRIDE: setupVoices - Dropdown എഡ്ജ് വോയിസുകൾ കൊണ്ട് നിറയ്ക്കുന്നു
-// ================================================================
-window.setupVoices = function() {
+// 1. ഡ്രോപ്പ്ഡൗൺ മെനുവിൽ പുതിയ വോയിസുകൾ കൊണ്ടുവരാൻ
+function setupVoices() {
     const select = document.getElementById('optVoice');
     if (!select) return;
-
-    const lang = document.getElementById('optAudioLang')?.value || 'ml-IN';
-    const langPrefix = lang.split('-')[0];
-    const filtered = EDGE_VOICES_DATA.filter(v => v.lang.startsWith(langPrefix));
-
+    const lang = document.getElementById('optAudioLang').value.split('-')[0];
+    
     select.innerHTML = '';
+    const filtered = EDGE_VOICES.filter(v => v.lang.startsWith(lang));
+    
+    filtered.forEach(v => {
+        select.appendChild(new Option(v.name, v.id));
+    });
+}
 
-    if (filtered.length > 0) {
-        const optgroup = document.createElement('optgroup');
-        optgroup.label = '⭐ Edge Natural Voices';
-        filtered.forEach(v => {
-            const option = document.createElement('option');
-            option.value = v.shortName;
-            option.textContent = `${v.name} (${v.gender})`;
-            optgroup.appendChild(option);
-        });
-        select.appendChild(optgroup);
-
-        if (!select.value || !filtered.find(v => v.shortName === select.value)) {
-            select.value = filtered[0].shortName;
-        }
-    }
-};
-
-// ================================================================
-// OVERRIDE: togglePlay
-// ================================================================
-window.togglePlay = function() {
+// 2. പ്ലേ / പോസ് ബട്ടൺ കൺട്രോൾ
+function togglePlay() {
     initAudioContext();
-    if (edgeIsPlaying) {
-        if (edgeAudioNode) edgeAudioNode.pause();
-        edgeIsPlaying = false;
+    if (isPlaying) {
+        if (edgeAudio) edgeAudio.pause();
         isPlaying = false;
-        if (window.updatePlayIcon) window.updatePlayIcon();
-        document.getElementById('silentAudio')?.pause();
+        updatePlayIcon();
+        document.getElementById('silentAudio').pause();
     } else {
-        edgeIsPlaying = true;
         isPlaying = true;
-        if (window.updatePlayIcon) window.updatePlayIcon();
-        window.playAudio();
-        if (window.requestWakeLock) window.requestWakeLock();
+        updatePlayIcon();
+        playAudio();
+        requestWakeLock();
     }
-};
+}
 
-// ================================================================
-// OVERRIDE: playAudio - Edge API ലേക്ക് ഓഡിയോ സ്ട്രീം കണക്ട് ചെയ്യുന്നു
-// ================================================================
-window.playAudio = function() {
-    if (edgeAudioNode) {
-        edgeAudioNode.pause();
-        edgeAudioNode.src = '';
-        edgeAudioNode = null;
-    }
-    if (edgeProgressInterval) clearInterval(edgeProgressInterval);
-
-    const page = window.currentPages?.[window.currentPageIndex];
-    if (!page) {
-        if (window.nextPage) window.nextPage();
-        return;
+// 3. ഓഡിയോ പ്ലേ ചെയ്യുന്ന പ്രധാന ഭാഗം
+function playAudio() {
+    if (edgeAudio) {
+        edgeAudio.pause();
+        edgeAudio = null;
     }
 
-    const lang = document.getElementById('optAudioLang')?.value || 'ml-IN';
-    let text = '';
-    let langKey = 'ml';
+    const page = currentPages[currentPageIndex];
+    if (!page) return;
 
-    if (lang === 'ar-EG') {
-        text = page.Arabic || '';
-        langKey = 'ar';
-    } else if (lang === 'en-US') {
-        text = page.English || '';
-        langKey = 'en';
-    } else {
-        text = page.Malayalam || '';
-        langKey = 'ml';
-    }
+    const langSet = document.getElementById('optAudioLang').value;
+    let text = '', langKey = 'ml';
+    
+    if (langSet.startsWith('ar')) { text = page.Arabic || ''; langKey = 'ar'; }
+    else if (langSet.startsWith('en')) { text = page.English || ''; langKey = 'en'; }
+    else { text = page.Malayalam || ''; langKey = 'ml'; }
 
     text = text.replace(/<[^>]+>/g, '').trim();
+    
     if (!text) {
-        if (window.currentPageIndex < window.totalPages - 1) window.nextPage();
-        else window.stopAudio();
+        if (currentPageIndex < totalPages - 1) nextPage();
+        else stopAudio();
         return;
     }
 
-    window.spokenLang = langKey;
+    spokenLang = langKey;
     document.querySelectorAll('.lang-btn').forEach(el => el.classList.remove('active'));
     document.getElementById('lang-' + langKey)?.classList.add('active');
 
-    const voice = document.getElementById('optVoice')?.value || 'ml-IN-MidhunNeural';
-    const speed = parseFloat(document.getElementById('optSpeed')?.value) || 1.0;
+    // സ്പീഡും വോയിസും സെറ്റ് ചെയ്യുന്നു
+    const voiceId = document.getElementById('optVoice').value || 'ml-IN-MidhunNeural';
+    const speed = parseFloat(document.getElementById('optSpeed').value) || 1.0;
     const ratePercent = Math.round((speed - 1.0) * 100);
     const rateStr = ratePercent >= 0 ? `+${ratePercent}%` : `${ratePercent}%`;
 
-    const audioUrl = `${EDGE_PROXY_URL}?text=${encodeURIComponent(text)}&voice=${voice}&rate=${rateStr}&pitch=+0Hz`;
+    // API ലേക്ക് കണക്ട് ചെയ്യുന്നു
+    const url = `${EDGE_PROXY_URL}?text=${encodeURIComponent(text)}&voice=${voiceId}&rate=${rateStr}`;
 
-    if (window.showLoading) window.showLoading('🎙️ Edge Natural Voice ലോഡ് ചെയ്യുന്നു...');
-
-    edgeAudioNode = new Audio(audioUrl);
-    edgeAudioNode.preload = 'auto';
-
-    // Word Highlighting അൽഗോരിതം (TimeUpdate എമുലേഷൻ)
-    const words = text.split(/\s+/);
-    let lastWordIdx = -1;
-
-    edgeAudioNode.ontimeupdate = function() {
-        if (edgeAudioNode && edgeAudioNode.duration && !isNaN(edgeAudioNode.duration)) {
-            const ratio = Math.min(edgeAudioNode.currentTime / edgeAudioNode.duration, 0.99);
-            let wordIndex = Math.floor(words.length * ratio);
-            
-            if (wordIndex >= words.length) wordIndex = words.length - 1;
-
-            if (wordIndex !== lastWordIdx) {
-                lastWordIdx = wordIndex;
-                let offset = words.slice(0, wordIndex).join(' ').length + (wordIndex > 0 ? 1 : 0);
-                window.currentWordOffset = offset;
-
-                if (window.isVisualMode && window.updateVisualChunk) window.updateVisualChunk();
-                else if (window.highlightCurrentWord) window.highlightCurrentWord();
-                if (window.saveProgress) window.saveProgress();
-            }
-        }
-    };
-
-    edgeProgressInterval = setInterval(() => {
-        if (edgeAudioNode && !edgeAudioNode.paused && edgeAudioNode.duration) {
-            const progress = (edgeAudioNode.currentTime / edgeAudioNode.duration) * 100;
-            if (window.STATE?.mode === 'audio') {
-                const pBar = document.getElementById('audioProgressBar');
-                if (pBar) pBar.style.width = progress + '%';
-            }
-            const vBar = document.getElementById('visProgressBar');
-            if (vBar) vBar.style.width = progress + '%';
-        }
-    }, 150);
-
-    edgeAudioNode.onplay = function() {
-        edgeIsPlaying = true;
-        isPlaying = true;
-        if (window.hideLoading) window.hideLoading();
-        document.getElementById('silentAudio')?.play().catch(() => {});
-    };
-
-    edgeAudioNode.onended = function() {
-        edgeIsPlaying = false;
-        isPlaying = false;
-        if (window.updatePlayIcon) window.updatePlayIcon();
-        if (document.getElementById('optAutoNext')?.checked !== false && window.currentPageIndex < window.totalPages - 1) {
-            window.currentWordOffset = 0;
-            window.nextPage();
-        } else {
-            window.stopAudio();
-        }
-    };
-
-    edgeAudioNode.onerror = () => {
-        if (window.hideLoading) window.hideLoading();
-        fallbackSystemTTS(text, lang);
-    };
-
-    edgeAudioNode.play().catch(() => {
-        if (window.hideLoading) window.hideLoading();
-        fallbackSystemTTS(text, lang);
-    });
-};
-
-// ================================================================
-// OVERRIDE: stopAudio
-// ================================================================
-window.stopAudio = function() {
-    if (edgeAudioNode) {
-        edgeAudioNode.pause();
-        edgeAudioNode = null;
-    }
-    edgeIsPlaying = false;
-    isPlaying = false;
-    if (window.updatePlayIcon) window.updatePlayIcon();
-    if (edgeProgressInterval) clearInterval(edgeProgressInterval);
-
-    const aBar = document.getElementById('audioProgressBar');
-    if (aBar) aBar.style.width = '0%';
-    const vBar = document.getElementById('visProgressBar');
-    if (vBar) vBar.style.width = '0%';
+    showLoading('🎙️ Natural Voice ലോഡ് ചെയ്യുന്നു...');
     
-    document.getElementById('silentAudio')?.pause();
-    document.querySelectorAll('.word-hl, .word-hl-ar, .word-hl-ml, .word-hl-en').forEach(el => el.classList.remove('word-hl', 'word-hl-ar', 'word-hl-ml', 'word-hl-en'));
-};
-
-function fallbackSystemTTS(text, lang) {
-    if (!window.synth) return;
-    window.synth.cancel();
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = lang;
-    utter.onend = () => { if (edgeIsPlaying && window.currentPageIndex < window.totalPages - 1) window.nextPage(); else window.stopAudio(); };
-    window.synth.speak(utter);
-}
-
-function initEdgeTTS() {
-    let retries = 0;
-    const check = setInterval(() => {
-        if (document.getElementById('optVoice') && document.getElementById('optAudioLang')) {
-            window.setupVoices();
-            clearInterval(check);
+    edgeAudio = new Audio(url);
+    
+    // പാട്ട് ഓടുന്നതിനനുസരിച്ച് വാക്കുകൾ ഹൈലൈറ്റ് ചെയ്യാൻ
+    edgeAudio.ontimeupdate = () => {
+        if (edgeAudio.duration) {
+            const progress = edgeAudio.currentTime / edgeAudio.duration;
+            currentWordOffset = Math.floor(text.length * progress);
+            
+            if (isVisualMode) updateVisualChunk();
+            else highlightCurrentWord();
+            
+            // പ്രോഗ്രസ് ബാർ അപ്ഡേറ്റ്
+            const percent = progress * 100;
+            if (STATE.mode === 'audio') document.getElementById('audioProgressBar').style.width = percent + '%';
+            document.getElementById('visProgressBar').style.width = percent + '%';
         }
-        if (++retries > 15) clearInterval(check);
-    }, 300);
+    };
+
+    edgeAudio.onplay = () => {
+        hideLoading();
+        document.getElementById('silentAudio').play().catch(()=>{});
+    };
+
+    edgeAudio.onended = () => {
+        if (isPlaying) {
+            const autoNext = document.getElementById('optAutoNext')?.checked !== false;
+            if (autoNext && currentPageIndex < totalPages - 1) {
+                currentWordOffset = 0;
+                nextPage();
+            } else stopAudio();
+        }
+    };
+
+    edgeAudio.onerror = () => {
+        hideLoading();
+        alert("ഓഡിയോ പ്ലേ ചെയ്യാൻ കഴിഞ്ഞില്ല. ഇന്റർനെറ്റ് പരിശോധിക്കുക.");
+        stopAudio();
+    };
+
+    edgeAudio.play().catch(e => {
+        hideLoading();
+        stopAudio();
+    });
 }
-document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', initEdgeTTS) : initEdgeTTS();
+
+// 4. ഓഡിയോ നിർത്താൻ
+function stopAudio() {
+    if (edgeAudio) {
+        edgeAudio.pause();
+        edgeAudio = null;
+    }
+    isPlaying = false;
+    updatePlayIcon();
+    document.getElementById('audioProgressBar').style.width = '0%';
+    document.getElementById('visProgressBar').style.width = '0%';
+    document.getElementById('silentAudio').pause();
+    document.querySelectorAll('.word-hl, .word-hl-ar, .word-hl-ml, .word-hl-en').forEach(el => el.classList.remove('word-hl', 'word-hl-ar', 'word-hl-ml', 'word-hl-en'));
+}
