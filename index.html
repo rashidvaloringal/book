@@ -5,20 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#1b4d3e">
   <title>📚 Islamic Digital Library Pro</title>
-  
+
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  
+
+  <!-- Database Layer (IndexedDB) -->
+  <script src="database.js"></script>
+
+  <!-- Edge Natural TTS -->
+  <script src="edge-tts.js"></script>
+
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
+
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Manjari:wght@400;700&family=Chilanka&family=Gayathri&family=Scheherazade+New:wght@400;700&family=Lateef&display=swap" rel="stylesheet">
-  
+
   <style>
-    /* ================================================================
-       ROOT VARIABLES
-       ================================================================ */
+    /* ===== CSS ===== */
     :root {
       --primary-green: #1b4d3e;
       --bg: #f4f7f6;
@@ -86,7 +90,6 @@
     ::-webkit-scrollbar-track { background: var(--bg); }
     ::-webkit-scrollbar-thumb { background: var(--primary-green); border-radius: 4px; }
 
-    /* ===== LOADER ===== */
     #loader {
       position: fixed;
       inset: 0;
@@ -112,7 +115,6 @@
     .status { font-size: 16px; font-weight: bold; color: var(--primary-green); text-align: center; }
     .sub-status { font-size: 13px; color: var(--text-muted); text-align: center; }
 
-    /* ===== SETUP BOX ===== */
     #setupBox {
       display: none;
       flex-direction: column;
@@ -150,7 +152,6 @@
     .status-msg.error { background: #f8d7da; color: #721c24; }
     .status-msg.info { background: #d1ecf1; color: #0c5460; }
 
-    /* ===== HOME ===== */
     #homeView {
       display: none;
       flex-direction: column;
@@ -214,7 +215,6 @@
 
     .container { padding: 15px; max-width: 1000px; margin: auto; width: 100%; }
 
-    /* ===== CONTINUE READING ===== */
     .continue-card {
       background: var(--primary-light);
       border: 2px solid var(--primary-green);
@@ -232,7 +232,6 @@
     .continue-card .info p { font-size: 12px; color: var(--text-muted); }
     .continue-card .btn { background: var(--primary-green); color: white; padding: 8px 20px; border-radius: 30px; font-size: 13px; }
 
-    /* ===== BOOK GRID ===== */
     .book-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -305,7 +304,6 @@
     .status-badge.downloaded { background: #d4edda; color: #155724; }
     .status-badge.not-downloaded { background: #f8d7da; color: #721c24; }
 
-    /* ===== BOTTOM NAV ===== */
     .bottom-nav {
       position: fixed;
       bottom: 0;
@@ -331,7 +329,6 @@
     .nav-link i { font-size: 22px; }
     .nav-link.active { color: var(--primary-green); font-weight: bold; }
 
-    /* ===== READER ===== */
     #readerView {
       display: none;
       flex-direction: column;
@@ -428,7 +425,6 @@
       margin-top: 10px;
     }
 
-    /* ===== WORD HIGHLIGHT ===== */
     .word-token {
       cursor: pointer;
       transition: 0.15s;
@@ -449,7 +445,6 @@
     .word-hl-ml { background: #facc15 !important; color: #000 !important; }
     .word-hl-en { background: #a8e6cf !important; color: #000 !important; }
 
-    /* ===== VISUAL MODE ===== */
     .visual-mode {
       position: fixed;
       inset: 0;
@@ -551,7 +546,6 @@
     }
     .vis-progress-bar { height: 100%; background: #38bdf8; width: 0%; }
 
-    /* ===== READER PAGINATION ===== */
     .reader-pagination {
       display: flex;
       justify-content: space-between;
@@ -572,7 +566,6 @@
     }
     .page-num { font-weight: bold; color: var(--primary-green); font-size: 15px; }
 
-    /* ===== LOADING OVERLAY ===== */
     .loading-overlay {
       display: none;
       position: fixed;
@@ -596,7 +589,6 @@
       animation: spin 0.8s linear infinite;
     }
 
-    /* ===== AUDIO ===== */
     .audio-player {
       background: var(--surface);
       padding: 25px;
@@ -619,7 +611,6 @@
     .audio-progress { width: 100%; height: 5px; background: var(--border); border-radius: 3px; margin-top: 20px; }
     .progress-bar { height: 100%; background: var(--primary-green); border-radius: 3px; width: 0%; transition: width 0.1s; }
 
-    /* ===== MINI PLAYER ===== */
     .mini-player {
       position: fixed;
       bottom: var(--bottom-nav);
@@ -639,7 +630,6 @@
     .mini-progress { font-size: 10px; color: var(--text-muted); }
     .mini-controls { display: flex; gap: 14px; font-size: 18px; color: var(--primary-green); align-items: center; }
 
-    /* ===== READER BOTTOM NAV ===== */
     .reader-bottom-nav {
       position: fixed;
       bottom: 0;
@@ -669,7 +659,6 @@
     .nav-tab i { font-size: 20px; }
     .nav-tab span { font-size: 10px; }
 
-    /* ===== MODALS ===== */
     .modal-overlay {
       display: none;
       position: fixed;
@@ -758,7 +747,6 @@
     }
     .theme-btn.active { border-color: var(--primary-green); background: var(--primary-light); color: var(--primary-green); }
 
-    /* ===== TOC ===== */
     .toc-breadcrumb {
       padding: 10px 15px;
       background: var(--bg);
@@ -770,7 +758,7 @@
     }
     .toc-breadcrumb span { cursor: pointer; color: var(--primary-green); transition: 0.2s; }
     .toc-breadcrumb span:hover { text-decoration: underline; }
-    
+
     .toc-item {
       padding: 15px;
       border-bottom: 1px solid var(--border);
@@ -796,10 +784,6 @@
     }
     .toc-title-text { font-size: 16px; font-weight: bold; }
     .toc-translations { font-size: 12px; color: var(--text-muted); margin-top: 5px; }
-    .toc-level-1 { padding-left: 0px; font-weight: bold; font-size: 16px; }
-    .toc-level-2 { padding-left: 20px; }
-    .toc-level-3 { padding-left: 40px; font-size: 14px; }
-    .toc-level-4 { padding-left: 60px; font-size: 13px; color: var(--text-muted); }
 
     .lang-selector {
       display: flex;
@@ -867,27 +851,27 @@
 </head>
 <body>
 
-  <!-- ===== LOADER ===== -->
+  <!-- LOADER -->
   <div id="loader">
     <div class="spinner"></div>
     <div class="status" id="loadStatus">📚 Islamic Digital Library Pro</div>
     <div class="sub-status" id="loadSubStatus">Loading...</div>
     <div id="setupBox">
-      <input type="text" id="supabaseUrl" placeholder="Supabase URL (eg: https://xyz.supabase.co)">
+      <input type="text" id="supabaseUrl" placeholder="Supabase URL">
       <input type="text" id="supabaseKey" placeholder="Supabase anon/public key">
-      <button onclick="connectSupabase()"><i class="fas fa-plug"></i> Connect to Supabase</button>
+      <button onclick="connectSupabase()"><i class="fas fa-plug"></i> Connect</button>
       <div class="setup-hint">💡 Supabase Dashboard → Project Settings → API</div>
       <div id="statusMsg"></div>
     </div>
   </div>
 
-  <!-- ===== AUDIO ELEMENTS ===== -->
+  <!-- AUDIO ELEMENTS -->
   <audio id="silentAudio" loop playsinline src="https://raw.githubusercontent.com/anars/blank-audio/master/10-minutes-of-silence.mp3"></audio>
   <audio id="bgMusic" loop playsinline src="Audio/nasheed_1.mp3"></audio>
   <audio id="ambRain" loop src="https://assets.mixkit.co/active_storage/sfx/2433/2433-84.wav"></audio>
   <audio id="ambWind" loop src="https://assets.mixkit.co/active_storage/sfx/2432/2432-84.wav"></audio>
 
-  <!-- ===== HOME VIEW ===== -->
+  <!-- HOME VIEW -->
   <div id="homeView">
     <header class="home-header">
       <div class="top-bar">
@@ -905,7 +889,6 @@
         <div class="tab-item" id="tab-downloaded" onclick="filterBooks('downloaded')"><i class="fas fa-check-circle"></i> Downloaded</div>
       </div>
     </header>
-
     <div class="container">
       <div class="continue-card" id="continueCard" onclick="continueReading()">
         <div class="info">
@@ -916,20 +899,19 @@
       </div>
       <div class="book-grid" id="bookGrid"></div>
     </div>
-
     <nav class="bottom-nav">
       <button class="nav-link active" onclick="goHome()"><i class="fas fa-home"></i>Home</button>
       <button class="nav-link" onclick="openSettings()"><i class="fas fa-sliders-h"></i>Settings</button>
     </nav>
   </div>
 
-  <!-- ===== LOADING OVERLAY ===== -->
+  <!-- LOADING OVERLAY -->
   <div class="loading-overlay" id="loadingOverlay">
     <div class="loader-spinner"></div>
     <div class="loader-text" id="loadingText">📖 Loading...</div>
   </div>
 
-  <!-- ===== READER VIEW ===== -->
+  <!-- READER VIEW -->
   <div id="readerView">
     <header class="reader-header">
       <button class="back-btn" onclick="closeReader()"><i class="fas fa-arrow-left"></i></button>
@@ -940,7 +922,6 @@
         <i class="fas fa-cog" onclick="openSettings()"></i>
       </div>
     </header>
-
     <div class="reader-content" id="readerContent">
       <div id="ebookView">
         <div id="readerPageContainer">
@@ -957,7 +938,6 @@
           <button onclick="nextPage()">Next <i class="fas fa-chevron-right"></i></button>
         </div>
       </div>
-
       <div id="audioView" style="display:none;">
         <div class="audio-player">
           <div class="audio-icon"><i class="fas fa-headphones-simple"></i></div>
@@ -972,7 +952,6 @@
           <div class="audio-progress"><div class="progress-bar" id="audioProgressBar"></div></div>
         </div>
       </div>
-
       <div id="visualView" style="display:none;">
         <div style="text-align:center; padding:40px; color:var(--text-muted);">
           <i class="fas fa-wand-magic-sparkles" style="font-size:48px; color:var(--primary-green);"></i>
@@ -981,7 +960,6 @@
         </div>
       </div>
     </div>
-
     <nav class="reader-bottom-nav">
       <div class="nav-tab active" id="nav-ebook" onclick="switchView('ebook')"><i class="fas fa-book"></i><span>E-Book</span></div>
       <div class="nav-tab" id="nav-audio" onclick="switchView('audio')"><i class="fas fa-headphones"></i><span>Audio</span></div>
@@ -989,7 +967,7 @@
     </nav>
   </div>
 
-  <!-- ===== MINI PLAYER ===== -->
+  <!-- MINI PLAYER -->
   <div class="mini-player" id="miniPlayer">
     <div class="mini-details" onclick="switchView('audio')">
       <div class="mini-title" id="miniTitle">Ready</div>
@@ -1002,7 +980,7 @@
     </div>
   </div>
 
-  <!-- ===== VISUAL MODE ===== -->
+  <!-- VISUAL MODE -->
   <div class="visual-mode" id="visualMode">
     <div class="visual-video-wrapper">
       <video id="visualVideo" muted loop playsinline></video>
@@ -1025,13 +1003,12 @@
     <div class="visual-progress"><div class="vis-progress-bar" id="visProgressBar"></div></div>
   </div>
 
-  <!-- ===== MODALS ===== -->
+  <!-- MODALS -->
   <div class="modal-overlay" id="modalOverlay" onclick="closeModal()"></div>
 
   <div class="modal-box" id="settingsModal">
     <div class="modal-header"><span>⚙️ ക്രമീകരണങ്ങൾ</span><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
-      <!-- Theme -->
       <div class="setting-group">
         <label class="setting-label">🎨 Theme</label>
         <div class="theme-grid">
@@ -1041,16 +1018,12 @@
           <div class="theme-btn" id="th-sepia" onclick="setTheme('sepia')">📜 Sepia</div>
         </div>
       </div>
-
-      <!-- Fonts -->
       <div class="setting-group">
         <label class="setting-label">🔤 Fonts</label>
         <div class="setting-row"><span>മലയാളം</span><select id="optFontMl" onchange="applyFonts()"><option value="'Manjari', sans-serif">Manjari</option><option value="'Chilanka', cursive">Chilanka</option><option value="'Gayathri', sans-serif">Gayathri</option></select></div>
         <div class="setting-row"><span>Arabic</span><select id="optFontAr" onchange="applyFonts()"><option value="'Amiri', serif">Amiri</option><option value="'Scheherazade New', serif">Scheherazade</option><option value="'Lateef', serif">Lateef</option></select></div>
         <div class="setting-row"><span>English</span><select id="optFontEn" onchange="applyFonts()"><option value="sans-serif">Sans</option><option value="serif">Serif</option></select></div>
       </div>
-
-      <!-- Reader -->
       <div class="setting-group">
         <label class="setting-label">📖 Reader Settings</label>
         <div class="setting-row"><span>Font Size</span><input type="range" id="optFontSize" min="14" max="30" value="18" onchange="applyFontSize()"></div>
@@ -1059,8 +1032,6 @@
         <div class="setting-row"><span>Display Malayalam</span><input type="checkbox" id="optShowMl" checked onchange="renderAllViews()"></div>
         <div class="setting-row"><span>Display English</span><input type="checkbox" id="optShowEn" checked onchange="renderAllViews()"></div>
       </div>
-
-      <!-- Audio / TTS -->
       <div class="setting-group">
         <label class="setting-label">🎙️ TTS Settings</label>
         <select id="optAudioLang" onchange="setupVoices(); applyAudioSettings(true);">
@@ -1073,8 +1044,6 @@
         <div class="setting-row"><span>Auto Next Page</span><input type="checkbox" id="optAutoNext" checked></div>
         <div class="setting-row"><span>Background Play (Screen Off)</span><input type="checkbox" id="optBgPlay" checked></div>
       </div>
-
-      <!-- Spoken Language -->
       <div class="setting-group">
         <label class="setting-label">🔊 Highlight Language</label>
         <div class="lang-selector">
@@ -1083,15 +1052,11 @@
           <button class="lang-btn" id="lang-en" onclick="setSpokenLang('en')">🇬🇧 English</button>
         </div>
       </div>
-
-      <!-- Visual Mode -->
       <div class="setting-group">
         <label class="setting-label">🎬 Visual Mode</label>
         <input type="text" id="optYoutubeId" placeholder="YouTube Video ID" style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text-dark);">
         <button style="width:100%; margin-top:5px; padding:8px; background:var(--primary-green); color:white; border-radius:6px; border:none; font-weight:bold;" onclick="applyVisualBg()">Update Background</button>
       </div>
-
-      <!-- Background Music -->
       <div class="setting-group">
         <label class="setting-label">🎵 Background Music</label>
         <select id="optBgMusic" onchange="handleBgMusic()">
@@ -1101,8 +1066,6 @@
           <option value="wind">🍃 Wind</option>
         </select>
       </div>
-
-      <!-- Storage -->
       <div class="setting-group">
         <label class="setting-label">💾 Storage</label>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
@@ -1123,7 +1086,7 @@
 
   <script>
     // ================================================================
-    // CONFIG - Fallback if config.js missing
+    // CONFIG
     // ================================================================
     window.ENV_SUPABASE_URL = window.ENV_SUPABASE_URL || '';
     window.ENV_SUPABASE_KEY = window.ENV_SUPABASE_KEY || '';
@@ -1161,7 +1124,7 @@
     };
 
     // ================================================================
-    // AUDIO CONTEXT - For background play
+    // AUDIO CONTEXT
     // ================================================================
     let audioCtx = null;
     function initAudioContext() {
@@ -1181,7 +1144,6 @@
     document.addEventListener('click', initAudioContext, { once: true });
     document.addEventListener('touchstart', initAudioContext, { once: true });
 
-    // WakeLock for screen off audio
     let wakeLock = null;
     async function requestWakeLock() {
       try {
@@ -1201,32 +1163,32 @@
     // ================================================================
     async function initApp() {
       try {
-        // Load from localStorage cache
-        const cachedBooks = localStorage.getItem('library_books');
-        if (cachedBooks) {
-          allBooks = JSON.parse(cachedBooks);
+        // Check IndexedDB first
+        const cachedBooks = await DB.getBooks();
+        if (cachedBooks && cachedBooks.length > 0) {
+          allBooks = cachedBooks;
           renderBooks(allBooks);
           updateContinueReading();
+          console.log('📚 Loaded from IndexedDB:', allBooks.length);
         }
-        
-        // Check saved config
+
         const savedUrl = localStorage.getItem('supabase_url');
         const savedKey = localStorage.getItem('supabase_key');
-        
+
         if (window.ENV_SUPABASE_URL && window.ENV_SUPABASE_KEY) {
           document.getElementById('supabaseUrl').value = window.ENV_SUPABASE_URL;
           document.getElementById('supabaseKey').value = window.ENV_SUPABASE_KEY;
           useConfigCredentials();
           return;
         }
-        
+
         if (savedUrl && savedKey) {
           document.getElementById('supabaseUrl').value = savedUrl;
           document.getElementById('supabaseKey').value = savedKey;
           connectSupabase();
           return;
         }
-        
+
         document.getElementById('setupBox').classList.add('show');
         document.getElementById('loadStatus').textContent = '🔌 Connect to Supabase';
         document.getElementById('loadSubStatus').textContent = 'Enter your Supabase credentials';
@@ -1290,7 +1252,7 @@
         document.getElementById('loader').classList.add('hidden');
         document.getElementById('homeView').classList.add('show');
         document.getElementById('loadSubStatus').textContent = 'Ready!';
-        
+
         await loadBooks();
       } catch(err) {
         msg.innerHTML = `<div class="status-msg error">❌ ${err.message}</div>`;
@@ -1311,7 +1273,12 @@
         if (error) throw error;
 
         allBooks = data || [];
-        localStorage.setItem('library_books', JSON.stringify(allBooks));
+        
+        // Save to IndexedDB
+        for (const book of allBooks) {
+          await DB.saveBook(book);
+        }
+        
         renderBooks(allBooks);
         updateContinueReading();
         updateStorageInfo();
@@ -1354,7 +1321,7 @@
       document.querySelectorAll('.tab-item').forEach(el => el.classList.remove('active'));
       const tabMap = { all: 'tab-all', downloaded: 'tab-downloaded' };
       document.getElementById(tabMap[type]).classList.add('active');
-      
+
       if (type === 'all') renderBooks(allBooks);
       else if (type === 'downloaded') {
         const downloaded = allBooks.filter(b => b.downloaded);
@@ -1381,7 +1348,7 @@
     }
 
     // ================================================================
-    // OPEN BOOK - BATCH LOADING FOR 8000+ PAGES
+    // OPEN BOOK - FROM INDEXEDDB
     // ================================================================
     async function openBook(bookId) {
       currentBookId = bookId;
@@ -1396,99 +1363,106 @@
       try {
         const cacheKey = `book_${bookId}`;
         let data = dbCache[cacheKey];
-        
+
         if (!data) {
-          const tableName = `${bookId}_contents`;
-          const BATCH_SIZE = 500;
-          let allData = [];
-          let page = 0;
-          let hasMore = true;
-          let totalCount = 0;
-
-          // First, get total count
-          try {
-            const { count, error: countError } = await supabaseClient
-              .from(tableName)
-              .select('*', { count: 'exact', head: true });
-            if (!countError) totalCount = count || 0;
-          } catch(e) {}
-
-          while (hasMore) {
-            const { data: supabaseData, error } = await supabaseClient
-              .from(tableName)
-              .select('*')
-              .order('ID', { ascending: true })
-              .range(page * BATCH_SIZE, (page + 1) * BATCH_SIZE - 1);
-
-            if (error) throw error;
-            
-            if (supabaseData && supabaseData.length > 0) {
-              allData = allData.concat(supabaseData);
-              page++;
-              
-              // Show progress
-              const progress = totalCount > 0 ? Math.round((allData.length / totalCount) * 100) : 
-                              Math.min(Math.round((allData.length / (page * BATCH_SIZE)) * 100), 90);
-              showLoading(`📖 Loading ${allData.length} pages... (${progress}%)`);
-            } else {
-              hasMore = false;
+          // Check IndexedDB first
+          const chunks = await DB.getAllChunks(bookId);
+          if (chunks && chunks.length > 0) {
+            // Merge chunks
+            let allPages = [];
+            for (const chunk of chunks) {
+              allPages = allPages.concat(chunk.pages);
             }
-          }
+            // Sort by sequence
+            allPages.sort((a, b) => a.sequence - b.sequence);
+            data = allPages;
+            console.log('📖 Loaded from IndexedDB:', data.length, 'pages');
+          } else {
+            // Load from Supabase
+            const tableName = `${bookId}_contents`;
+            const BATCH_SIZE = 500;
+            let allData = [];
+            let page = 0;
+            let hasMore = true;
+            let totalCount = 0;
 
-          if (allData.length === 0) {
-            hideLoading();
-            alert('No content found in ' + tableName);
-            return;
-          }
-          
-          data = allData.map(item => ({
-            id: item.ID,
-            sequence: item.ID,
-            part: item['Part Number'] || 1,
-            page: item['Page Number'] || 1,
-            Arabic: item['Arabic Text'] || '',
-            Malayalam: item['Malayalam Text'] || '',
-            English: item['English Text'] || ''
-          }));
-          
-          dbCache[cacheKey] = data;
-          
-          // Cache to localStorage in chunks (for large books)
-          setTimeout(() => {
             try {
-              localStorage.setItem(cacheKey, JSON.stringify(data));
-              const bookUpdate = allBooks.find(b => b.id === bookId);
-              if (bookUpdate) {
-                bookUpdate.downloaded = true;
-                bookUpdate.total_pages = data.length;
-                localStorage.setItem('library_books', JSON.stringify(allBooks));
+              const { count, error: countError } = await supabaseClient
+                .from(tableName)
+                .select('*', { count: 'exact', head: true });
+              if (!countError) totalCount = count || 0;
+            } catch(e) {}
+
+            while (hasMore) {
+              const { data: supabaseData, error } = await supabaseClient
+                .from(tableName)
+                .select('*')
+                .order('ID', { ascending: true })
+                .range(page * BATCH_SIZE, (page + 1) * BATCH_SIZE - 1);
+
+              if (error) throw error;
+
+              if (supabaseData && supabaseData.length > 0) {
+                allData = allData.concat(supabaseData);
+                page++;
+                const progress = totalCount > 0 ? Math.round((allData.length / totalCount) * 100) : 
+                                Math.min(Math.round((allData.length / (page * BATCH_SIZE)) * 100), 90);
+                showLoading(`📖 Loading ${allData.length} pages... (${progress}%)`);
+              } else {
+                hasMore = false;
               }
-            } catch(e) {
-              console.warn('Cache storage warning:', e);
             }
-          }, 100);
+
+            if (allData.length === 0) {
+              hideLoading();
+              alert('No content found in ' + tableName);
+              return;
+            }
+
+            data = allData.map(item => ({
+              id: item.ID,
+              sequence: item.ID,
+              part: item['Part Number'] || 1,
+              page: item['Page Number'] || 1,
+              Arabic: item['Arabic Text'] || '',
+              Malayalam: item['Malayalam Text'] || '',
+              English: item['English Text'] || ''
+            }));
+
+            // Save to IndexedDB in chunks
+            const CHUNK_SIZE = 100;
+            const numChunks = Math.ceil(data.length / CHUNK_SIZE);
+            for (let i = 0; i < numChunks; i++) {
+              const start = i * CHUNK_SIZE;
+              const end = Math.min(start + CHUNK_SIZE, data.length);
+              const chunkPages = data.slice(start, end);
+              await DB.saveChunk(bookId, i, chunkPages, 1, start);
+            }
+
+            console.log('📖 Saved to IndexedDB:', data.length, 'pages in', numChunks, 'chunks');
+          }
+
+          dbCache[cacheKey] = data;
         }
-        
+
         currentPages = data;
         totalPages = data.length;
-        
+
         // Get progress
-        const progressKey = `progress_${bookId}`;
-        const savedProgress = localStorage.getItem(progressKey);
-        if (savedProgress) {
-          const prog = JSON.parse(savedProgress);
-          const idx = data.findIndex(c => c.sequence === prog.sequence);
+        const progress = await DB.getProgress(bookId);
+        if (progress && progress.sequence > 0) {
+          const idx = data.findIndex(c => c.sequence === progress.sequence);
           if (idx >= 0) {
             currentPageIndex = idx;
-            currentWordOffset = prog.offset || 0;
+            currentWordOffset = progress.word_offset || 0;
           }
         }
-        
+
         hideLoading();
         openReader();
         renderCurrentPage();
-        buildTOCData(); // Pre-build TOC
-        
+        buildTOCData();
+
       } catch(err) {
         hideLoading();
         alert('❌ Error: ' + err.message);
@@ -1504,17 +1478,13 @@
     }
 
     function closeReader() {
-      // Save progress
       if (currentBookId && currentPages.length > 0) {
         const chunk = currentPages[currentPageIndex];
         if (chunk) {
-          localStorage.setItem(`progress_${currentBookId}`, JSON.stringify({
-            sequence: chunk.sequence,
-            offset: currentWordOffset
-          }));
+          DB.saveProgress(currentBookId, chunk.sequence, chunk.part || 1, currentWordOffset);
         }
       }
-      
+
       document.getElementById('readerView').classList.remove('show');
       document.getElementById('homeView').classList.add('show');
       if (!isPlaying) document.getElementById('miniPlayer').classList.remove('show');
@@ -1523,7 +1493,7 @@
     }
 
     // ================================================================
-    // RENDER PAGE WITH WORD HIGHLIGHT
+    // RENDER PAGE
     // ================================================================
     function renderCurrentPage() {
       if (!currentPages || currentPages.length === 0) return;
@@ -1537,7 +1507,6 @@
       const part = page.part || '?';
       const pageNum = page.page || '?';
 
-      // Clear previous highlights
       document.querySelectorAll('.word-hl, .word-hl-ar, .word-hl-ml, .word-hl-en').forEach(el => {
         el.classList.remove('word-hl', 'word-hl-ar', 'word-hl-ml', 'word-hl-en');
       });
@@ -1559,7 +1528,6 @@
       document.getElementById('readerPageNum').textContent = 
         `${currentPageIndex + 1} / ${totalPages}`;
 
-      // Update mini player
       const row = currentPages[currentPageIndex];
       if (row) {
         const mlText = (row.Malayalam || '').replace(/<[^>]+>/g, '').trim();
@@ -1572,19 +1540,17 @@
         updateVisualChunk();
       }
 
-      // Apply highlight if playing
       if (isPlaying && currentUtterance) {
         highlightCurrentWord();
       }
 
-      // Auto scroll
       if (autoScrollEnabled && document.getElementById('optAutoScroll')?.checked !== false) {
         setTimeout(autoScrollToHighlight, 150);
       }
     }
 
     // ================================================================
-    // TOKENIZE TEXT FOR HIGHLIGHT
+    // TOKENIZE TEXT
     // ================================================================
     function tokenizeText(text, lang) {
       if (!text) return '';
@@ -1593,7 +1559,7 @@
 
       const tokens = pureText.split(/(\s+)/);
       let offset = 0;
-      
+
       return tokens.map(token => {
         if (token.trim() === '') {
           offset += token.length;
@@ -1623,12 +1589,9 @@
       }
     }
 
-    // ================================================================
-    // HIGHLIGHT CURRENT WORD - Only in Ebook
-    // ================================================================
     function highlightCurrentWord() {
-      if (isVisualMode) return; // Visual mode handles its own highlight
-      
+      if (isVisualMode) return;
+
       document.querySelectorAll('.word-hl, .word-hl-ar, .word-hl-ml, .word-hl-en').forEach(el => {
         el.classList.remove('word-hl', 'word-hl-ar', 'word-hl-ml', 'word-hl-en');
       });
@@ -1670,7 +1633,7 @@
     }
 
     // ================================================================
-    // VISUAL MODE - Spoken Text Only
+    // VISUAL MODE
     // ================================================================
     function openVisualMode() {
       isVisualMode = true;
@@ -1694,11 +1657,11 @@
     function updateVisualChunk() {
       const page = currentPages[currentPageIndex];
       if (!page) return;
-      
+
       const arText = (page.Arabic || '').replace(/<[^>]+>/g, '').trim();
       const mlText = (page.Malayalam || '').replace(/<[^>]+>/g, '').trim();
       const enText = (page.English || '').replace(/<[^>]+>/g, '').trim();
-      
+
       document.getElementById('visArText').innerHTML = getVisualWords(arText, 'ar');
       document.getElementById('visMlText').innerHTML = getVisualWords(mlText, 'ml');
       document.getElementById('visEnText').innerHTML = getVisualWords(enText, 'en');
@@ -1720,7 +1683,7 @@
 
       const displayWords = words.slice(Math.max(0, startIdx - 2), Math.min(words.length, startIdx + 3));
       const isActive = spokenLang === lang;
-      
+
       return displayWords.map((word, idx) => {
         const wordOffset = words.slice(0, startIdx + idx).join(' ').length + (idx > 0 ? 1 : 0);
         const isHighlighted = isActive && wordOffset >= currentWordOffset - 5 && wordOffset <= currentWordOffset + 30;
@@ -1763,11 +1726,7 @@
         if (isPlaying) playAudio();
         saveProgress();
       } else {
-        // Show end of book message
-        if (totalPages > 0) {
-          // Just vibrate or show visual feedback
-          if (navigator.vibrate) navigator.vibrate(50);
-        }
+        if (navigator.vibrate) navigator.vibrate(50);
       }
     }
 
@@ -1796,10 +1755,7 @@
       if (currentBookId && currentPages.length > 0) {
         const chunk = currentPages[currentPageIndex];
         if (chunk) {
-          localStorage.setItem(`progress_${currentBookId}`, JSON.stringify({
-            sequence: chunk.sequence,
-            offset: currentWordOffset
-          }));
+          DB.saveProgress(currentBookId, chunk.sequence, chunk.part || 1, currentWordOffset);
         }
       }
     }
@@ -1827,7 +1783,7 @@
     }
 
     // ================================================================
-    // TTS ENGINE
+    // TTS ENGINE - Overridden by edge-tts.js
     // ================================================================
     function setupVoices() {
       allVoices = synth.getVoices();
@@ -1871,7 +1827,7 @@
       const lang = document.getElementById('optAudioLang').value;
       let text = '';
       let langKey = 'ml';
-      
+
       if (lang === 'ar-EG') {
         text = page.Arabic || '';
         langKey = 'ar';
@@ -1915,10 +1871,10 @@
       }
 
       synth.cancel();
-      
+
       const fullText = text;
       const startOffset = currentWordOffset;
-      
+
       currentUtterance = new SpeechSynthesisUtterance(startText);
       currentUtterance.lang = lang;
       const voiceName = document.getElementById('optVoice').value;
@@ -2037,16 +1993,16 @@
       document.querySelectorAll('.lang-btn').forEach(el => el.classList.remove('active'));
       document.getElementById('lang-' + lang).classList.add('active');
       localStorage.setItem('pref_spoken_lang', lang);
-      
+
       const langMap = { 'ar': 'ar-EG', 'ml': 'ml-IN', 'en': 'en-US' };
       document.getElementById('optAudioLang').value = langMap[lang];
       setupVoices();
-      
+
       if (isPlaying) {
         stopAudio();
         togglePlay();
       }
-      
+
       if (isVisualMode) {
         updateVisualChunk();
       } else {
@@ -2080,42 +2036,38 @@
     // ================================================================
     // BOOKMARKS
     // ================================================================
-    function toggleBookmark() {
+    async function toggleBookmark() {
       if (!currentBookId || !currentPages.length) return;
       const chunk = currentPages[currentPageIndex];
       if (!chunk) return;
-      
-      const key = `bookmarks_${currentBookId}`;
-      let bookmarks = JSON.parse(localStorage.getItem(key) || '[]');
+
+      const bookmarks = await DB.getBookmarks(currentBookId);
       const exists = bookmarks.find(b => b.sequence === chunk.sequence);
-      
+
       if (exists) {
-        bookmarks = bookmarks.filter(b => b.sequence !== chunk.sequence);
+        await DB.removeBookmark(currentBookId, chunk.sequence);
       } else {
-        bookmarks.push({ sequence: chunk.sequence, part: chunk.part, page: chunk.page });
+        await DB.addBookmark(currentBookId, chunk.sequence, chunk);
       }
-      
-      localStorage.setItem(key, JSON.stringify(bookmarks));
       updateBookmarkUI();
     }
 
-    function updateBookmarkUI() {
+    async function updateBookmarkUI() {
       if (!currentBookId || !currentPages.length) return;
       const chunk = currentPages[currentPageIndex];
       if (!chunk) return;
-      
-      const key = `bookmarks_${currentBookId}`;
-      const bookmarks = JSON.parse(localStorage.getItem(key) || '[]');
+
+      const bookmarks = await DB.getBookmarks(currentBookId);
       const exists = bookmarks.find(b => b.sequence === chunk.sequence);
       document.getElementById('readerBookmark').classList.toggle('active-bm', !!exists);
     }
 
     // ================================================================
-    // TOC - ENHANCED WITH HIERARCHICAL NAVIGATION
+    // TOC
     // ================================================================
     function buildTOCData() {
       if (!currentPages || currentPages.length === 0) return;
-      
+
       tocTree = [];
       let currentPart = null;
       let currentH1 = null;
@@ -2125,7 +2077,7 @@
         const arText = page.Arabic || '';
         const mlText = (page.Malayalam || '').replace(/<[^>]+>/g, '').trim().substring(0, 30);
         const enText = (page.English || '').replace(/<[^>]+>/g, '').trim().substring(0, 30);
-        
+
         const partName = page.part || "1";
         if (!currentPart || currentPart.name !== partName) {
           currentPart = { type: 'part', name: partName, title: `ഭാഗം ${partName}`, children: [], index: index, page: page.page };
@@ -2134,12 +2086,11 @@
           currentH2 = null;
         }
 
-        // Check for headings
         const h1Match = arText.match(/<h1[^>]*>(.*?)<\/h1>/i);
         const h2Match = arText.match(/<h2[^>]*>(.*?)<\/h2>/i);
         const h3Match = arText.match(/<h3[^>]*>(.*?)<\/h3>/i);
         const h4Match = arText.match(/<h4[^>]*>(.*?)<\/h4>/i);
-        
+
         if (h1Match) {
           const title = h1Match[1].replace(/<[^>]+>/g, '').trim();
           currentH1 = { type: 'h1', title: title, subtitle: mlText || enText, children: [], index: index, page: page.page };
@@ -2163,7 +2114,6 @@
           else if (currentH1) currentH1.children.push(node);
           else currentPart.children.push(node);
         } else if (index % 10 === 0 || index === currentPageIndex || index === 0 || index === currentPages.length - 1) {
-          // Page markers
           const node = { type: 'page', title: `പേജ് ${page.page || index + 1}`, subtitle: mlText.substring(0, 30) + '...', children: [], index: index, page: page.page };
           if (currentH2) currentH2.children.push(node);
           else if (currentH1) currentH1.children.push(node);
@@ -2174,12 +2124,11 @@
 
     function openTOC() {
       if (!currentBookId || !currentPages.length) return;
-      
-      // Rebuild TOC if empty
+
       if (tocTree.length === 0) {
         buildTOCData();
       }
-      
+
       const modal = document.getElementById('tocModal');
       document.getElementById('modalOverlay').classList.add('show');
       modal.classList.add('show');
@@ -2190,8 +2139,7 @@
 
     function renderTOCLevel() {
       const currentLevel = tocPath[tocPath.length - 1];
-      
-      // Breadcrumb
+
       const breadcrumb = document.getElementById('tocBreadcrumb');
       if (breadcrumb) {
         breadcrumb.innerHTML = tocPath.map((p, i) => 
@@ -2202,7 +2150,6 @@
       const list = document.getElementById('tocList');
       let html = '';
 
-      // Jump to page input
       html += `
         <div class="jump-to-page-container">
           <input type="number" id="jumpPageInput" min="1" max="${totalPages}" placeholder="Jump to page...">
@@ -2215,7 +2162,7 @@
           const isCurrent = node.index === currentPageIndex;
           const hasChildren = node.children && node.children.length > 0;
           const typeIcon = { part: '📖', h1: '📑', h2: '📄', h3: '🔹', h4: '🔸', page: '📌' }[node.type] || '📄';
-          
+
           if (hasChildren) {
             html += `
               <div class="toc-item" onclick="drillTOC(${idx})">
@@ -2335,26 +2282,10 @@
     // ================================================================
     async function updateStorageInfo() {
       try {
-        let totalPages = 0;
-        let totalSize = 0;
-        let downloaded = 0;
-        
-        for (const book of allBooks) {
-          if (book.downloaded) {
-            downloaded++;
-            const key = `book_${book.id}`;
-            const cached = localStorage.getItem(key);
-            if (cached) {
-              const data = JSON.parse(cached);
-              totalPages += data.length;
-              totalSize += data.reduce((sum, c) => sum + (c.Arabic || '').length + (c.Malayalam || '').length + (c.English || '').length, 0);
-            }
-          }
-        }
-        
-        document.getElementById('storageBooks').textContent = downloaded;
-        document.getElementById('storagePages').textContent = totalPages.toLocaleString();
-        document.getElementById('storageSize').textContent = (totalSize / 1024 / 1024).toFixed(1) + ' MB';
+        const info = await DB.getStorageInfo();
+        document.getElementById('storageBooks').textContent = info.bookCount;
+        document.getElementById('storagePages').textContent = info.totalChunks.toLocaleString();
+        document.getElementById('storageSize').textContent = info.totalSize;
       } catch(err) {
         console.error('Storage info error:', err);
       }
@@ -2362,18 +2293,11 @@
 
     async function clearAllData() {
       if (!confirm('⚠️ Remove all downloaded books and data? This cannot be undone!')) return;
-      
+
       try {
-        // Clear all book caches
-        for (const book of allBooks) {
-          localStorage.removeItem(`book_${book.id}`);
-          localStorage.removeItem(`progress_${book.id}`);
-          localStorage.removeItem(`bookmarks_${book.id}`);
-          book.downloaded = false;
-          book.total_pages = 0;
-        }
-        localStorage.setItem('library_books', JSON.stringify(allBooks));
+        await DB.clearAllData();
         dbCache = {};
+        allBooks = [];
         renderBooks(allBooks);
         updateStorageInfo();
         alert('✅ All data cleared!');
@@ -2415,8 +2339,7 @@
 
       const savedLang = localStorage.getItem('pref_spoken_lang') || 'ar';
       setSpokenLang(savedLang);
-      
-      // Background play setting
+
       const bgPlay = localStorage.getItem('pref_bg_play');
       if (bgPlay !== null) {
         document.getElementById('optBgPlay').checked = bgPlay === 'true';
@@ -2438,7 +2361,7 @@
       loadPreferences();
       setupVoices();
       if (synth.onvoiceschanged !== undefined) synth.onvoiceschanged = setupVoices;
-      
+
       initApp();
     });
   </script>
