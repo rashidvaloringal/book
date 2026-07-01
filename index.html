@@ -9,9 +9,6 @@
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
-  <!-- Database.js (IndexedDB) -->
-  <script src="database.js"></script>
-  
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
@@ -1105,16 +1102,6 @@
         </select>
       </div>
 
-      <!-- IndexedDB Storage -->
-      <div class="setting-group">
-        <label class="setting-label">💾 IndexedDB Storage</label>
-        <div style="display:flex; gap:10px; flex-wrap:wrap;">
-          <button onclick="downloadBookToIDB()" style="flex:1; padding:10px; background:var(--primary-green); color:white; border-radius:8px; font-weight:bold;">📥 Download Book</button>
-          <button onclick="removeBookFromIDB()" style="flex:1; padding:10px; background:#dc3545; color:white; border-radius:8px; font-weight:bold;">🗑 Remove</button>
-        </div>
-        <div id="idbStatus" style="font-size:12px; margin-top:8px; padding:6px; background:var(--bg); border-radius:6px;"></div>
-      </div>
-
       <!-- Storage -->
       <div class="setting-group">
         <label class="setting-label">💾 Storage</label>
@@ -1135,6 +1122,126 @@
   </div>
 
   <script>
+    // ================================================================
+    // INDEXEDDB HELPER
+    // ================================================================
+    class IndexedDBHelper {
+      constructor(dbName = 'IslamicLibraryDB', version = 2) {
+        this.dbName = dbName;
+        this.version = version;
+        this.db = null;
+      }
+
+      async open() {
+        return new Promise((resolve, reject) => {
+          const request = indexedDB.open(this.dbName, this.version);
+          
+          request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            
+            // Store for book data
+            if (!db.objectStoreNames.contains('books')) {
+              db.createObjectStore('books', { keyPath: 'id' });
+            }
+            
+            // Store for book pages
+            if (!db.objectStoreNames.contains('bookPages')) {
+              db.createObjectStore('bookPages', { keyPath: 'id' });
+            }
+            
+            // Store for progress
+            if (!db.objectStoreNames.contains('progress')) {
+              db.createObjectStore('progress', { keyPath: 'bookId' });
+            }
+            
+            // Store for bookmarks
+            if (!db.objectStoreNames.contains('bookmarks')) {
+              db.createObjectStore('bookmarks', { keyPath: 'bookId' });
+            }
+          };
+
+          request.onsuccess = (event) => {
+            this.db = event.target.result;
+            resolve(this);
+          };
+
+          request.onerror = (event) => {
+            reject(event.target.error);
+          };
+        });
+      }
+
+      async get(storeName, key) {
+        return new Promise((resolve, reject) => {
+          if (!this.db) {
+            reject(new Error('Database not open'));
+            return;
+          }
+          const transaction = this.db.transaction(storeName, 'readonly');
+          const store = transaction.objectStore(storeName);
+          const request = store.get(key);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+      }
+
+      async put(storeName, data) {
+        return new Promise((resolve, reject) => {
+          if (!this.db) {
+            reject(new Error('Database not open'));
+            return;
+          }
+          const transaction = this.db.transaction(storeName, 'readwrite');
+          const store = transaction.objectStore(storeName);
+          const request = store.put(data);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+      }
+
+      async delete(storeName, key) {
+        return new Promise((resolve, reject) => {
+          if (!this.db) {
+            reject(new Error('Database not open'));
+            return;
+          }
+          const transaction = this.db.transaction(storeName, 'readwrite');
+          const store = transaction.objectStore(storeName);
+          const request = store.delete(key);
+          request.onsuccess = () => resolve();
+          request.onerror = () => reject(request.error);
+        });
+      }
+
+      async getAll(storeName) {
+        return new Promise((resolve, reject) => {
+          if (!this.db) {
+            reject(new Error('Database not open'));
+            return;
+          }
+          const transaction = this.db.transaction(storeName, 'readonly');
+          const store = transaction.objectStore(storeName);
+          const request = store.getAll();
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+      }
+
+      async clearStore(storeName) {
+        return new Promise((resolve, reject) => {
+          if (!this.db) {
+            reject(new Error('Database not open'));
+            return;
+          }
+          const transaction = this.db.transaction(storeName, 'readwrite');
+          const store = transaction.objectStore(storeName);
+          const request = store.clear();
+          request.onsuccess = () => resolve();
+          request.onerror = () => reject(request.error);
+        });
+      }
+    }
+
     // ================================================================
     // CONFIG - Fallback if config.js missing
     // ================================================================
@@ -1164,6 +1271,9 @@
     let tocTree = [];
     let tocPath = [];
 
+    // IndexedDB instance
+    let dbHelper = null;
+
     const STATE = {
       showAr: true,
       showMl: true,
@@ -1172,6 +1282,136 @@
       theme: 'light',
       mode: 'ebook'
     };
+
+    // ================================================================
+    // INITIALIZE INDEXEDDB
+    // ================================================================
+    async function initDB() {
+      try {
+        dbHelper = new IndexedDBHelper();
+        await dbHelper.open();
+        console.log('✅ IndexedDB initialized');
+      } catch (err) {
+        console.error('❌ IndexedDB init error:', err);
+        // Fallback to localStorage if IndexedDB fails
+        dbHelper = null;
+      }
+    }
+
+    // ================================================================
+    // STORAGE HELPERS (Auto fallback to localStorage if IndexedDB fails)
+    // ================================================================
+    async function storageGet(key) {
+      if (dbHelper) {
+        try {
+          // Check if it's a book data
+          if (key.startsWith('book_')) {
+            const bookId = key.replace('book_', '');
+            const result = await dbHelper.get('bookPages', bookId);
+            return result ? result.pages : null;
+          }
+          // Check if it's progress
+          if (key.startsWith('progress_')) {
+            const bookId = key.replace('progress_', '');
+            const result = await dbHelper.get('progress', bookId);
+            return result ? result.data : null;
+          }
+          // Check if it's bookmarks
+          if (key.startsWith('bookmarks_')) {
+            const bookId = key.replace('bookmarks_', '');
+            const result = await dbHelper.get('bookmarks', bookId);
+            return result ? result.data : null;
+          }
+          // Check if it's library_books
+          if (key === 'library_books') {
+            const result = await dbHelper.get('books', 'library');
+            return result ? result.data : null;
+          }
+        } catch (err) {
+          console.warn('IndexedDB get error, falling back to localStorage:', err);
+        }
+      }
+      // Fallback to localStorage
+      return localStorage.getItem(key);
+    }
+
+    async function storageSet(key, value) {
+      if (dbHelper) {
+        try {
+          // Check if it's a book data
+          if (key.startsWith('book_')) {
+            const bookId = key.replace('book_', '');
+            await dbHelper.put('bookPages', { id: bookId, pages: value });
+            return;
+          }
+          // Check if it's progress
+          if (key.startsWith('progress_')) {
+            const bookId = key.replace('progress_', '');
+            await dbHelper.put('progress', { bookId: bookId, data: value });
+            return;
+          }
+          // Check if it's bookmarks
+          if (key.startsWith('bookmarks_')) {
+            const bookId = key.replace('bookmarks_', '');
+            await dbHelper.put('bookmarks', { bookId: bookId, data: value });
+            return;
+          }
+          // Check if it's library_books
+          if (key === 'library_books') {
+            await dbHelper.put('books', { id: 'library', data: value });
+            return;
+          }
+        } catch (err) {
+          console.warn('IndexedDB set error, falling back to localStorage:', err);
+        }
+      }
+      // Fallback to localStorage
+      localStorage.setItem(key, value);
+    }
+
+    async function storageRemove(key) {
+      if (dbHelper) {
+        try {
+          if (key.startsWith('book_')) {
+            const bookId = key.replace('book_', '');
+            await dbHelper.delete('bookPages', bookId);
+            return;
+          }
+          if (key.startsWith('progress_')) {
+            const bookId = key.replace('progress_', '');
+            await dbHelper.delete('progress', bookId);
+            return;
+          }
+          if (key.startsWith('bookmarks_')) {
+            const bookId = key.replace('bookmarks_', '');
+            await dbHelper.delete('bookmarks', bookId);
+            return;
+          }
+          if (key === 'library_books') {
+            await dbHelper.delete('books', 'library');
+            return;
+          }
+        } catch (err) {
+          console.warn('IndexedDB remove error, falling back to localStorage:', err);
+        }
+      }
+      localStorage.removeItem(key);
+    }
+
+    async function storageClearAll() {
+      if (dbHelper) {
+        try {
+          await dbHelper.clearStore('bookPages');
+          await dbHelper.clearStore('progress');
+          await dbHelper.clearStore('bookmarks');
+          await dbHelper.clearStore('books');
+          return;
+        } catch (err) {
+          console.warn('IndexedDB clear error, falling back to localStorage:', err);
+        }
+      }
+      localStorage.clear();
+    }
 
     // ================================================================
     // AUDIO CONTEXT - For background play
@@ -1214,12 +1454,17 @@
     // ================================================================
     async function initApp() {
       try {
-        // Load from localStorage cache
-        const cachedBooks = localStorage.getItem('library_books');
+        // Initialize IndexedDB
+        await initDB();
+        
+        // Load from IndexedDB cache
+        const cachedBooks = await storageGet('library_books');
         if (cachedBooks) {
-          allBooks = JSON.parse(cachedBooks);
-          renderBooks(allBooks);
-          updateContinueReading();
+          try {
+            allBooks = typeof cachedBooks === 'string' ? JSON.parse(cachedBooks) : cachedBooks;
+            renderBooks(allBooks);
+            updateContinueReading();
+          } catch(e) {}
         }
         
         // Check saved config
@@ -1324,7 +1569,7 @@
         if (error) throw error;
 
         allBooks = data || [];
-        localStorage.setItem('library_books', JSON.stringify(allBooks));
+        await storageSet('library_books', JSON.stringify(allBooks));
         renderBooks(allBooks);
         updateContinueReading();
         updateStorageInfo();
@@ -1394,7 +1639,7 @@
     }
 
     // ================================================================
-    // OPEN BOOK - WITH INDEXEDDB SUPPORT
+    // OPEN BOOK - BATCH LOADING FOR 8000+ PAGES
     // ================================================================
     async function openBook(bookId) {
       currentBookId = bookId;
@@ -1407,35 +1652,30 @@
       showLoading('📖 Opening book...');
 
       try {
-        // 1. Try IndexedDB first (if LibraryDB available)
-        if (typeof LibraryDB !== 'undefined' && LibraryDB.getBook) {
-          const idbData = await LibraryDB.getBook(bookId);
-          if (idbData && idbData.length > 0) {
-            currentPages = idbData;
-            totalPages = idbData.length;
-            const progressKey = `progress_${bookId}`;
-            const savedProgress = localStorage.getItem(progressKey);
-            if (savedProgress) {
-              const prog = JSON.parse(savedProgress);
-              const idx = idbData.findIndex(c => c.sequence === prog.sequence);
-              if (idx >= 0) {
-                currentPageIndex = idx;
-                currentWordOffset = prog.offset || 0;
-              }
-            }
-            hideLoading();
-            openReader();
-            renderCurrentPage();
-            buildTOCData();
-            updateIDBStatus();
-            return;
-          }
-        }
-
-        // 2. Fallback to Supabase + localStorage cache
         const cacheKey = `book_${bookId}`;
         let data = dbCache[cacheKey];
         
+        if (!data) {
+          // Try to get from IndexedDB
+          const cachedData = await storageGet(cacheKey);
+          if (cachedData) {
+            try {
+              data = typeof cachedData === 'string' ? JSON.parse(cachedData) : cachedData;
+              dbCache[cacheKey] = data;
+              // Mark as downloaded
+              const bookUpdate = allBooks.find(b => b.id === bookId);
+              if (bookUpdate && !bookUpdate.downloaded) {
+                bookUpdate.downloaded = true;
+                bookUpdate.total_pages = data.length;
+                await storageSet('library_books', JSON.stringify(allBooks));
+              }
+            } catch(e) {
+              data = null;
+            }
+          }
+        }
+        
+        // If not cached, download from Supabase
         if (!data) {
           const tableName = `${bookId}_contents`;
           const BATCH_SIZE = 500;
@@ -1468,7 +1708,7 @@
               // Show progress
               const progress = totalCount > 0 ? Math.round((allData.length / totalCount) * 100) : 
                               Math.min(Math.round((allData.length / (page * BATCH_SIZE)) * 100), 90);
-              showLoading(`📖 Loading ${allData.length} pages... (${progress}%)`);
+              showLoading(`📖 Downloading ${allData.length} pages... (${progress}%)`);
             } else {
               hasMore = false;
             }
@@ -1492,20 +1732,18 @@
           
           dbCache[cacheKey] = data;
           
-          // Cache to localStorage in chunks (for large books)
-          setTimeout(() => {
-            try {
-              localStorage.setItem(cacheKey, JSON.stringify(data));
-              const bookUpdate = allBooks.find(b => b.id === bookId);
-              if (bookUpdate) {
-                bookUpdate.downloaded = true;
-                bookUpdate.total_pages = data.length;
-                localStorage.setItem('library_books', JSON.stringify(allBooks));
-              }
-            } catch(e) {
-              console.warn('Cache storage warning:', e);
+          // Store in IndexedDB
+          try {
+            await storageSet(cacheKey, data);
+            const bookUpdate = allBooks.find(b => b.id === bookId);
+            if (bookUpdate) {
+              bookUpdate.downloaded = true;
+              bookUpdate.total_pages = data.length;
+              await storageSet('library_books', JSON.stringify(allBooks));
             }
-          }, 100);
+          } catch(e) {
+            console.warn('Cache storage warning:', e);
+          }
         }
         
         currentPages = data;
@@ -1513,21 +1751,22 @@
         
         // Get progress
         const progressKey = `progress_${bookId}`;
-        const savedProgress = localStorage.getItem(progressKey);
+        const savedProgress = await storageGet(progressKey);
         if (savedProgress) {
-          const prog = JSON.parse(savedProgress);
-          const idx = data.findIndex(c => c.sequence === prog.sequence);
-          if (idx >= 0) {
-            currentPageIndex = idx;
-            currentWordOffset = prog.offset || 0;
-          }
+          try {
+            const prog = typeof savedProgress === 'string' ? JSON.parse(savedProgress) : savedProgress;
+            const idx = data.findIndex(c => c.sequence === prog.sequence);
+            if (idx >= 0) {
+              currentPageIndex = idx;
+              currentWordOffset = prog.offset || 0;
+            }
+          } catch(e) {}
         }
         
         hideLoading();
         openReader();
         renderCurrentPage();
-        buildTOCData();
-        updateIDBStatus();
+        buildTOCData(); // Pre-build TOC
         
       } catch(err) {
         hideLoading();
@@ -1543,12 +1782,12 @@
       updateBookmarkUI();
     }
 
-    function closeReader() {
+    async function closeReader() {
       // Save progress
       if (currentBookId && currentPages.length > 0) {
         const chunk = currentPages[currentPageIndex];
         if (chunk) {
-          localStorage.setItem(`progress_${currentBookId}`, JSON.stringify({
+          await storageSet(`progress_${currentBookId}`, JSON.stringify({
             sequence: chunk.sequence,
             offset: currentWordOffset
           }));
@@ -1663,83 +1902,824 @@
       }
     }
 
-    // ... (rest of the script remains unchanged) ...
+    // ================================================================
+    // HIGHLIGHT CURRENT WORD - Only in Ebook
+    // ================================================================
+    function highlightCurrentWord() {
+      if (isVisualMode) return; // Visual mode handles its own highlight
+      
+      document.querySelectorAll('.word-hl, .word-hl-ar, .word-hl-ml, .word-hl-en').forEach(el => {
+        el.classList.remove('word-hl', 'word-hl-ar', 'word-hl-ml', 'word-hl-en');
+      });
+
+      const langMap = { 'ar': 'arContent', 'ml': 'mlContent', 'en': 'enContent' };
+      const contentId = langMap[spokenLang];
+      if (!contentId) return;
+
+      const container = document.getElementById(contentId);
+      if (!container) return;
+
+      const tokens = container.querySelectorAll('.word-token');
+      let targetToken = null;
+
+      for (const token of tokens) {
+        const offset = parseInt(token.dataset.offset);
+        if (offset <= currentWordOffset) {
+          targetToken = token;
+        }
+      }
+
+      if (targetToken) {
+        targetToken.classList.add('word-hl', `word-hl-${spokenLang}`);
+        if (autoScrollEnabled && document.getElementById('optAutoScroll')?.checked !== false) {
+          targetToken.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    }
+
+    function autoScrollToHighlight() {
+      const highlighted = document.querySelector('.word-hl');
+      if (highlighted) {
+        highlighted.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+
+    function updateAutoScroll() {
+      autoScrollEnabled = document.getElementById('optAutoScroll').checked;
+    }
 
     // ================================================================
-    // INDEXEDDB FUNCTIONS (using database.js)
+    // VISUAL MODE - Spoken Text Only
     // ================================================================
-    function updateIDBStatus() {
-      const statusDiv = document.getElementById('idbStatus');
-      if (!currentBookId) {
-        statusDiv.innerHTML = 'No book selected';
-        return;
-      }
-      if (typeof LibraryDB === 'undefined' || !LibraryDB.getBook) {
-        statusDiv.innerHTML = '⚠️ database.js not loaded';
-        return;
-      }
-      LibraryDB.getBook(currentBookId).then(data => {
-        if (data && data.length > 0) {
-          statusDiv.innerHTML = `✅ Stored in IndexedDB (${data.length} pages)`;
-        } else {
-          statusDiv.innerHTML = '📭 Not in IndexedDB';
+    function openVisualMode() {
+      isVisualMode = true;
+      document.getElementById('visualMode').classList.add('show');
+      applyVisualBg();
+      updateVisualChunk();
+      if (!isPlaying) togglePlay();
+    }
+
+    function closeVisualMode() {
+      isVisualMode = false;
+      document.getElementById('visualMode').classList.remove('show');
+      document.getElementById('visualVideo').pause();
+      document.getElementById('visualYoutube').src = '';
+    }
+
+    function toggleVisualFullscreen() {
+      document.getElementById('visualMode').classList.toggle('fullscreen');
+    }
+
+    function updateVisualChunk() {
+      const page = currentPages[currentPageIndex];
+      if (!page) return;
+      
+      const arText = (page.Arabic || '').replace(/<[^>]+>/g, '').trim();
+      const mlText = (page.Malayalam || '').replace(/<[^>]+>/g, '').trim();
+      const enText = (page.English || '').replace(/<[^>]+>/g, '').trim();
+      
+      document.getElementById('visArText').innerHTML = getVisualWords(arText, 'ar');
+      document.getElementById('visMlText').innerHTML = getVisualWords(mlText, 'ml');
+      document.getElementById('visEnText').innerHTML = getVisualWords(enText, 'en');
+    }
+
+    function getVisualWords(text, lang) {
+      if (!text) return '...';
+      const words = text.split(/\s+/);
+      let currentPos = 0;
+      let startIdx = 0;
+
+      for (let i = 0; i < words.length; i++) {
+        const wordLen = words[i].length + 1;
+        if (currentPos + wordLen <= currentWordOffset) {
+          startIdx = i + 1;
         }
-      }).catch(e => {
-        statusDiv.innerHTML = '❌ Error checking IndexedDB';
+        currentPos += wordLen;
+      }
+
+      const displayWords = words.slice(Math.max(0, startIdx - 2), Math.min(words.length, startIdx + 3));
+      const isActive = spokenLang === lang;
+      
+      return displayWords.map((word, idx) => {
+        const wordOffset = words.slice(0, startIdx + idx).join(' ').length + (idx > 0 ? 1 : 0);
+        const isHighlighted = isActive && wordOffset >= currentWordOffset - 5 && wordOffset <= currentWordOffset + 30;
+        return isHighlighted ? `<span class="vis-word-hl">${word}</span>` : word;
+      }).join(' ');
+    }
+
+    function applyVisualBg() {
+      const id = document.getElementById('optYoutubeId').value.trim();
+      const video = document.getElementById('visualVideo');
+      const yt = document.getElementById('visualYoutube');
+      const vid = extractYoutubeId(id);
+
+      if (vid) {
+        video.style.display = 'none';
+        yt.style.display = 'block';
+        yt.src = `https://www.youtube.com/embed/${vid}?enablejsapi=1&autoplay=1&mute=1&controls=0&loop=1&playlist=${vid}&playsinline=1&showinfo=0&rel=0`;
+      } else {
+        yt.style.display = 'none';
+        video.style.display = 'block';
+        video.src = 'https://assets.mixkit.co/videos/preview/mixkit-forest-trees-3524-large.mp4';
+        video.loop = true;
+        video.play().catch(()=>{});
+      }
+    }
+
+    function extractYoutubeId(url) {
+      const match = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
+      return (match && match[2].length === 11) ? match[2] : url;
+    }
+
+    // ================================================================
+    // NAVIGATION
+    // ================================================================
+    function nextPage() {
+      if (currentPageIndex < totalPages - 1) {
+        currentPageIndex++;
+        currentWordOffset = 0;
+        renderCurrentPage();
+        if (isPlaying) playAudio();
+        saveProgress();
+      } else {
+        // Show end of book message
+        if (totalPages > 0) {
+          // Just vibrate or show visual feedback
+          if (navigator.vibrate) navigator.vibrate(50);
+        }
+      }
+    }
+
+    function prevPage() {
+      if (currentPageIndex > 0) {
+        currentPageIndex--;
+        currentWordOffset = 0;
+        renderCurrentPage();
+        if (isPlaying) playAudio();
+        saveProgress();
+      }
+    }
+
+    function jumpToPage(index) {
+      if (index >= 0 && index < totalPages) {
+        currentPageIndex = index;
+        currentWordOffset = 0;
+        renderCurrentPage();
+        if (isPlaying) playAudio();
+        saveProgress();
+        closeModal();
+      }
+    }
+
+    async function saveProgress() {
+      if (currentBookId && currentPages.length > 0) {
+        const chunk = currentPages[currentPageIndex];
+        if (chunk) {
+          await storageSet(`progress_${currentBookId}`, JSON.stringify({
+            sequence: chunk.sequence,
+            offset: currentWordOffset
+          }));
+        }
+      }
+    }
+
+    // ================================================================
+    // CONTINUE READING
+    // ================================================================
+    async function updateContinueReading() {
+      const card = document.getElementById('continueCard');
+      const info = document.getElementById('continueInfo');
+      const bookId = localStorage.getItem('last_played_book_id');
+      const title = localStorage.getItem('last_played_book_title');
+
+      if (bookId && title) {
+        card.style.display = 'flex';
+        info.textContent = `${title}`;
+      } else {
+        card.style.display = 'none';
+      }
+    }
+
+    function continueReading() {
+      const bookId = localStorage.getItem('last_played_book_id');
+      if (bookId) openBook(bookId);
+    }
+
+    // ================================================================
+    // TTS ENGINE
+    // ================================================================
+    function setupVoices() {
+      allVoices = synth.getVoices();
+      const select = document.getElementById('optVoice');
+      if (!select) return;
+      const lang = document.getElementById('optAudioLang').value;
+      const filtered = allVoices.filter(v => v.lang.includes(lang.split('-')[0]));
+      select.innerHTML = '';
+      (filtered.length ? filtered : allVoices).forEach(v => {
+        select.appendChild(new Option(`${v.name} (${v.lang})`, v.name));
       });
     }
 
-    async function downloadBookToIDB() {
-      if (!currentBookId || !currentPages.length) {
-        alert('Please open a book first!');
-        return;
-      }
-      if (typeof LibraryDB === 'undefined' || !LibraryDB.saveBook) {
-        alert('IndexedDB library not available. Make sure database.js is loaded.');
-        return;
-      }
-      showLoading('⬇️ Downloading to IndexedDB...');
-      try {
-        await LibraryDB.saveBook(currentBookId, currentPages);
-        // Update book's downloaded flag
-        const book = allBooks.find(b => b.id === currentBookId);
-        if (book) {
-          book.downloaded = true;
-          localStorage.setItem('library_books', JSON.stringify(allBooks));
+    function togglePlay() {
+      initAudioContext();
+      if (isPlaying) {
+        synth.pause();
+        isPlaying = false;
+        updatePlayIcon();
+        document.getElementById('silentAudio').pause();
+      } else {
+        if (synth.paused) {
+          synth.resume();
+          isPlaying = true;
+          updatePlayIcon();
+          document.getElementById('silentAudio').play().catch(()=>{});
+          requestWakeLock();
+        } else {
+          isPlaying = true;
+          updatePlayIcon();
+          playAudio();
+          requestWakeLock();
         }
-        hideLoading();
-        updateIDBStatus();
-        renderBooks(allBooks);
-        alert('✅ Book saved to IndexedDB!');
-      } catch(e) {
-        hideLoading();
-        alert('Failed to save to IndexedDB: ' + e.message);
       }
     }
 
-    async function removeBookFromIDB() {
-      if (!currentBookId) {
-        alert('No book selected');
-        return;
+    function playAudio() {
+      const page = currentPages[currentPageIndex];
+      if (!page) return;
+
+      const lang = document.getElementById('optAudioLang').value;
+      let text = '';
+      let langKey = 'ml';
+      
+      if (lang === 'ar-EG') {
+        text = page.Arabic || '';
+        langKey = 'ar';
+      } else if (lang === 'en-US') {
+        text = page.English || '';
+        langKey = 'en';
+      } else {
+        text = page.Malayalam || '';
+        langKey = 'ml';
       }
-      if (typeof LibraryDB === 'undefined' || !LibraryDB.removeBook) {
-        alert('IndexedDB library not available.');
-        return;
-      }
-      if (!confirm('Remove this book from IndexedDB?')) return;
-      try {
-        await LibraryDB.removeBook(currentBookId);
-        const book = allBooks.find(b => b.id === currentBookId);
-        if (book) {
-          book.downloaded = false;
-          localStorage.setItem('library_books', JSON.stringify(allBooks));
+
+      text = text.replace(/<[^>]+>/g, '').trim();
+      if (!text) {
+        if (currentPageIndex < totalPages - 1) {
+          nextPage();
+        } else {
+          stopAudio();
         }
-        updateIDBStatus();
-        renderBooks(allBooks);
-        alert('Book removed from IndexedDB.');
-      } catch(e) {
-        alert('Error: ' + e.message);
+        return;
       }
+
+      spokenLang = langKey;
+      document.querySelectorAll('.lang-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById('lang-' + langKey).classList.add('active');
+
+      let startText = text;
+      if (currentWordOffset > 0 && currentWordOffset < text.length) {
+        startText = text.substring(currentWordOffset);
+      } else {
+        currentWordOffset = 0;
+      }
+
+      if (!startText.trim()) {
+        if (currentPageIndex < totalPages - 1) {
+          currentWordOffset = 0;
+          nextPage();
+        } else {
+          stopAudio();
+        }
+        return;
+      }
+
+      synth.cancel();
+      
+      const fullText = text;
+      const startOffset = currentWordOffset;
+      
+      currentUtterance = new SpeechSynthesisUtterance(startText);
+      currentUtterance.lang = lang;
+      const voiceName = document.getElementById('optVoice').value;
+      if (voiceName) {
+        const voice = allVoices.find(v => v.name === voiceName);
+        if (voice) currentUtterance.voice = voice;
+      }
+      currentUtterance.rate = parseFloat(document.getElementById('optSpeed').value) || 1.0;
+
+      if (audioProgressInterval) clearInterval(audioProgressInterval);
+      let progress = 0;
+      audioProgressInterval = setInterval(() => {
+        progress += 0.5;
+        if (progress > 100) progress = 0;
+        if (STATE.mode === 'audio') {
+          document.getElementById('audioProgressBar').style.width = progress + '%';
+        }
+        document.getElementById('visProgressBar').style.width = progress + '%';
+      }, 100);
+
+      currentUtterance.onboundary = (e) => {
+        if (typeof e.charIndex === 'number' && e.name === 'word') {
+          const newOffset = startOffset + e.charIndex;
+          if (newOffset > currentWordOffset) {
+            currentWordOffset = newOffset;
+            if (isVisualMode) {
+              updateVisualChunk();
+            } else {
+              highlightCurrentWord();
+            }
+            saveProgress();
+          }
+        }
+      };
+
+      currentUtterance.onstart = () => {
+        document.getElementById('silentAudio').play().catch(()=>{});
+        initAudioContext();
+        if (isVisualMode) {
+          updateVisualChunk();
+        } else {
+          highlightCurrentWord();
+        }
+        localStorage.setItem('last_played_book_id', currentBookId);
+        const book = allBooks.find(b => b.id === currentBookId);
+        localStorage.setItem('last_played_book_title', book?.title_ml || book?.title_ar || 'Book');
+      };
+
+      currentUtterance.onend = () => {
+        if (isPlaying) {
+          const autoNext = document.getElementById('optAutoNext')?.checked !== false;
+          if (autoNext && currentPageIndex < totalPages - 1) {
+            currentWordOffset = 0;
+            nextPage();
+          } else {
+            stopAudio();
+          }
+        }
+      };
+
+      currentUtterance.onerror = () => {
+        if (isPlaying && currentPageIndex < totalPages - 1) {
+          currentWordOffset = 0;
+          nextPage();
+        } else {
+          stopAudio();
+        }
+      };
+
+      synth.speak(currentUtterance);
+    }
+
+    function stopAudio() {
+      synth.cancel();
+      isPlaying = false;
+      currentUtterance = null;
+      updatePlayIcon();
+      if (audioProgressInterval) clearInterval(audioProgressInterval);
+      document.getElementById('audioProgressBar').style.width = '0%';
+      document.getElementById('visProgressBar').style.width = '0%';
+      document.getElementById('silentAudio').pause();
+      if (wakeLock) {
+        wakeLock.release().catch(()=>{});
+        wakeLock = null;
+      }
+      document.querySelectorAll('.word-hl, .word-hl-ar, .word-hl-ml, .word-hl-en').forEach(el => {
+        el.classList.remove('word-hl', 'word-hl-ar', 'word-hl-ml', 'word-hl-en');
+      });
+    }
+
+    function updatePlayIcon() {
+      const icon = isPlaying ? 'fa-pause' : 'fa-play';
+      document.getElementById('miniPlayIcon').className = `fas ${icon}`;
+      document.getElementById('audioPlayBtn').className = `fas ${icon} play-big`;
+      document.getElementById('visPlayBtn').className = `fas ${icon} vis-play`;
+    }
+
+    function applyAudioSettings(restart) {
+      if (restart && isPlaying) {
+        synth.cancel();
+        playAudio();
+      }
+    }
+
+    function updateAudioUI() {
+      const page = currentPages[currentPageIndex];
+      if (!page) return;
+      const mlText = (page.Malayalam || '').replace(/<[^>]+>/g, '').trim();
+      document.getElementById('audioTitle').textContent = mlText.substring(0, 50) + '...';
+      document.getElementById('audioMeta').textContent = 
+        `ഭാഗം ${page.part || '?'} - പേജ് ${page.page || '?'} / ${totalPages}`;
+    }
+
+    function setSpokenLang(lang) {
+      spokenLang = lang;
+      document.querySelectorAll('.lang-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById('lang-' + lang).classList.add('active');
+      localStorage.setItem('pref_spoken_lang', lang);
+      
+      const langMap = { 'ar': 'ar-EG', 'ml': 'ml-IN', 'en': 'en-US' };
+      document.getElementById('optAudioLang').value = langMap[lang];
+      setupVoices();
+      
+      if (isPlaying) {
+        stopAudio();
+        togglePlay();
+      }
+      
+      if (isVisualMode) {
+        updateVisualChunk();
+      } else {
+        highlightCurrentWord();
+      }
+    }
+
+    // ================================================================
+    // VIEW SWITCH
+    // ================================================================
+    function switchView(mode) {
+      STATE.mode = mode;
+      document.getElementById('ebookView').style.display = mode === 'ebook' ? 'block' : 'none';
+      document.getElementById('audioView').style.display = mode === 'audio' ? 'block' : 'none';
+      document.getElementById('visualView').style.display = mode === 'visual' ? 'block' : 'none';
+
+      document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+      const tab = document.getElementById('nav-' + mode);
+      if (tab) tab.classList.add('active');
+
+      if (mode === 'visual') {
+        openVisualMode();
+      } else {
+        closeVisualMode();
+        if (isPlaying) {
+          highlightCurrentWord();
+        }
+      }
+    }
+
+    // ================================================================
+    // BOOKMARKS
+    // ================================================================
+    async function toggleBookmark() {
+      if (!currentBookId || !currentPages.length) return;
+      const chunk = currentPages[currentPageIndex];
+      if (!chunk) return;
+      
+      const key = `bookmarks_${currentBookId}`;
+      let bookmarks = await storageGet(key);
+      try {
+        bookmarks = typeof bookmarks === 'string' ? JSON.parse(bookmarks) : (bookmarks || []);
+      } catch(e) {
+        bookmarks = [];
+      }
+      const exists = bookmarks.find(b => b.sequence === chunk.sequence);
+      
+      if (exists) {
+        bookmarks = bookmarks.filter(b => b.sequence !== chunk.sequence);
+      } else {
+        bookmarks.push({ sequence: chunk.sequence, part: chunk.part, page: chunk.page });
+      }
+      
+      await storageSet(key, JSON.stringify(bookmarks));
+      updateBookmarkUI();
+    }
+
+    async function updateBookmarkUI() {
+      if (!currentBookId || !currentPages.length) return;
+      const chunk = currentPages[currentPageIndex];
+      if (!chunk) return;
+      
+      const key = `bookmarks_${currentBookId}`;
+      let bookmarks = await storageGet(key);
+      try {
+        bookmarks = typeof bookmarks === 'string' ? JSON.parse(bookmarks) : (bookmarks || []);
+      } catch(e) {
+        bookmarks = [];
+      }
+      const exists = bookmarks.find(b => b.sequence === chunk.sequence);
+      document.getElementById('readerBookmark').classList.toggle('active-bm', !!exists);
+    }
+
+    // ================================================================
+    // TOC - ENHANCED WITH HIERARCHICAL NAVIGATION
+    // ================================================================
+    function buildTOCData() {
+      if (!currentPages || currentPages.length === 0) return;
+      
+      tocTree = [];
+      let currentPart = null;
+      let currentH1 = null;
+      let currentH2 = null;
+
+      currentPages.forEach((page, index) => {
+        const arText = page.Arabic || '';
+        const mlText = (page.Malayalam || '').replace(/<[^>]+>/g, '').trim().substring(0, 30);
+        const enText = (page.English || '').replace(/<[^>]+>/g, '').trim().substring(0, 30);
+        
+        const partName = page.part || "1";
+        if (!currentPart || currentPart.name !== partName) {
+          currentPart = { type: 'part', name: partName, title: `ഭാഗം ${partName}`, children: [], index: index, page: page.page };
+          tocTree.push(currentPart);
+          currentH1 = null;
+          currentH2 = null;
+        }
+
+        // Check for headings
+        const h1Match = arText.match(/<h1[^>]*>(.*?)<\/h1>/i);
+        const h2Match = arText.match(/<h2[^>]*>(.*?)<\/h2>/i);
+        const h3Match = arText.match(/<h3[^>]*>(.*?)<\/h3>/i);
+        const h4Match = arText.match(/<h4[^>]*>(.*?)<\/h4>/i);
+        
+        if (h1Match) {
+          const title = h1Match[1].replace(/<[^>]+>/g, '').trim();
+          currentH1 = { type: 'h1', title: title, subtitle: mlText || enText, children: [], index: index, page: page.page };
+          currentPart.children.push(currentH1);
+          currentH2 = null;
+        } else if (h2Match) {
+          const title = h2Match[1].replace(/<[^>]+>/g, '').trim();
+          currentH2 = { type: 'h2', title: title, subtitle: mlText || enText, children: [], index: index, page: page.page };
+          if (currentH1) currentH1.children.push(currentH2);
+          else currentPart.children.push(currentH2);
+        } else if (h3Match) {
+          const title = h3Match[1].replace(/<[^>]+>/g, '').trim();
+          const node = { type: 'h3', title: title, subtitle: mlText || enText, children: [], index: index, page: page.page };
+          if (currentH2) currentH2.children.push(node);
+          else if (currentH1) currentH1.children.push(node);
+          else currentPart.children.push(node);
+        } else if (h4Match) {
+          const title = h4Match[1].replace(/<[^>]+>/g, '').trim();
+          const node = { type: 'h4', title: title, subtitle: mlText || enText, children: [], index: index, page: page.page };
+          if (currentH2) currentH2.children.push(node);
+          else if (currentH1) currentH1.children.push(node);
+          else currentPart.children.push(node);
+        } else if (index % 10 === 0 || index === currentPageIndex || index === 0 || index === currentPages.length - 1) {
+          // Page markers
+          const node = { type: 'page', title: `പേജ് ${page.page || index + 1}`, subtitle: mlText.substring(0, 30) + '...', children: [], index: index, page: page.page };
+          if (currentH2) currentH2.children.push(node);
+          else if (currentH1) currentH1.children.push(node);
+          else currentPart.children.push(node);
+        }
+      });
+    }
+
+    function openTOC() {
+      if (!currentBookId || !currentPages.length) return;
+      
+      // Rebuild TOC if empty
+      if (tocTree.length === 0) {
+        buildTOCData();
+      }
+      
+      const modal = document.getElementById('tocModal');
+      document.getElementById('modalOverlay').classList.add('show');
+      modal.classList.add('show');
+
+      tocPath = [{ title: 'Home', nodes: tocTree }];
+      renderTOCLevel();
+    }
+
+    function renderTOCLevel() {
+      const currentLevel = tocPath[tocPath.length - 1];
+      
+      // Breadcrumb
+      const breadcrumb = document.getElementById('tocBreadcrumb');
+      if (breadcrumb) {
+        breadcrumb.innerHTML = tocPath.map((p, i) => 
+          `<span onclick="navTOC(${i})">${p.title}</span>`
+        ).join(' <i class="fas fa-angle-right"></i> ');
+      }
+
+      const list = document.getElementById('tocList');
+      let html = '';
+
+      // Jump to page input
+      html += `
+        <div class="jump-to-page-container">
+          <input type="number" id="jumpPageInput" min="1" max="${totalPages}" placeholder="Jump to page...">
+          <button onclick="jumpToPageNumber()"><i class="fas fa-arrow-right"></i> Go</button>
+        </div>
+      `;
+
+      if (currentLevel.nodes && currentLevel.nodes.length > 0) {
+        currentLevel.nodes.forEach((node, idx) => {
+          const isCurrent = node.index === currentPageIndex;
+          const hasChildren = node.children && node.children.length > 0;
+          const typeIcon = { part: '📖', h1: '📑', h2: '📄', h3: '🔹', h4: '🔸', page: '📌' }[node.type] || '📄';
+          
+          if (hasChildren) {
+            html += `
+              <div class="toc-item" onclick="drillTOC(${idx})">
+                <div class="toc-badge">${typeIcon} ${node.type.toUpperCase()}</div>
+                <div class="toc-title-text" dir="rtl">${node.title}</div>
+                ${node.subtitle ? `<div class="toc-translations">${node.subtitle}</div>` : ''}
+                <div style="font-size:11px;color:var(--text-muted);margin-top:6px;"><i class="fas fa-folder-open"></i> ${node.children.length} items</div>
+              </div>
+            `;
+          } else {
+            html += `
+              <div class="toc-item ${isCurrent ? 'current' : ''}" onclick="closeModal(); jumpToPage(${node.index})">
+                <div class="toc-badge">${typeIcon} ${node.type.toUpperCase()} - പേജ് ${node.page || '?'}</div>
+                <div class="toc-title-text" dir="rtl">${node.title}</div>
+                ${node.subtitle ? `<div class="toc-translations">${node.subtitle}</div>` : ''}
+                ${isCurrent ? '<div style="font-size:10px;color:var(--primary-green);margin-top:4px;">📍 Current</div>' : ''}
+              </div>
+            `;
+          }
+        });
+      } else {
+        html = '<div style="padding:20px;text-align:center;color:var(--text-muted);">No content available</div>';
+      }
+
+      list.innerHTML = html;
+    }
+
+    function drillTOC(indexInCurrentList) {
+      const currentLevel = tocPath[tocPath.length - 1];
+      const node = currentLevel.nodes[indexInCurrentList];
+      if (node && node.children && node.children.length > 0) {
+        tocPath.push({ title: node.title, nodes: node.children });
+        renderTOCLevel();
+      }
+    }
+
+    function navTOC(pathIndex) {
+      tocPath = tocPath.slice(0, pathIndex + 1);
+      renderTOCLevel();
+    }
+
+    function jumpToPageNumber() {
+      const input = document.getElementById('jumpPageInput');
+      if (!input) return;
+      const pageNum = parseInt(input.value);
+      if (pageNum > 0 && pageNum <= totalPages) {
+        closeModal();
+        jumpToPage(pageNum - 1);
+      } else {
+        alert(`Please enter a number between 1 and ${totalPages}`);
+      }
+    }
+
+    // ================================================================
+    // SETTINGS
+    // ================================================================
+    function openSettings() {
+      document.getElementById('modalOverlay').classList.add('show');
+      document.getElementById('settingsModal').classList.add('show');
+    }
+
+    function closeModal() {
+      document.getElementById('modalOverlay').classList.remove('show');
+      document.querySelectorAll('.modal-box').forEach(el => el.classList.remove('show'));
+    }
+
+    function goHome() { closeReader(); }
+
+    function setTheme(theme) {
+      STATE.theme = theme;
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('m_rb_theme', theme);
+      document.querySelectorAll('.theme-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById('th-' + theme).classList.add('active');
+    }
+
+    function applyFontSize() {
+      const size = document.getElementById('optFontSize').value;
+      document.documentElement.style.setProperty('--font-scale', size + 'px');
+      localStorage.setItem('m_rb_fsize', size);
+      renderCurrentPage();
+    }
+
+    function applyFonts() {
+      const ml = document.getElementById('optFontMl').value;
+      const ar = document.getElementById('optFontAr').value;
+      const en = document.getElementById('optFontEn').value;
+      document.documentElement.style.setProperty('--font-ml', ml);
+      document.documentElement.style.setProperty('--font-ar', ar);
+      document.documentElement.style.setProperty('--font-en', en);
+      localStorage.setItem('pref_font_ml', ml);
+      localStorage.setItem('pref_font_ar', ar);
+      localStorage.setItem('pref_font_en', en);
+      renderCurrentPage();
+    }
+
+    function renderAllViews() {
+      STATE.showAr = document.getElementById('optShowAr').checked;
+      STATE.showMl = document.getElementById('optShowMl').checked;
+      STATE.showEn = document.getElementById('optShowEn').checked;
+      renderCurrentPage();
+    }
+
+    function handleBgMusic() {
+      const opt = document.getElementById('optBgMusic').value;
+      const bg = document.getElementById('bgMusic');
+      const rain = document.getElementById('ambRain');
+      const wind = document.getElementById('ambWind');
+      bg.pause(); rain.pause(); wind.pause();
+      if (opt === 'nasheed') { bg.volume = 0.1; bg.play().catch(()=>{}); }
+      else if (opt === 'rain') { rain.volume = 0.1; rain.play().catch(()=>{}); }
+      else if (opt === 'wind') { wind.volume = 0.1; wind.play().catch(()=>{}); }
+    }
+
+    // ================================================================
+    // STORAGE INFO
+    // ================================================================
+    async function updateStorageInfo() {
+      try {
+        let totalPages = 0;
+        let totalSize = 0;
+        let downloaded = 0;
+        
+        for (const book of allBooks) {
+          if (book.downloaded) {
+            downloaded++;
+            const key = `book_${book.id}`;
+            const cached = await storageGet(key);
+            if (cached) {
+              try {
+                const data = typeof cached === 'string' ? JSON.parse(cached) : cached;
+                totalPages += data.length;
+                totalSize += data.reduce((sum, c) => sum + (c.Arabic || '').length + (c.Malayalam || '').length + (c.English || '').length, 0);
+              } catch(e) {}
+            }
+          }
+        }
+        
+        document.getElementById('storageBooks').textContent = downloaded;
+        document.getElementById('storagePages').textContent = totalPages.toLocaleString();
+        document.getElementById('storageSize').textContent = (totalSize / 1024 / 1024).toFixed(1) + ' MB';
+      } catch(err) {
+        console.error('Storage info error:', err);
+      }
+    }
+
+    async function clearAllData() {
+      if (!confirm('⚠️ Remove all downloaded books and data? This cannot be undone!')) return;
+      
+      try {
+        // Clear all book caches
+        for (const book of allBooks) {
+          await storageRemove(`book_${book.id}`);
+          await storageRemove(`progress_${book.id}`);
+          await storageRemove(`bookmarks_${book.id}`);
+          book.downloaded = false;
+          book.total_pages = 0;
+        }
+        await storageSet('library_books', JSON.stringify(allBooks));
+        dbCache = {};
+        renderBooks(allBooks);
+        updateStorageInfo();
+        alert('✅ All data cleared!');
+      } catch(err) {
+        alert('Error clearing data: ' + err.message);
+      }
+    }
+
+    // ================================================================
+    // LOADING HELPERS
+    // ================================================================
+    function showLoading(text) {
+      document.getElementById('loadingText').textContent = text || '📖 Loading...';
+      document.getElementById('loadingOverlay').classList.add('show');
+    }
+
+    function hideLoading() {
+      document.getElementById('loadingOverlay').classList.remove('show');
+    }
+
+    // ================================================================
+    // LOAD PREFERENCES
+    // ================================================================
+    function loadPreferences() {
+      setTheme(localStorage.getItem('m_rb_theme') || 'light');
+      const size = localStorage.getItem('m_rb_fsize') || '18';
+      document.getElementById('optFontSize').value = size;
+      applyFontSize();
+
+      const ml = localStorage.getItem('pref_font_ml') || "'Manjari', sans-serif";
+      const ar = localStorage.getItem('pref_font_ar') || "'Amiri', serif";
+      const en = localStorage.getItem('pref_font_en') || "sans-serif";
+      if (document.getElementById('optFontMl')) {
+        document.getElementById('optFontMl').value = ml;
+        document.getElementById('optFontAr').value = ar;
+        document.getElementById('optFontEn').value = en;
+        applyFonts();
+      }
+
+      const savedLang = localStorage.getItem('pref_spoken_lang') || 'ar';
+      setSpokenLang(savedLang);
+      
+      // Background play setting
+      const bgPlay = localStorage.getItem('pref_bg_play');
+      if (bgPlay !== null) {
+        document.getElementById('optBgPlay').checked = bgPlay === 'true';
+      }
+      document.getElementById('optBgPlay').addEventListener('change', function() {
+        localStorage.setItem('pref_bg_play', this.checked);
+        if (this.checked) {
+          document.getElementById('silentAudio').loop = true;
+        } else {
+          document.getElementById('silentAudio').loop = false;
+        }
+      });
     }
 
     // ================================================================
@@ -1751,14 +2731,6 @@
       if (synth.onvoiceschanged !== undefined) synth.onvoiceschanged = setupVoices;
       
       initApp();
-      
-      // Check IndexedDB status when settings open
-      const observer = new MutationObserver(() => {
-        if (document.getElementById('settingsModal').classList.contains('show')) {
-          updateIDBStatus();
-        }
-      });
-      observer.observe(document.getElementById('settingsModal'), { attributes: true, attributeFilter: ['class'] });
     });
   </script>
 </body>
