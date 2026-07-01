@@ -6,13 +6,10 @@
   <meta name="theme-color" content="#1b4d3e">
   <title>📚 Islamic Digital Library Pro</title>
   
-  <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
-  <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
-  <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Manjari:wght@400;700&family=Chilanka&family=Gayathri&family=Scheherazade+New:wght@400;700&family=Lateef&display=swap" rel="stylesheet">
   
   <style>
@@ -678,7 +675,7 @@
       backdrop-filter: blur(3px);
       z-index: 3000;
     }
-    .modal-overlay.show { display: block; }
+    .modal-overlay.show { block; }
     .modal-box {
       position: fixed;
       bottom: -100%;
@@ -867,7 +864,6 @@
 </head>
 <body>
 
-  <!-- ===== LOADER ===== -->
   <div id="loader">
     <div class="spinner"></div>
     <div class="status" id="loadStatus">📚 Islamic Digital Library Pro</div>
@@ -881,13 +877,11 @@
     </div>
   </div>
 
-  <!-- ===== AUDIO ELEMENTS ===== -->
   <audio id="silentAudio" loop playsinline src="https://raw.githubusercontent.com/anars/blank-audio/master/10-minutes-of-silence.mp3"></audio>
   <audio id="bgMusic" loop playsinline src="Audio/nasheed_1.mp3"></audio>
   <audio id="ambRain" loop src="https://assets.mixkit.co/active_storage/sfx/2433/2433-84.wav"></audio>
   <audio id="ambWind" loop src="https://assets.mixkit.co/active_storage/sfx/2432/2432-84.wav"></audio>
 
-  <!-- ===== HOME VIEW ===== -->
   <div id="homeView">
     <header class="home-header">
       <div class="top-bar">
@@ -923,13 +917,11 @@
     </nav>
   </div>
 
-  <!-- ===== LOADING OVERLAY ===== -->
   <div class="loading-overlay" id="loadingOverlay">
     <div class="loader-spinner"></div>
     <div class="loader-text" id="loadingText">📖 Loading...</div>
   </div>
 
-  <!-- ===== READER VIEW ===== -->
   <div id="readerView">
     <header class="reader-header">
       <button class="back-btn" onclick="closeReader()"><i class="fas fa-arrow-left"></i></button>
@@ -989,7 +981,6 @@
     </nav>
   </div>
 
-  <!-- ===== MINI PLAYER ===== -->
   <div class="mini-player" id="miniPlayer">
     <div class="mini-details" onclick="switchView('audio')">
       <div class="mini-title" id="miniTitle">Ready</div>
@@ -1002,7 +993,6 @@
     </div>
   </div>
 
-  <!-- ===== VISUAL MODE ===== -->
   <div class="visual-mode" id="visualMode">
     <div class="visual-video-wrapper">
       <video id="visualVideo" muted loop playsinline></video>
@@ -1025,13 +1015,11 @@
     <div class="visual-progress"><div class="vis-progress-bar" id="visProgressBar"></div></div>
   </div>
 
-  <!-- ===== MODALS ===== -->
   <div class="modal-overlay" id="modalOverlay" onclick="closeModal()"></div>
 
   <div class="modal-box" id="settingsModal">
     <div class="modal-header"><span>⚙️ ക്രമീകരണങ്ങൾ</span><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
-      <!-- Theme -->
       <div class="setting-group">
         <label class="setting-label">🎨 Theme</label>
         <div class="theme-grid">
@@ -1042,7 +1030,6 @@
         </div>
       </div>
 
-      <!-- Fonts -->
       <div class="setting-group">
         <label class="setting-label">🔤 Fonts</label>
         <div class="setting-row"><span>മലയാളം</span><select id="optFontMl" onchange="applyFonts()"><option value="'Manjari', sans-serif">Manjari</option><option value="'Chilanka', cursive">Chilanka</option><option value="'Gayathri', sans-serif">Gayathri</option></select></div>
@@ -1050,7 +1037,6 @@
         <div class="setting-row"><span>English</span><select id="optFontEn" onchange="applyFonts()"><option value="sans-serif">Sans</option><option value="serif">Serif</option></select></div>
       </div>
 
-      <!-- Reader -->
       <div class="setting-group">
         <label class="setting-label">📖 Reader Settings</label>
         <div class="setting-row"><span>Font Size</span><input type="range" id="optFontSize" min="14" max="30" value="18" onchange="applyFontSize()"></div>
@@ -1060,7 +1046,6 @@
         <div class="setting-row"><span>Display English</span><input type="checkbox" id="optShowEn" checked onchange="renderAllViews()"></div>
       </div>
 
-      <!-- Audio / TTS -->
       <div class="setting-group">
         <label class="setting-label">🎙️ TTS Settings</label>
         <select id="optAudioLang" onchange="setupVoices(); applyAudioSettings(true);">
@@ -1074,7 +1059,6 @@
         <div class="setting-row"><span>Background Play (Screen Off)</span><input type="checkbox" id="optBgPlay" checked></div>
       </div>
 
-      <!-- Spoken Language -->
       <div class="setting-group">
         <label class="setting-label">🔊 Highlight Language</label>
         <div class="lang-selector">
@@ -1084,14 +1068,12 @@
         </div>
       </div>
 
-      <!-- Visual Mode -->
       <div class="setting-group">
         <label class="setting-label">🎬 Visual Mode</label>
         <input type="text" id="optYoutubeId" placeholder="YouTube Video ID" style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text-dark);">
         <button style="width:100%; margin-top:5px; padding:8px; background:var(--primary-green); color:white; border-radius:6px; border:none; font-weight:bold;" onclick="applyVisualBg()">Update Background</button>
       </div>
 
-      <!-- Background Music -->
       <div class="setting-group">
         <label class="setting-label">🎵 Background Music</label>
         <select id="optBgMusic" onchange="handleBgMusic()">
@@ -1102,7 +1084,6 @@
         </select>
       </div>
 
-      <!-- Storage -->
       <div class="setting-group">
         <label class="setting-label">💾 Storage</label>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
@@ -1122,126 +1103,6 @@
   </div>
 
   <script>
-    // ================================================================
-    // INDEXEDDB HELPER
-    // ================================================================
-    class IndexedDBHelper {
-      constructor(dbName = 'IslamicLibraryDB', version = 2) {
-        this.dbName = dbName;
-        this.version = version;
-        this.db = null;
-      }
-
-      async open() {
-        return new Promise((resolve, reject) => {
-          const request = indexedDB.open(this.dbName, this.version);
-          
-          request.onupgradeneeded = (event) => {
-            const db = event.target.result;
-            
-            // Store for book data
-            if (!db.objectStoreNames.contains('books')) {
-              db.createObjectStore('books', { keyPath: 'id' });
-            }
-            
-            // Store for book pages
-            if (!db.objectStoreNames.contains('bookPages')) {
-              db.createObjectStore('bookPages', { keyPath: 'id' });
-            }
-            
-            // Store for progress
-            if (!db.objectStoreNames.contains('progress')) {
-              db.createObjectStore('progress', { keyPath: 'bookId' });
-            }
-            
-            // Store for bookmarks
-            if (!db.objectStoreNames.contains('bookmarks')) {
-              db.createObjectStore('bookmarks', { keyPath: 'bookId' });
-            }
-          };
-
-          request.onsuccess = (event) => {
-            this.db = event.target.result;
-            resolve(this);
-          };
-
-          request.onerror = (event) => {
-            reject(event.target.error);
-          };
-        });
-      }
-
-      async get(storeName, key) {
-        return new Promise((resolve, reject) => {
-          if (!this.db) {
-            reject(new Error('Database not open'));
-            return;
-          }
-          const transaction = this.db.transaction(storeName, 'readonly');
-          const store = transaction.objectStore(storeName);
-          const request = store.get(key);
-          request.onsuccess = () => resolve(request.result);
-          request.onerror = () => reject(request.error);
-        });
-      }
-
-      async put(storeName, data) {
-        return new Promise((resolve, reject) => {
-          if (!this.db) {
-            reject(new Error('Database not open'));
-            return;
-          }
-          const transaction = this.db.transaction(storeName, 'readwrite');
-          const store = transaction.objectStore(storeName);
-          const request = store.put(data);
-          request.onsuccess = () => resolve(request.result);
-          request.onerror = () => reject(request.error);
-        });
-      }
-
-      async delete(storeName, key) {
-        return new Promise((resolve, reject) => {
-          if (!this.db) {
-            reject(new Error('Database not open'));
-            return;
-          }
-          const transaction = this.db.transaction(storeName, 'readwrite');
-          const store = transaction.objectStore(storeName);
-          const request = store.delete(key);
-          request.onsuccess = () => resolve();
-          request.onerror = () => reject(request.error);
-        });
-      }
-
-      async getAll(storeName) {
-        return new Promise((resolve, reject) => {
-          if (!this.db) {
-            reject(new Error('Database not open'));
-            return;
-          }
-          const transaction = this.db.transaction(storeName, 'readonly');
-          const store = transaction.objectStore(storeName);
-          const request = store.getAll();
-          request.onsuccess = () => resolve(request.result);
-          request.onerror = () => reject(request.error);
-        });
-      }
-
-      async clearStore(storeName) {
-        return new Promise((resolve, reject) => {
-          if (!this.db) {
-            reject(new Error('Database not open'));
-            return;
-          }
-          const transaction = this.db.transaction(storeName, 'readwrite');
-          const store = transaction.objectStore(storeName);
-          const request = store.clear();
-          request.onsuccess = () => resolve();
-          request.onerror = () => reject(request.error);
-        });
-      }
-    }
-
     // ================================================================
     // CONFIG - Fallback if config.js missing
     // ================================================================
@@ -1271,9 +1132,6 @@
     let tocTree = [];
     let tocPath = [];
 
-    // IndexedDB instance
-    let dbHelper = null;
-
     const STATE = {
       showAr: true,
       showMl: true,
@@ -1284,134 +1142,59 @@
     };
 
     // ================================================================
-    // INITIALIZE INDEXEDDB
+    // INDEXEDDB MANAGER (ലോക്കൽ സ്റ്റോറേജിന് പകരം സുരക്ഷിതമായി ഡാറ്റ സൂക്ഷിക്കാൻ)
     // ================================================================
-    async function initDB() {
-      try {
-        dbHelper = new IndexedDBHelper();
-        await dbHelper.open();
-        console.log('✅ IndexedDB initialized');
-      } catch (err) {
-        console.error('❌ IndexedDB init error:', err);
-        // Fallback to localStorage if IndexedDB fails
-        dbHelper = null;
+    const IDB = {
+      dbName: "IslamicLibraryDB",
+      version: 1,
+      db: null,
+      init() {
+        return new Promise((resolve, reject) => {
+          let request = indexedDB.open(this.dbName, this.version);
+          request.onupgradeneeded = (e) => {
+            let db = e.target.result;
+            if (!db.objectStoreNames.contains("books_content")) {
+              db.createObjectStore("books_content", { keyPath: "bookId" });
+            }
+          };
+          request.onsuccess = (e) => {
+            this.db = e.target.result;
+            resolve(this.db);
+          };
+          request.onerror = (e) => reject(e.target.error);
+        });
+      },
+      get(bookId) {
+        return new Promise((resolve, reject) => {
+          if (!this.db) return resolve(null);
+          let tx = this.db.transaction("books_content", "readonly");
+          let store = tx.objectStore("books_content");
+          let req = store.get(bookId);
+          req.onsuccess = () => resolve(req.result ? req.result.data : null);
+          req.onerror = () => reject(req.error);
+        });
+      },
+      set(bookId, data) {
+        return new Promise((resolve, reject) => {
+          if (!this.db) return resolve();
+          let tx = this.db.transaction("books_content", "readwrite");
+          let store = tx.objectStore("books_content");
+          let req = store.put({ bookId: bookId, data: data });
+          req.onsuccess = () => resolve();
+          req.onerror = () => reject(req.error);
+        });
+      },
+      delete(bookId) {
+        return new Promise((resolve, reject) => {
+          if (!this.db) return resolve();
+          let tx = this.db.transaction("books_content", "readwrite");
+          let store = tx.objectStore("books_content");
+          let req = store.delete(bookId);
+          req.onsuccess = () => resolve();
+          req.onerror = () => reject(req.error);
+        });
       }
-    }
-
-    // ================================================================
-    // STORAGE HELPERS (Auto fallback to localStorage if IndexedDB fails)
-    // ================================================================
-    async function storageGet(key) {
-      if (dbHelper) {
-        try {
-          // Check if it's a book data
-          if (key.startsWith('book_')) {
-            const bookId = key.replace('book_', '');
-            const result = await dbHelper.get('bookPages', bookId);
-            return result ? result.pages : null;
-          }
-          // Check if it's progress
-          if (key.startsWith('progress_')) {
-            const bookId = key.replace('progress_', '');
-            const result = await dbHelper.get('progress', bookId);
-            return result ? result.data : null;
-          }
-          // Check if it's bookmarks
-          if (key.startsWith('bookmarks_')) {
-            const bookId = key.replace('bookmarks_', '');
-            const result = await dbHelper.get('bookmarks', bookId);
-            return result ? result.data : null;
-          }
-          // Check if it's library_books
-          if (key === 'library_books') {
-            const result = await dbHelper.get('books', 'library');
-            return result ? result.data : null;
-          }
-        } catch (err) {
-          console.warn('IndexedDB get error, falling back to localStorage:', err);
-        }
-      }
-      // Fallback to localStorage
-      return localStorage.getItem(key);
-    }
-
-    async function storageSet(key, value) {
-      if (dbHelper) {
-        try {
-          // Check if it's a book data
-          if (key.startsWith('book_')) {
-            const bookId = key.replace('book_', '');
-            await dbHelper.put('bookPages', { id: bookId, pages: value });
-            return;
-          }
-          // Check if it's progress
-          if (key.startsWith('progress_')) {
-            const bookId = key.replace('progress_', '');
-            await dbHelper.put('progress', { bookId: bookId, data: value });
-            return;
-          }
-          // Check if it's bookmarks
-          if (key.startsWith('bookmarks_')) {
-            const bookId = key.replace('bookmarks_', '');
-            await dbHelper.put('bookmarks', { bookId: bookId, data: value });
-            return;
-          }
-          // Check if it's library_books
-          if (key === 'library_books') {
-            await dbHelper.put('books', { id: 'library', data: value });
-            return;
-          }
-        } catch (err) {
-          console.warn('IndexedDB set error, falling back to localStorage:', err);
-        }
-      }
-      // Fallback to localStorage
-      localStorage.setItem(key, value);
-    }
-
-    async function storageRemove(key) {
-      if (dbHelper) {
-        try {
-          if (key.startsWith('book_')) {
-            const bookId = key.replace('book_', '');
-            await dbHelper.delete('bookPages', bookId);
-            return;
-          }
-          if (key.startsWith('progress_')) {
-            const bookId = key.replace('progress_', '');
-            await dbHelper.delete('progress', bookId);
-            return;
-          }
-          if (key.startsWith('bookmarks_')) {
-            const bookId = key.replace('bookmarks_', '');
-            await dbHelper.delete('bookmarks', bookId);
-            return;
-          }
-          if (key === 'library_books') {
-            await dbHelper.delete('books', 'library');
-            return;
-          }
-        } catch (err) {
-          console.warn('IndexedDB remove error, falling back to localStorage:', err);
-        }
-      }
-      localStorage.removeItem(key);
-    }
-
-    async function storageClearAll() {
-      if (dbHelper) {
-        try {
-          await dbHelper.clearStore('bookPages');
-          await dbHelper.clearStore('progress');
-          await dbHelper.clearStore('bookmarks');
-          await dbHelper.clearStore('books');
-          return;
-        } catch (err) {
-          console.warn('IndexedDB clear error, falling back to localStorage:', err);
-        }
-      }
-      localStorage.clear();
-    }
+    };
 
     // ================================================================
     // AUDIO CONTEXT - For background play
@@ -1454,17 +1237,14 @@
     // ================================================================
     async function initApp() {
       try {
-        // Initialize IndexedDB
-        await initDB();
+        await IDB.init(); // Initialize IndexedDB first
         
-        // Load from IndexedDB cache
-        const cachedBooks = await storageGet('library_books');
+        // Load from localStorage cache
+        const cachedBooks = localStorage.getItem('library_books');
         if (cachedBooks) {
-          try {
-            allBooks = typeof cachedBooks === 'string' ? JSON.parse(cachedBooks) : cachedBooks;
-            renderBooks(allBooks);
-            updateContinueReading();
-          } catch(e) {}
+          allBooks = JSON.parse(cachedBooks);
+          renderBooks(allBooks);
+          updateContinueReading();
         }
         
         // Check saved config
@@ -1569,7 +1349,7 @@
         if (error) throw error;
 
         allBooks = data || [];
-        await storageSet('library_books', JSON.stringify(allBooks));
+        localStorage.setItem('library_books', JSON.stringify(allBooks));
         renderBooks(allBooks);
         updateContinueReading();
         updateStorageInfo();
@@ -1639,7 +1419,7 @@
     }
 
     // ================================================================
-    // OPEN BOOK - BATCH LOADING FOR 8000+ PAGES
+    // OPEN BOOK - INDEXEDDB BATCH LOADING FOR 8000+ PAGES
     // ================================================================
     async function openBook(bookId) {
       currentBookId = bookId;
@@ -1652,30 +1432,9 @@
       showLoading('📖 Opening book...');
 
       try {
-        const cacheKey = `book_${bookId}`;
-        let data = dbCache[cacheKey];
+        // Read data from IndexedDB instead of localStorage
+        let data = await IDB.get(bookId);
         
-        if (!data) {
-          // Try to get from IndexedDB
-          const cachedData = await storageGet(cacheKey);
-          if (cachedData) {
-            try {
-              data = typeof cachedData === 'string' ? JSON.parse(cachedData) : cachedData;
-              dbCache[cacheKey] = data;
-              // Mark as downloaded
-              const bookUpdate = allBooks.find(b => b.id === bookId);
-              if (bookUpdate && !bookUpdate.downloaded) {
-                bookUpdate.downloaded = true;
-                bookUpdate.total_pages = data.length;
-                await storageSet('library_books', JSON.stringify(allBooks));
-              }
-            } catch(e) {
-              data = null;
-            }
-          }
-        }
-        
-        // If not cached, download from Supabase
         if (!data) {
           const tableName = `${bookId}_contents`;
           const BATCH_SIZE = 500;
@@ -1684,7 +1443,6 @@
           let hasMore = true;
           let totalCount = 0;
 
-          // First, get total count
           try {
             const { count, error: countError } = await supabaseClient
               .from(tableName)
@@ -1705,10 +1463,9 @@
               allData = allData.concat(supabaseData);
               page++;
               
-              // Show progress
               const progress = totalCount > 0 ? Math.round((allData.length / totalCount) * 100) : 
                               Math.min(Math.round((allData.length / (page * BATCH_SIZE)) * 100), 90);
-              showLoading(`📖 Downloading ${allData.length} pages... (${progress}%)`);
+              showLoading(`📖 Loading ${allData.length} pages... (${progress}%)`);
             } else {
               hasMore = false;
             }
@@ -1730,43 +1487,36 @@
             English: item['English Text'] || ''
           }));
           
-          dbCache[cacheKey] = data;
+          // Save perfectly into IndexedDB
+          await IDB.set(bookId, data);
           
-          // Store in IndexedDB
-          try {
-            await storageSet(cacheKey, data);
-            const bookUpdate = allBooks.find(b => b.id === bookId);
-            if (bookUpdate) {
-              bookUpdate.downloaded = true;
-              bookUpdate.total_pages = data.length;
-              await storageSet('library_books', JSON.stringify(allBooks));
-            }
-          } catch(e) {
-            console.warn('Cache storage warning:', e);
+          const bookUpdate = allBooks.find(b => b.id === bookId);
+          if (bookUpdate) {
+            bookUpdate.downloaded = true;
+            bookUpdate.total_pages = data.length;
+            localStorage.setItem('library_books', JSON.stringify(allBooks));
+            renderBooks(allBooks);
           }
         }
         
         currentPages = data;
         totalPages = data.length;
         
-        // Get progress
         const progressKey = `progress_${bookId}`;
-        const savedProgress = await storageGet(progressKey);
+        const savedProgress = localStorage.getItem(progressKey);
         if (savedProgress) {
-          try {
-            const prog = typeof savedProgress === 'string' ? JSON.parse(savedProgress) : savedProgress;
-            const idx = data.findIndex(c => c.sequence === prog.sequence);
-            if (idx >= 0) {
-              currentPageIndex = idx;
-              currentWordOffset = prog.offset || 0;
-            }
-          } catch(e) {}
+          const prog = JSON.parse(savedProgress);
+          const idx = data.findIndex(c => c.sequence === prog.sequence);
+          if (idx >= 0) {
+            currentPageIndex = idx;
+            currentWordOffset = prog.offset || 0;
+          }
         }
         
         hideLoading();
         openReader();
         renderCurrentPage();
-        buildTOCData(); // Pre-build TOC
+        buildTOCData(); 
         
       } catch(err) {
         hideLoading();
@@ -1782,12 +1532,11 @@
       updateBookmarkUI();
     }
 
-    async function closeReader() {
-      // Save progress
+    function closeReader() {
       if (currentBookId && currentPages.length > 0) {
         const chunk = currentPages[currentPageIndex];
         if (chunk) {
-          await storageSet(`progress_${currentBookId}`, JSON.stringify({
+          localStorage.setItem(`progress_${currentBookId}`, JSON.stringify({
             sequence: chunk.sequence,
             offset: currentWordOffset
           }));
@@ -1816,7 +1565,6 @@
       const part = page.part || '?';
       const pageNum = page.page || '?';
 
-      // Clear previous highlights
       document.querySelectorAll('.word-hl, .word-hl-ar, .word-hl-ml, .word-hl-en').forEach(el => {
         el.classList.remove('word-hl', 'word-hl-ar', 'word-hl-ml', 'word-hl-en');
       });
@@ -1838,7 +1586,6 @@
       document.getElementById('readerPageNum').textContent = 
         `${currentPageIndex + 1} / ${totalPages}`;
 
-      // Update mini player
       const row = currentPages[currentPageIndex];
       if (row) {
         const mlText = (row.Malayalam || '').replace(/<[^>]+>/g, '').trim();
@@ -1851,12 +1598,10 @@
         updateVisualChunk();
       }
 
-      // Apply highlight if playing
       if (isPlaying && currentUtterance) {
         highlightCurrentWord();
       }
 
-      // Auto scroll
       if (autoScrollEnabled && document.getElementById('optAutoScroll')?.checked !== false) {
         setTimeout(autoScrollToHighlight, 150);
       }
@@ -1903,10 +1648,10 @@
     }
 
     // ================================================================
-    // HIGHLIGHT CURRENT WORD - Only in Ebook
+    // HIGHLIGHT CURRENT WORD
     // ================================================================
     function highlightCurrentWord() {
-      if (isVisualMode) return; // Visual mode handles its own highlight
+      if (isVisualMode) return; 
       
       document.querySelectorAll('.word-hl, .word-hl-ar, .word-hl-ml, .word-hl-en').forEach(el => {
         el.classList.remove('word-hl', 'word-hl-ar', 'word-hl-ml', 'word-hl-en');
@@ -1949,7 +1694,7 @@
     }
 
     // ================================================================
-    // VISUAL MODE - Spoken Text Only
+    // VISUAL MODE
     // ================================================================
     function openVisualMode() {
       isVisualMode = true;
@@ -2042,9 +1787,7 @@
         if (isPlaying) playAudio();
         saveProgress();
       } else {
-        // Show end of book message
         if (totalPages > 0) {
-          // Just vibrate or show visual feedback
           if (navigator.vibrate) navigator.vibrate(50);
         }
       }
@@ -2071,11 +1814,11 @@
       }
     }
 
-    async function saveProgress() {
+    function saveProgress() {
       if (currentBookId && currentPages.length > 0) {
         const chunk = currentPages[currentPageIndex];
         if (chunk) {
-          await storageSet(`progress_${currentBookId}`, JSON.stringify({
+          localStorage.setItem(`progress_${currentBookId}`, JSON.stringify({
             sequence: chunk.sequence,
             offset: currentWordOffset
           }));
@@ -2086,7 +1829,7 @@
     // ================================================================
     // CONTINUE READING
     // ================================================================
-    async function updateContinueReading() {
+    function updateContinueReading() {
       const card = document.getElementById('continueCard');
       const info = document.getElementById('continueInfo');
       const bookId = localStorage.getItem('last_played_book_id');
@@ -2359,18 +2102,13 @@
     // ================================================================
     // BOOKMARKS
     // ================================================================
-    async function toggleBookmark() {
+    function toggleBookmark() {
       if (!currentBookId || !currentPages.length) return;
       const chunk = currentPages[currentPageIndex];
       if (!chunk) return;
       
       const key = `bookmarks_${currentBookId}`;
-      let bookmarks = await storageGet(key);
-      try {
-        bookmarks = typeof bookmarks === 'string' ? JSON.parse(bookmarks) : (bookmarks || []);
-      } catch(e) {
-        bookmarks = [];
-      }
+      let bookmarks = JSON.parse(localStorage.getItem(key) || '[]');
       const exists = bookmarks.find(b => b.sequence === chunk.sequence);
       
       if (exists) {
@@ -2379,28 +2117,23 @@
         bookmarks.push({ sequence: chunk.sequence, part: chunk.part, page: chunk.page });
       }
       
-      await storageSet(key, JSON.stringify(bookmarks));
+      localStorage.setItem(key, JSON.stringify(bookmarks));
       updateBookmarkUI();
     }
 
-    async function updateBookmarkUI() {
+    function updateBookmarkUI() {
       if (!currentBookId || !currentPages.length) return;
       const chunk = currentPages[currentPageIndex];
       if (!chunk) return;
       
       const key = `bookmarks_${currentBookId}`;
-      let bookmarks = await storageGet(key);
-      try {
-        bookmarks = typeof bookmarks === 'string' ? JSON.parse(bookmarks) : (bookmarks || []);
-      } catch(e) {
-        bookmarks = [];
-      }
+      const bookmarks = JSON.parse(localStorage.getItem(key) || '[]');
       const exists = bookmarks.find(b => b.sequence === chunk.sequence);
       document.getElementById('readerBookmark').classList.toggle('active-bm', !!exists);
     }
 
     // ================================================================
-    // TOC - ENHANCED WITH HIERARCHICAL NAVIGATION
+    // TOC - ENHANCED HIERARCHICAL DRILL-DOWN / DROP-DOWN
     // ================================================================
     function buildTOCData() {
       if (!currentPages || currentPages.length === 0) return;
@@ -2423,7 +2156,6 @@
           currentH2 = null;
         }
 
-        // Check for headings
         const h1Match = arText.match(/<h1[^>]*>(.*?)<\/h1>/i);
         const h2Match = arText.match(/<h2[^>]*>(.*?)<\/h2>/i);
         const h3Match = arText.match(/<h3[^>]*>(.*?)<\/h3>/i);
@@ -2452,7 +2184,6 @@
           else if (currentH1) currentH1.children.push(node);
           else currentPart.children.push(node);
         } else if (index % 10 === 0 || index === currentPageIndex || index === 0 || index === currentPages.length - 1) {
-          // Page markers
           const node = { type: 'page', title: `പേജ് ${page.page || index + 1}`, subtitle: mlText.substring(0, 30) + '...', children: [], index: index, page: page.page };
           if (currentH2) currentH2.children.push(node);
           else if (currentH1) currentH1.children.push(node);
@@ -2463,11 +2194,7 @@
 
     function openTOC() {
       if (!currentBookId || !currentPages.length) return;
-      
-      // Rebuild TOC if empty
-      if (tocTree.length === 0) {
-        buildTOCData();
-      }
+      if (tocTree.length === 0) buildTOCData();
       
       const modal = document.getElementById('tocModal');
       document.getElementById('modalOverlay').classList.add('show');
@@ -2479,8 +2206,6 @@
 
     function renderTOCLevel() {
       const currentLevel = tocPath[tocPath.length - 1];
-      
-      // Breadcrumb
       const breadcrumb = document.getElementById('tocBreadcrumb');
       if (breadcrumb) {
         breadcrumb.innerHTML = tocPath.map((p, i) => 
@@ -2489,10 +2214,7 @@
       }
 
       const list = document.getElementById('tocList');
-      let html = '';
-
-      // Jump to page input
-      html += `
+      let html = `
         <div class="jump-to-page-container">
           <input type="number" id="jumpPageInput" min="1" max="${totalPages}" placeholder="Jump to page...">
           <button onclick="jumpToPageNumber()"><i class="fas fa-arrow-right"></i> Go</button>
@@ -2505,25 +2227,19 @@
           const hasChildren = node.children && node.children.length > 0;
           const typeIcon = { part: '📖', h1: '📑', h2: '📄', h3: '🔹', h4: '🔸', page: '📌' }[node.type] || '📄';
           
-          if (hasChildren) {
-            html += `
-              <div class="toc-item" onclick="drillTOC(${idx})">
-                <div class="toc-badge">${typeIcon} ${node.type.toUpperCase()}</div>
-                <div class="toc-title-text" dir="rtl">${node.title}</div>
-                ${node.subtitle ? `<div class="toc-translations">${node.subtitle}</div>` : ''}
-                <div style="font-size:11px;color:var(--text-muted);margin-top:6px;"><i class="fas fa-folder-open"></i> ${node.children.length} items</div>
+          // If it has children, allow selection to navigate to it AND open its dropdown sub-nodes
+          html += `
+            <div class="toc-item ${isCurrent ? 'current' : ''}" onclick="handleTOCSelection(${idx})">
+              <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                <div>
+                  <div class="toc-badge">${typeIcon} ${node.type.toUpperCase()} ${node.page ? '- പേജ് ' + node.page : ''}</div>
+                  <div class="toc-title-text" dir="rtl">${node.title}</div>
+                  ${node.subtitle ? `<div class="toc-translations">${node.subtitle}</div>` : ''}
+                </div>
+                ${hasChildren ? `<div style="font-size:12px; color:var(--primary-green); background:var(--primary-light); padding:4px 8px; border-radius:4px;"><i class="fas fa-folder-open"></i> ${node.children.length}</div>` : ''}
               </div>
-            `;
-          } else {
-            html += `
-              <div class="toc-item ${isCurrent ? 'current' : ''}" onclick="closeModal(); jumpToPage(${node.index})">
-                <div class="toc-badge">${typeIcon} ${node.type.toUpperCase()} - പേജ് ${node.page || '?'}</div>
-                <div class="toc-title-text" dir="rtl">${node.title}</div>
-                ${node.subtitle ? `<div class="toc-translations">${node.subtitle}</div>` : ''}
-                ${isCurrent ? '<div style="font-size:10px;color:var(--primary-green);margin-top:4px;">📍 Current</div>' : ''}
-              </div>
-            `;
-          }
+            </div>
+          `;
         });
       } else {
         html = '<div style="padding:20px;text-align:center;color:var(--text-muted);">No content available</div>';
@@ -2532,12 +2248,22 @@
       list.innerHTML = html;
     }
 
-    function drillTOC(indexInCurrentList) {
+    // Handles selecting the heading directly OR opening its dropdown children hierarchy
+    function handleTOCSelection(idx) {
       const currentLevel = tocPath[tocPath.length - 1];
-      const node = currentLevel.nodes[indexInCurrentList];
-      if (node && node.children && node.children.length > 0) {
-        tocPath.push({ title: node.title, nodes: node.children });
-        renderTOCLevel();
+      const node = currentLevel.nodes[idx];
+      
+      if (node) {
+        if (node.children && node.children.length > 0) {
+          // Drill down hierarchy tree (Drop-down logic)
+          tocPath.push({ title: node.title.substring(0,20)+'...', nodes: node.children });
+          renderTOCLevel();
+          // Instantly snap reader to that heading section as well
+          jumpToPage(node.index);
+        } else {
+          closeModal();
+          jumpToPage(node.index);
+        }
       }
     }
 
@@ -2559,7 +2285,7 @@
     }
 
     // ================================================================
-    // SETTINGS
+    // SETTINGS & THEMES
     // ================================================================
     function openSettings() {
       document.getElementById('modalOverlay').classList.add('show');
@@ -2578,7 +2304,8 @@
       document.documentElement.setAttribute('data-theme', theme);
       localStorage.setItem('m_rb_theme', theme);
       document.querySelectorAll('.theme-btn').forEach(el => el.classList.remove('active'));
-      document.getElementById('th-' + theme).classList.add('active');
+      const target = document.getElementById('th-' + theme);
+      if (target) target.classList.add('active');
     }
 
     function applyFontSize() {
@@ -2620,31 +2347,27 @@
     }
 
     // ================================================================
-    // STORAGE INFO
+    // STORAGE INFO (INDEXEDDB COMPATIBLE)
     // ================================================================
     async function updateStorageInfo() {
       try {
-        let totalPages = 0;
+        let totalDownloadedPages = 0;
         let totalSize = 0;
-        let downloaded = 0;
+        let downloadedCount = 0;
         
         for (const book of allBooks) {
           if (book.downloaded) {
-            downloaded++;
-            const key = `book_${book.id}`;
-            const cached = await storageGet(key);
-            if (cached) {
-              try {
-                const data = typeof cached === 'string' ? JSON.parse(cached) : cached;
-                totalPages += data.length;
-                totalSize += data.reduce((sum, c) => sum + (c.Arabic || '').length + (c.Malayalam || '').length + (c.English || '').length, 0);
-              } catch(e) {}
+            downloadedCount++;
+            const data = await IDB.get(book.id);
+            if (data) {
+              totalDownloadedPages += data.length;
+              totalSize += data.reduce((sum, c) => sum + (c.Arabic || '').length + (c.Malayalam || '').length + (c.English || '').length, 0);
             }
           }
         }
         
-        document.getElementById('storageBooks').textContent = downloaded;
-        document.getElementById('storagePages').textContent = totalPages.toLocaleString();
+        document.getElementById('storageBooks').textContent = downloadedCount;
+        document.getElementById('storagePages').textContent = totalDownloadedPages.toLocaleString();
         document.getElementById('storageSize').textContent = (totalSize / 1024 / 1024).toFixed(1) + ' MB';
       } catch(err) {
         console.error('Storage info error:', err);
@@ -2655,16 +2378,14 @@
       if (!confirm('⚠️ Remove all downloaded books and data? This cannot be undone!')) return;
       
       try {
-        // Clear all book caches
         for (const book of allBooks) {
-          await storageRemove(`book_${book.id}`);
-          await storageRemove(`progress_${book.id}`);
-          await storageRemove(`bookmarks_${book.id}`);
+          await IDB.delete(book.id); // Wipe IndexedDB cleanly
+          localStorage.removeItem(`progress_${book.id}`);
+          localStorage.removeItem(`bookmarks_${book.id}`);
           book.downloaded = false;
           book.total_pages = 0;
         }
-        await storageSet('library_books', JSON.stringify(allBooks));
-        dbCache = {};
+        localStorage.setItem('library_books', JSON.stringify(allBooks));
         renderBooks(allBooks);
         updateStorageInfo();
         alert('✅ All data cleared!');
@@ -2707,7 +2428,6 @@
       const savedLang = localStorage.getItem('pref_spoken_lang') || 'ar';
       setSpokenLang(savedLang);
       
-      // Background play setting
       const bgPlay = localStorage.getItem('pref_bg_play');
       if (bgPlay !== null) {
         document.getElementById('optBgPlay').checked = bgPlay === 'true';
