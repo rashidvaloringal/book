@@ -32,8 +32,6 @@ function openDB() {
 
     request.onupgradeneeded = (event) => {
       const db = event.target.result;
-      const oldVersion = event.oldVersion;
-
       for (const key in STORES) {
         if (!db.objectStoreNames.contains(STORES[key])) {
           const store = db.createObjectStore(STORES[key], { keyPath: "id" });
@@ -159,44 +157,23 @@ async function clearStore(storeName) {
 // ================================================================
 // BOOKS
 // ================================================================
-async function getBooks() {
-  return await getAllData(STORES.BOOKS);
+async function getBooks() { 
+  return await getAllData(STORES.BOOKS); 
 }
 
-async function getBook(bookId) {
-  return await getData(STORES.BOOKS, bookId);
+async function getBook(bookId) { 
+  return await getData(STORES.BOOKS, bookId); 
 }
 
-async function saveBook(book) {
-  book.id = book.id || book.bookId;
-  return await putData(STORES.BOOKS, book);
-}
-
-async function saveBooks(books) {
-  for (const book of books) {
-    await saveBook(book);
-  }
-  return books;
-}
-
-async function updateBook(bookId, updates) {
-  const book = await getBook(bookId);
-  if (book) {
-    Object.assign(book, updates);
-    await saveBook(book);
-  }
-  return book;
+async function saveBook(book) { 
+  book.id = book.id || book.bookId; 
+  return await putData(STORES.BOOKS, book); 
 }
 
 // ================================================================
-// CHUNKS - OPTIMIZED
+// CHUNKS
 // ================================================================
-async function getChunk(bookId, chunkNo) {
-  const id = `${bookId}_${chunkNo}`;
-  return await getData(STORES.CHUNKS, id);
-}
-
-async function getChunks(bookId, limit = 0, offset = 0, loadAll = false) {
+async function getAllChunks(bookId) {
   await ensureDB();
   return new Promise((resolve, reject) => {
     try {
@@ -204,47 +181,16 @@ async function getChunks(bookId, limit = 0, offset = 0, loadAll = false) {
       const index = store.index("bookId");
       const range = IDBKeyRange.only(bookId);
       const request = index.openCursor(range, "next");
-
       const results = [];
-      let skipped = 0;
-      let count = 0;
-      const effectiveLimit = loadAll ? Infinity : (limit || Infinity);
-
       request.onsuccess = (event) => {
         const cursor = event.target.result;
-        if (cursor) {
-          if (skipped < offset) {
-            skipped++;
-            cursor.continue();
-          } else if (count < effectiveLimit) {
-            results.push(cursor.value);
-            count++;
-            cursor.continue();
-          } else {
-            resolve(results);
-          }
-        } else {
-          resolve(results);
+        if (cursor) { 
+          results.push(cursor.value); 
+          cursor.continue(); 
+        } else { 
+          resolve(results); 
         }
       };
-      request.onerror = () => reject(request.error);
-    } catch (err) { reject(err); }
-  });
-}
-
-async function getAllChunks(bookId) {
-  return await getChunks(bookId, 0, 0, true);
-}
-
-async function getChunkCount(bookId) {
-  await ensureDB();
-  return new Promise((resolve, reject) => {
-    try {
-      const store = getStore(STORES.CHUNKS, "readonly");
-      const index = store.index("bookId");
-      const range = IDBKeyRange.only(bookId);
-      const request = index.count(range);
-      request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     } catch (err) { reject(err); }
   });
@@ -257,80 +203,35 @@ async function saveChunk(bookId, chunkNo, pages, part = 1, sequence = null) {
     bookId, 
     chunkNo, 
     pages, 
-    part: part || 1,
-    sequence: sequence || chunkNo,
+    part: part || 1, 
+    sequence: sequence || chunkNo, 
     updated_at: new Date().toISOString() 
   };
   return await putData(STORES.CHUNKS, data);
 }
 
-async function saveChunks(bookId, chunksData) {
-  const promises = chunksData.map(({ chunkNo, pages, part, sequence }) => 
-    saveChunk(bookId, chunkNo, pages, part, sequence)
-  );
-  return await Promise.all(promises);
-}
-
-async function deleteChunks(bookId) {
-  const chunks = await getAllChunks(bookId);
-  for (const chunk of chunks) {
-    await deleteData(STORES.CHUNKS, chunk.id);
-  }
-  return chunks;
-}
-
-async function hasCachedChunks(bookId) {
-  const count = await getChunkCount(bookId);
-  return count > 0;
-}
-
-async function getChunksByPart(bookId, part) {
-  await ensureDB();
-  return new Promise((resolve, reject) => {
-    try {
-      const store = getStore(STORES.CHUNKS, "readonly");
-      const index = store.index("part");
-      const range = IDBKeyRange.only(part);
-      const request = index.openCursor(range, "next");
-
-      const results = [];
-      request.onsuccess = (event) => {
-        const cursor = event.target.result;
-        if (cursor) {
-          if (cursor.value.bookId === bookId) {
-            results.push(cursor.value);
-          }
-          cursor.continue();
-        } else {
-          resolve(results);
-        }
-      };
-      request.onerror = () => reject(request.error);
-    } catch (err) { reject(err); }
-  });
-}
-
 // ================================================================
 // TOC
 // ================================================================
-async function getTOC(bookId) {
-  const data = await getData(STORES.TOC, bookId);
-  return data ? data.toc : null;
+async function getTOC(bookId) { 
+  const data = await getData(STORES.TOC, bookId); 
+  return data ? data.toc : null; 
 }
 
-async function saveTOC(bookId, toc) {
+async function saveTOC(bookId, toc) { 
   return await putData(STORES.TOC, { 
     id: bookId, 
     bookId, 
     toc, 
     updated_at: new Date().toISOString() 
-  });
+  }); 
 }
 
 // ================================================================
 // BOOKMARKS
 // ================================================================
 async function getBookmarks(bookId) {
+  await ensureDB();
   return new Promise((resolve, reject) => {
     try {
       const store = getStore(STORES.BOOKMARKS, "readonly");
@@ -343,47 +244,39 @@ async function getBookmarks(bookId) {
   });
 }
 
-async function addBookmark(bookId, sequence, pageData) {
-  const id = `${bookId}_${sequence}`;
-  const data = { id, bookId, sequence, pageData, created_at: new Date().toISOString() };
-  return await putData(STORES.BOOKMARKS, data);
+async function addBookmark(bookId, sequence, pageData) { 
+  const id = `${bookId}_${sequence}`; 
+  return await putData(STORES.BOOKMARKS, { 
+    id, 
+    bookId, 
+    sequence, 
+    pageData, 
+    created_at: new Date().toISOString() 
+  }); 
 }
 
-async function removeBookmark(bookId, sequence) {
-  const id = `${bookId}_${sequence}`;
-  return await deleteData(STORES.BOOKMARKS, id);
+async function removeBookmark(bookId, sequence) { 
+  const id = `${bookId}_${sequence}`; 
+  return await deleteData(STORES.BOOKMARKS, id); 
 }
 
 // ================================================================
 // PROGRESS
 // ================================================================
-async function getProgress(bookId) {
-  const data = await getData(STORES.PROGRESS, bookId);
-  return data || { id: bookId, bookId, sequence: 0, part: 1, word_offset: 0 };
+async function getProgress(bookId) { 
+  const data = await getData(STORES.PROGRESS, bookId); 
+  return data || { id: bookId, bookId, sequence: 0, part: 1, word_offset: 0 }; 
 }
 
-async function saveProgress(bookId, sequence, part = 1, word_offset = 0) {
+async function saveProgress(bookId, sequence, part = 1, word_offset = 0) { 
   return await putData(STORES.PROGRESS, { 
     id: bookId, 
     bookId, 
     sequence, 
-    part,
-    word_offset,
+    part, 
+    word_offset, 
     updated_at: new Date().toISOString() 
-  });
-}
-
-// ================================================================
-// SETTINGS
-// ================================================================
-async function getSettings() {
-  const data = await getData(STORES.SETTINGS, "user_settings");
-  return data || {};
-}
-
-async function saveSettings(settings) {
-  settings.id = "user_settings";
-  return await putData(STORES.SETTINGS, settings);
+  }); 
 }
 
 // ================================================================
@@ -391,97 +284,146 @@ async function saveSettings(settings) {
 // ================================================================
 async function getStorageInfo() {
   await ensureDB();
-  let totalSize = 0;
-  let totalChunks = 0;
-  let bookCount = 0;
-
+  let totalSize = 0, totalChunks = 0, bookCount = 0;
   try {
-    const books = await getBooks();
+    const books = await getBooks(); 
     bookCount = books.length;
-
     for (const book of books) {
-      const chunks = await getAllChunks(book.id);
+      const chunks = await getAllChunks(book.id); 
       totalChunks += chunks.length;
-      for (const chunk of chunks) {
-        const json = JSON.stringify(chunk);
-        totalSize += json.length;
+      for (const chunk of chunks) { 
+        totalSize += JSON.stringify(chunk).length; 
       }
     }
   } catch(e) {}
-
-  return {
-    bookCount,
-    totalChunks,
-    totalSize: (totalSize / 1024 / 1024).toFixed(2) + ' MB',
-    totalSizeBytes: totalSize
+  return { 
+    bookCount, 
+    totalChunks, 
+    totalSize: (totalSize / 1024 / 1024).toFixed(2) + ' MB' 
   };
 }
 
 // ================================================================
-// CLEANUP
+// CLEAR ALL DATA
 // ================================================================
-async function clearAllData() {
-  for (const key in STORES) {
-    await clearStore(STORES[key]);
-  }
+async function clearAllData() { 
+  for (const key in STORES) { 
+    await clearStore(STORES[key]); 
+  } 
 }
+
+// ================================================================
+// LIBRARYDB - For easy access from index.html
+// ================================================================
+const LibraryDB = {
+  // Get full book data (all pages merged)
+  getBook: async function(bookId) {
+    try {
+      const chunks = await getAllChunks(bookId);
+      if (chunks && chunks.length > 0) {
+        let allPages = [];
+        for (const chunk of chunks) {
+          allPages = allPages.concat(chunk.pages);
+        }
+        allPages.sort((a, b) => a.sequence - b.sequence);
+        return allPages;
+      }
+      return null;
+    } catch(e) {
+      console.error('LibraryDB.getBook error:', e);
+      return null;
+    }
+  },
+
+  // Save full book data (splits into chunks)
+  saveBook: async function(bookId, pages) {
+    try {
+      if (!pages || pages.length === 0) return;
+      const CHUNK_SIZE = 100;
+      const numChunks = Math.ceil(pages.length / CHUNK_SIZE);
+      for (let i = 0; i < numChunks; i++) {
+        const start = i * CHUNK_SIZE;
+        const end = Math.min(start + CHUNK_SIZE, pages.length);
+        const chunkPages = pages.slice(start, end);
+        await saveChunk(bookId, i, chunkPages, 1, start);
+      }
+      // Save book metadata
+      const book = { id: bookId, bookId, downloaded: true, total_pages: pages.length };
+      await saveBook(book);
+      return true;
+    } catch(e) {
+      console.error('LibraryDB.saveBook error:', e);
+      throw e;
+    }
+  },
+
+  // Remove book from IndexedDB
+  removeBook: async function(bookId) {
+    try {
+      const chunks = await getAllChunks(bookId);
+      for (const chunk of chunks) {
+        await deleteData(STORES.CHUNKS, chunk.id);
+      }
+      await deleteData(STORES.BOOKS, bookId);
+      return true;
+    } catch(e) {
+      console.error('LibraryDB.removeBook error:', e);
+      throw e;
+    }
+  },
+
+  // Check if book exists in IndexedDB
+  hasBook: async function(bookId) {
+    try {
+      const chunks = await getAllChunks(bookId);
+      return chunks && chunks.length > 0;
+    } catch(e) {
+      return false;
+    }
+  },
+
+  // Get storage info
+  getStorageInfo: async function() {
+    return await getStorageInfo();
+  },
+
+  // Clear all data
+  clearAll: async function() {
+    await clearAllData();
+  }
+};
 
 // ================================================================
 // EXPORT
 // ================================================================
 const DB = {
-  open: openDB,
-  ensure: ensureDB,
-  getData,
-  putData,
-  getAllData,
-  deleteData,
-  clearStore,
-  STORES,
-  getStorageInfo,
+  open: openDB, 
+  ensure: ensureDB, 
+  getStorageInfo, 
   clearAllData,
-
-  // Books
-  getBooks,
-  getBook,
-  saveBook,
-  saveBooks,
-  updateBook,
-
-  // Chunks
-  getChunk,
-  getChunks,
-  getAllChunks,
-  getChunkCount,
-  hasCachedChunks,
+  getBooks, 
+  getBook, 
+  saveBook, 
+  getAllChunks, 
   saveChunk,
-  saveChunks,
-  deleteChunks,
-  getChunksByPart,
-
-  // TOC
-  getTOC,
-  saveTOC,
-
-  // Bookmarks
-  getBookmarks,
-  addBookmark,
-  removeBookmark,
-
-  // Progress
-  getProgress,
-  saveProgress,
-
-  // Settings
-  getSettings,
-  saveSettings
+  getTOC, 
+  saveTOC, 
+  getBookmarks, 
+  addBookmark, 
+  removeBookmark, 
+  getProgress, 
+  saveProgress
 };
 
-if (typeof window !== 'undefined') {
+// Expose to window
+if (typeof window !== 'undefined') { 
   window.DB = DB;
+  window.LibraryDB = LibraryDB;
   openDB().catch(console.error);
+  console.log('✅ database.js loaded. LibraryDB available.');
 }
 
+// Export for module use
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = DB;
+  module.exports = { DB, LibraryDB };
 }
