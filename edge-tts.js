@@ -1,5 +1,5 @@
 // ================================================================
-// EDGE NATURAL TTS ENGINE - ALL BROWSERS
+// EDGE NATURAL TTS ENGINE - ALL BROWSERS (UPDATED v2.1)
 // ================================================================
 
 // പബ്ലിക് API ലിങ്ക് (ഇത് വഴിയാണ് Edge Voice വരുന്നത്)
@@ -67,8 +67,11 @@ function playAudio() {
     text = text.replace(/<[^>]+>/g, '').trim();
     
     if (!text) {
-        if (currentPageIndex < totalPages - 1) nextPage();
-        else stopAudio();
+        if (currentPageIndex < totalPages - 1) {
+            nextPage();
+        } else {
+            stopAudio();
+        }
         return;
     }
 
@@ -91,16 +94,22 @@ function playAudio() {
     
     // പാട്ട് ഓടുന്നതിനനുസരിച്ച് വാക്കുകൾ ഹൈലൈറ്റ് ചെയ്യാൻ
     edgeAudio.ontimeupdate = () => {
-        if (edgeAudio.duration) {
+        if (edgeAudio && edgeAudio.duration) {
             const progress = edgeAudio.currentTime / edgeAudio.duration;
             currentWordOffset = Math.floor(text.length * progress);
             
-            if (isVisualMode) updateVisualChunk();
-            else highlightCurrentWord();
+            if (isVisualMode) {
+                updateVisualChunk();
+            } else {
+                highlightCurrentWord();
+            }
+            saveProgress();
             
             // പ്രോഗ്രസ് ബാർ അപ്ഡേറ്റ്
             const percent = progress * 100;
-            if (STATE.mode === 'audio') document.getElementById('audioProgressBar').style.width = percent + '%';
+            if (STATE.mode === 'audio') {
+                document.getElementById('audioProgressBar').style.width = percent + '%';
+            }
             document.getElementById('visProgressBar').style.width = percent + '%';
         }
     };
@@ -108,6 +117,10 @@ function playAudio() {
     edgeAudio.onplay = () => {
         hideLoading();
         document.getElementById('silentAudio').play().catch(()=>{});
+        
+        localStorage.setItem('last_played_book_id', currentBookId);
+        const book = allBooks.find(b => b.id === currentBookId);
+        localStorage.setItem('last_played_book_title', book?.title_ml || book?.title_ar || 'Book');
     };
 
     edgeAudio.onended = () => {
@@ -116,14 +129,20 @@ function playAudio() {
             if (autoNext && currentPageIndex < totalPages - 1) {
                 currentWordOffset = 0;
                 nextPage();
-            } else stopAudio();
+            } else {
+                stopAudio();
+            }
         }
     };
 
     edgeAudio.onerror = () => {
         hideLoading();
-        alert("ഓഡിയോ പ്ലേ ചെയ്യാൻ കഴിഞ്ഞില്ല. ഇന്റർനെറ്റ് പരിശോധിക്കുക.");
-        stopAudio();
+        if (isPlaying && currentPageIndex < totalPages - 1) {
+            currentWordOffset = 0;
+            nextPage();
+        } else {
+            stopAudio();
+        }
     };
 
     edgeAudio.play().catch(e => {
@@ -140,8 +159,46 @@ function stopAudio() {
     }
     isPlaying = false;
     updatePlayIcon();
+    if (audioProgressInterval) clearInterval(audioProgressInterval);
     document.getElementById('audioProgressBar').style.width = '0%';
     document.getElementById('visProgressBar').style.width = '0%';
     document.getElementById('silentAudio').pause();
+    if (wakeLock) {
+        wakeLock.release().catch(()=>{});
+        wakeLock = null;
+    }
     document.querySelectorAll('.word-hl, .word-hl-ar, .word-hl-ml, .word-hl-en').forEach(el => el.classList.remove('word-hl', 'word-hl-ar', 'word-hl-ml', 'word-hl-en'));
+}
+
+// 5. സെറ്റിങ്സ് മാറ്റുമ്പോൾ ഓഡിയോ റീസ്റ്റാർട്ട് ചെയ്യാൻ (പഴയ കോഡിൽ നിന്നും നിലനിർത്തിയത്)
+function applyAudioSettings(restart) {
+    if (restart && isPlaying) {
+        if (edgeAudio) edgeAudio.pause();
+        playAudio();
+    }
+}
+
+// 6. സ്പോക്കൺ ലാംഗ്വേജ് സെറ്റ് ചെയ്യാൻ (പഴയ കോഡിൽ നിന്നും നിലനിർത്തിയത്)
+function setSpokenLang(lang) {
+    spokenLang = lang;
+    document.querySelectorAll('.lang-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById('lang-' + lang)?.classList.add('active');
+    localStorage.setItem('pref_spoken_lang', lang);
+
+    const langMap = { 'ar': 'ar-EG', 'ml': 'ml-IN', 'en': 'en-US' };
+    const langSelector = document.getElementById('optAudioLang');
+    if (langSelector) langSelector.value = langMap[lang];
+    
+    setupVoices();
+
+    if (isPlaying) {
+        stopAudio();
+        togglePlay();
+    }
+
+    if (isVisualMode) {
+        updateVisualChunk();
+    } else {
+        highlightCurrentWord();
+    }
 }
