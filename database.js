@@ -165,7 +165,7 @@ async function getBook(bookId) {
   return await getData(STORES.BOOKS, bookId); 
 }
 
-async function saveBook(book) { 
+async function saveBookMetadata(book) { 
   book.id = book.id || book.bookId; 
   return await putData(STORES.BOOKS, book); 
 }
@@ -306,7 +306,7 @@ async function getStorageInfo() {
 // ================================================================
 // CLEAR ALL DATA
 // ================================================================
-async function clearAllData() { 
+async function clearAllDBData() { 
   for (const key in STORES) { 
     await clearStore(STORES[key]); 
   } 
@@ -347,9 +347,14 @@ const LibraryDB = {
         const chunkPages = pages.slice(start, end);
         await saveChunk(bookId, i, chunkPages, 1, start);
       }
-      // Save book metadata
-      const book = { id: bookId, bookId, downloaded: true, total_pages: pages.length };
-      await saveBook(book);
+      // Save book metadata (use putData directly to avoid recursion)
+      await putData(STORES.BOOKS, { 
+        id: bookId, 
+        bookId, 
+        downloaded: true, 
+        total_pages: pages.length,
+        updated_at: new Date().toISOString()
+      });
       return true;
     } catch(e) {
       console.error('LibraryDB.saveBook error:', e);
@@ -389,7 +394,7 @@ const LibraryDB = {
 
   // Clear all data
   clearAll: async function() {
-    await clearAllData();
+    await clearAllDBData();
   }
 };
 
@@ -400,10 +405,10 @@ const DB = {
   open: openDB, 
   ensure: ensureDB, 
   getStorageInfo, 
-  clearAllData,
+  clearAllData: clearAllDBData,
   getBooks, 
   getBook, 
-  saveBook, 
+  saveBook: saveBookMetadata, 
   getAllChunks, 
   saveChunk,
   getTOC, 
