@@ -6,15 +6,13 @@
   <meta name="theme-color" content="#1b4d3e">
   <title>📚 Islamic Digital Library Pro</title>
   
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
-  <script src="config.js"></script>
-  <script src="database.js"></script>
-  
-
-  
+  <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
+  <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Manjari:wght@400;700&family=Chilanka&family=Gayathri&family=Scheherazade+New:wght@400;700&family=Lateef&display=swap" rel="stylesheet">
   
   <style>
@@ -772,7 +770,7 @@
     }
     .toc-breadcrumb span { cursor: pointer; color: var(--primary-green); transition: 0.2s; }
     .toc-breadcrumb span:hover { text-decoration: underline; }
-
+    
     .toc-item {
       padding: 15px;
       border-bottom: 1px solid var(--border);
@@ -869,6 +867,7 @@
 </head>
 <body>
 
+  <!-- ===== LOADER ===== -->
   <div id="loader">
     <div class="spinner"></div>
     <div class="status" id="loadStatus">📚 Islamic Digital Library Pro</div>
@@ -882,11 +881,13 @@
     </div>
   </div>
 
+  <!-- ===== AUDIO ELEMENTS ===== -->
   <audio id="silentAudio" loop playsinline src="https://raw.githubusercontent.com/anars/blank-audio/master/10-minutes-of-silence.mp3"></audio>
   <audio id="bgMusic" loop playsinline src="Audio/nasheed_1.mp3"></audio>
   <audio id="ambRain" loop src="https://assets.mixkit.co/active_storage/sfx/2433/2433-84.wav"></audio>
   <audio id="ambWind" loop src="https://assets.mixkit.co/active_storage/sfx/2432/2432-84.wav"></audio>
 
+  <!-- ===== HOME VIEW ===== -->
   <div id="homeView">
     <header class="home-header">
       <div class="top-bar">
@@ -922,11 +923,13 @@
     </nav>
   </div>
 
+  <!-- ===== LOADING OVERLAY ===== -->
   <div class="loading-overlay" id="loadingOverlay">
     <div class="loader-spinner"></div>
     <div class="loader-text" id="loadingText">📖 Loading...</div>
   </div>
 
+  <!-- ===== READER VIEW ===== -->
   <div id="readerView">
     <header class="reader-header">
       <button class="back-btn" onclick="closeReader()"><i class="fas fa-arrow-left"></i></button>
@@ -986,6 +989,7 @@
     </nav>
   </div>
 
+  <!-- ===== MINI PLAYER ===== -->
   <div class="mini-player" id="miniPlayer">
     <div class="mini-details" onclick="switchView('audio')">
       <div class="mini-title" id="miniTitle">Ready</div>
@@ -998,6 +1002,7 @@
     </div>
   </div>
 
+  <!-- ===== VISUAL MODE ===== -->
   <div class="visual-mode" id="visualMode">
     <div class="visual-video-wrapper">
       <video id="visualVideo" muted loop playsinline></video>
@@ -1020,11 +1025,13 @@
     <div class="visual-progress"><div class="vis-progress-bar" id="visProgressBar"></div></div>
   </div>
 
+  <!-- ===== MODALS ===== -->
   <div class="modal-overlay" id="modalOverlay" onclick="closeModal()"></div>
 
   <div class="modal-box" id="settingsModal">
     <div class="modal-header"><span>⚙️ ക്രമീകരണങ്ങൾ</span><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
+      <!-- Theme -->
       <div class="setting-group">
         <label class="setting-label">🎨 Theme</label>
         <div class="theme-grid">
@@ -1035,6 +1042,7 @@
         </div>
       </div>
 
+      <!-- Fonts -->
       <div class="setting-group">
         <label class="setting-label">🔤 Fonts</label>
         <div class="setting-row"><span>മലയാളം</span><select id="optFontMl" onchange="applyFonts()"><option value="'Manjari', sans-serif">Manjari</option><option value="'Chilanka', cursive">Chilanka</option><option value="'Gayathri', sans-serif">Gayathri</option></select></div>
@@ -1042,6 +1050,7 @@
         <div class="setting-row"><span>English</span><select id="optFontEn" onchange="applyFonts()"><option value="sans-serif">Sans</option><option value="serif">Serif</option></select></div>
       </div>
 
+      <!-- Reader -->
       <div class="setting-group">
         <label class="setting-label">📖 Reader Settings</label>
         <div class="setting-row"><span>Font Size</span><input type="range" id="optFontSize" min="14" max="30" value="18" onchange="applyFontSize()"></div>
@@ -1051,6 +1060,7 @@
         <div class="setting-row"><span>Display English</span><input type="checkbox" id="optShowEn" checked onchange="renderAllViews()"></div>
       </div>
 
+      <!-- Audio / TTS -->
       <div class="setting-group">
         <label class="setting-label">🎙️ TTS Settings</label>
         <select id="optAudioLang" onchange="setupVoices(); applyAudioSettings(true);">
@@ -1064,6 +1074,7 @@
         <div class="setting-row"><span>Background Play (Screen Off)</span><input type="checkbox" id="optBgPlay" checked></div>
       </div>
 
+      <!-- Spoken Language -->
       <div class="setting-group">
         <label class="setting-label">🔊 Highlight Language</label>
         <div class="lang-selector">
@@ -1073,12 +1084,14 @@
         </div>
       </div>
 
+      <!-- Visual Mode -->
       <div class="setting-group">
         <label class="setting-label">🎬 Visual Mode</label>
         <input type="text" id="optYoutubeId" placeholder="YouTube Video ID" style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text-dark);">
         <button style="width:100%; margin-top:5px; padding:8px; background:var(--primary-green); color:white; border-radius:6px; border:none; font-weight:bold;" onclick="applyVisualBg()">Update Background</button>
       </div>
 
+      <!-- Background Music -->
       <div class="setting-group">
         <label class="setting-label">🎵 Background Music</label>
         <select id="optBgMusic" onchange="handleBgMusic()">
@@ -1089,6 +1102,7 @@
         </select>
       </div>
 
+      <!-- Storage -->
       <div class="setting-group">
         <label class="setting-label">💾 Storage</label>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
@@ -1147,25 +1161,6 @@
     };
 
     // ================================================================
-    // EDGE NATURAL VOICES IMPLEMENTATION
-    // ================================================================
-    const EDGE_VOICES = [
-        { name: "🎤 Midhun - മലയാളം", id: "ml-IN-MidhunNeural", lang: "ml-IN" },
-        { name: "🎤 Sobhana - മലയാളം", id: "ml-IN-SobhanaNeural", lang: "ml-IN" },
-        { name: "🎤 Shakir - العربية", id: "ar-EG-ShakirNeural", lang: "ar-EG" },
-        { name: "🎤 Salma - العربية", id: "ar-EG-SalmaNeural", lang: "ar-EG" },
-        { name: "🎤 Zariyah - العربية", id: "ar-SA-ZariyahNeural", lang: "ar-SA" },
-        { name: "🎤 Hamed - العربية", id: "ar-SA-HamedNeural", lang: "ar-SA" },
-        { name: "🎤 Jenny - English", id: "en-US-JennyNeural", lang: "en-US" },
-        { name: "🎤 Andrew - English", id: "en-US-AndrewNeural", lang: "en-US" },
-        { name: "🎤 Neerja - Indian English", id: "en-IN-NeerjaNeural", lang: "en-IN" },
-        { name: "🎤 Prabhat - Indian English", id: "en-IN-PrabhatNeural", lang: "en-IN" }
-    ];
-
-    const EDGE_PROXY_URL = window.ENV_EDGE_TTS_API || "https://edge-tts-proxy.vercel.app/api/tts";
-    let edgeAudio = null;
-
-    // ================================================================
     // AUDIO CONTEXT - For background play
     // ================================================================
     let audioCtx = null;
@@ -1206,30 +1201,32 @@
     // ================================================================
     async function initApp() {
       try {
+        // Load from localStorage cache
         const cachedBooks = localStorage.getItem('library_books');
         if (cachedBooks) {
           allBooks = JSON.parse(cachedBooks);
           renderBooks(allBooks);
           updateContinueReading();
         }
-
+        
+        // Check saved config
         const savedUrl = localStorage.getItem('supabase_url');
         const savedKey = localStorage.getItem('supabase_key');
-
+        
         if (window.ENV_SUPABASE_URL && window.ENV_SUPABASE_KEY) {
           document.getElementById('supabaseUrl').value = window.ENV_SUPABASE_URL;
           document.getElementById('supabaseKey').value = window.ENV_SUPABASE_KEY;
           useConfigCredentials();
           return;
         }
-
+        
         if (savedUrl && savedKey) {
           document.getElementById('supabaseUrl').value = savedUrl;
           document.getElementById('supabaseKey').value = savedKey;
           connectSupabase();
           return;
         }
-
+        
         document.getElementById('setupBox').classList.add('show');
         document.getElementById('loadStatus').textContent = '🔌 Connect to Supabase';
         document.getElementById('loadSubStatus').textContent = 'Enter your Supabase credentials';
@@ -1293,7 +1290,7 @@
         document.getElementById('loader').classList.add('hidden');
         document.getElementById('homeView').classList.add('show');
         document.getElementById('loadSubStatus').textContent = 'Ready!';
-
+        
         await loadBooks();
       } catch(err) {
         msg.innerHTML = `<div class="status-msg error">❌ ${err.message}</div>`;
@@ -1357,7 +1354,7 @@
       document.querySelectorAll('.tab-item').forEach(el => el.classList.remove('active'));
       const tabMap = { all: 'tab-all', downloaded: 'tab-downloaded' };
       document.getElementById(tabMap[type]).classList.add('active');
-
+      
       if (type === 'all') renderBooks(allBooks);
       else if (type === 'downloaded') {
         const downloaded = allBooks.filter(b => b.downloaded);
@@ -1384,7 +1381,7 @@
     }
 
     // ================================================================
-    // OPEN BOOK - OFFLINE-FIRST WITH STREAMING & INDEXEDDB FIX
+    // OPEN BOOK - BATCH LOADING FOR 8000+ PAGES
     // ================================================================
     async function openBook(bookId) {
       currentBookId = bookId;
@@ -1394,13 +1391,13 @@
       const book = allBooks.find(b => b.id === bookId);
       document.getElementById('readerTitle').textContent = book?.title_ml || book?.title_ar || 'Book';
 
-      showLoading('📖 പുസ്തകം ലോഡ് ചെയ്യുന്നു...');
+      showLoading('📖 Opening book...');
 
       try {
-        let cachedData = await window.DB.getAllChunks(bookId);
-
-        if (!cachedData || cachedData.length === 0) {
-          showLoading('☁️ ആദ്യതവണ ഇന്റർനെറ്റിൽ നിന്ന് ഡൗൺലോഡ് ചെയ്യുന്നു...');
+        const cacheKey = `book_${bookId}`;
+        let data = dbCache[cacheKey];
+        
+        if (!data) {
           const tableName = `${bookId}_contents`;
           const BATCH_SIZE = 500;
           let allData = [];
@@ -1408,6 +1405,7 @@
           let hasMore = true;
           let totalCount = 0;
 
+          // First, get total count
           try {
             const { count, error: countError } = await supabaseClient
               .from(tableName)
@@ -1423,12 +1421,15 @@
               .range(page * BATCH_SIZE, (page + 1) * BATCH_SIZE - 1);
 
             if (error) throw error;
-
+            
             if (supabaseData && supabaseData.length > 0) {
               allData = allData.concat(supabaseData);
               page++;
-              const progress = totalCount > 0 ? Math.round((allData.length / totalCount) * 100) : 90;
-              showLoading(`📥 ഡൗൺലോഡ് ചെയ്യുന്നു: ${allData.length} പേജുകൾ... (${progress}%)`);
+              
+              // Show progress
+              const progress = totalCount > 0 ? Math.round((allData.length / totalCount) * 100) : 
+                              Math.min(Math.round((allData.length / (page * BATCH_SIZE)) * 100), 90);
+              showLoading(`📖 Loading ${allData.length} pages... (${progress}%)`);
             } else {
               hasMore = false;
             }
@@ -1436,11 +1437,11 @@
 
           if (allData.length === 0) {
             hideLoading();
-            alert('ഈ കിതാബിൽ പേജുകൾ ഒന്നും കണ്ടെത്താനായില്ല: ' + tableName);
+            alert('No content found in ' + tableName);
             return;
           }
-
-          const formattedChunks = allData.map(item => ({
+          
+          data = allData.map(item => ({
             id: item.ID,
             sequence: item.ID,
             part: item['Part Number'] || 1,
@@ -1449,39 +1450,48 @@
             Malayalam: item['Malayalam Text'] || '',
             English: item['English Text'] || ''
           }));
-
-          showLoading('💾 ഡാറ്റാബേസിലേക്ക് സൂക്ഷിക്കുന്നു...');
-          await window.DB.saveChunks(bookId, formattedChunks);
-          cachedData = formattedChunks;
-
-          const bookUpdate = allBooks.find(b => b.id === bookId);
-          if (bookUpdate) {
-            bookUpdate.downloaded = true;
-            bookUpdate.total_pages = cachedData.length;
-            localStorage.setItem('library_books', JSON.stringify(allBooks));
-          }
+          
+          dbCache[cacheKey] = data;
+          
+          // Cache to localStorage in chunks (for large books)
+          setTimeout(() => {
+            try {
+              localStorage.setItem(cacheKey, JSON.stringify(data));
+              const bookUpdate = allBooks.find(b => b.id === bookId);
+              if (bookUpdate) {
+                bookUpdate.downloaded = true;
+                bookUpdate.total_pages = data.length;
+                localStorage.setItem('library_books', JSON.stringify(allBooks));
+              }
+            } catch(e) {
+              console.warn('Cache storage warning:', e);
+            }
+          }, 100);
         }
-
-        currentPages = cachedData;
-        totalPages = cachedData.length;
-
-        const progress = await window.DB.getProgress(bookId);
-        if (progress && progress.sequence > 0) {
-          const idx = cachedData.findIndex(c => c.sequence === progress.sequence);
+        
+        currentPages = data;
+        totalPages = data.length;
+        
+        // Get progress
+        const progressKey = `progress_${bookId}`;
+        const savedProgress = localStorage.getItem(progressKey);
+        if (savedProgress) {
+          const prog = JSON.parse(savedProgress);
+          const idx = data.findIndex(c => c.sequence === prog.sequence);
           if (idx >= 0) {
             currentPageIndex = idx;
-            currentWordOffset = progress.word_offset || 0;
+            currentWordOffset = prog.offset || 0;
           }
         }
-
+        
         hideLoading();
         openReader();
         renderCurrentPage();
-        buildTOCData();
-
+        buildTOCData(); // Pre-build TOC
+        
       } catch(err) {
         hideLoading();
-        alert('❌ തടസ്സം നേരിട്ടു: ' + err.message);
+        alert('❌ Error: ' + err.message);
       }
     }
 
@@ -1494,13 +1504,17 @@
     }
 
     function closeReader() {
+      // Save progress
       if (currentBookId && currentPages.length > 0) {
         const chunk = currentPages[currentPageIndex];
         if (chunk) {
-          window.DB.saveProgress(currentBookId, chunk.sequence, currentWordOffset);
+          localStorage.setItem(`progress_${currentBookId}`, JSON.stringify({
+            sequence: chunk.sequence,
+            offset: currentWordOffset
+          }));
         }
       }
-
+      
       document.getElementById('readerView').classList.remove('show');
       document.getElementById('homeView').classList.add('show');
       if (!isPlaying) document.getElementById('miniPlayer').classList.remove('show');
@@ -1523,6 +1537,7 @@
       const part = page.part || '?';
       const pageNum = page.page || '?';
 
+      // Clear previous highlights
       document.querySelectorAll('.word-hl, .word-hl-ar, .word-hl-ml, .word-hl-en').forEach(el => {
         el.classList.remove('word-hl', 'word-hl-ar', 'word-hl-ml', 'word-hl-en');
       });
@@ -1541,8 +1556,10 @@
       html += `</div>`;
 
       container.innerHTML = html;
-      document.getElementById('readerPageNum').textContent = `${currentPageIndex + 1} / ${totalPages}`;
+      document.getElementById('readerPageNum').textContent = 
+        `${currentPageIndex + 1} / ${totalPages}`;
 
+      // Update mini player
       const row = currentPages[currentPageIndex];
       if (row) {
         const mlText = (row.Malayalam || '').replace(/<[^>]+>/g, '').trim();
@@ -1555,10 +1572,12 @@
         updateVisualChunk();
       }
 
-      if (isPlaying) {
+      // Apply highlight if playing
+      if (isPlaying && currentUtterance) {
         highlightCurrentWord();
       }
 
+      // Auto scroll
       if (autoScrollEnabled && document.getElementById('optAutoScroll')?.checked !== false) {
         setTimeout(autoScrollToHighlight, 150);
       }
@@ -1574,7 +1593,7 @@
 
       const tokens = pureText.split(/(\s+)/);
       let offset = 0;
-
+      
       return tokens.map(token => {
         if (token.trim() === '') {
           offset += token.length;
@@ -1595,19 +1614,21 @@
       currentWordOffset = offset;
       spokenLang = lang;
       if (isPlaying) {
-        highlightCurrentWord();
-        if (isVisualMode) updateVisualChunk();
+        if (currentUtterance) {
+          highlightCurrentWord();
+          if (isVisualMode) updateVisualChunk();
+        }
       } else {
         togglePlay();
       }
     }
 
     // ================================================================
-    // HIGHLIGHT CURRENT WORD
+    // HIGHLIGHT CURRENT WORD - Only in Ebook
     // ================================================================
     function highlightCurrentWord() {
-      if (isVisualMode) return;
-
+      if (isVisualMode) return; // Visual mode handles its own highlight
+      
       document.querySelectorAll('.word-hl, .word-hl-ar, .word-hl-ml, .word-hl-en').forEach(el => {
         el.classList.remove('word-hl', 'word-hl-ar', 'word-hl-ml', 'word-hl-en');
       });
@@ -1666,185 +1687,125 @@
       document.getElementById('visualYoutube').src = '';
     }
 
-    // ================================================================
-    // AUDIO TEXT TO SPEECH LAYER (EDGE NATURAL IMPLEMENTATION)
-    // ================================================================
-    function setupVoices() {
-      const select = document.getElementById('optVoice');
-      if (!select) return;
-      const lang = document.getElementById('optAudioLang').value.split('-')[0];
-      
-      select.innerHTML = '';
-      const filtered = EDGE_VOICES.filter(v => v.lang.startsWith(lang));
-      
-      filtered.forEach(v => {
-        select.appendChild(new Option(v.name, v.id));
-      });
-    }
-
-    function togglePlay() {
-      initAudioContext();
-      if (isPlaying) {
-        if (edgeAudio) edgeAudio.pause();
-        isPlaying = false;
-        updatePlayIcon();
-        document.getElementById('silentAudio').pause();
-      } else {
-        isPlaying = true;
-        updatePlayIcon();
-        playAudio();
-        requestWakeLock();
-      }
-    }
-
-    function playAudio() {
-      if (edgeAudio) {
-        edgeAudio.pause();
-        edgeAudio = null;
-      }
-
-      const page = currentPages[currentPageIndex];
-      if (!page) return;
-
-      const langSet = document.getElementById('optAudioLang').value;
-      let text = '', langKey = 'ml';
-
-      if (langSet.startsWith('ar')) {
-        text = page.Arabic || '';
-        langKey = 'ar';
-      } else if (langSet.startsWith('en')) {
-        text = page.English || '';
-        langKey = 'en';
-      } else {
-        text = page.Malayalam || '';
-        langKey = 'ml';
-      }
-
-      text = text.replace(/<[^>]+>/g, '').trim();
-      if (!text) {
-        if (currentPageIndex < totalPages - 1) {
-          nextPage();
-        } else {
-          stopAudio();
-        }
-        return;
-      }
-
-      spokenLang = langKey;
-      document.querySelectorAll('.lang-btn').forEach(el => el.classList.remove('active'));
-      const activeLangBtn = document.getElementById('lang-' + langKey);
-      if (activeLangBtn) activeLangBtn.classList.add('active');
-
-      const voiceId = document.getElementById('optVoice').value || 'ml-IN-MidhunNeural';
-      const speed = parseFloat(document.getElementById('optSpeed').value) || 1.0;
-      const ratePercent = Math.round((speed - 1.0) * 100);
-      const rateStr = ratePercent >= 0 ? `+${ratePercent}%` : `${ratePercent}%`;
-
-      const url = `${EDGE_PROXY_URL}?text=${encodeURIComponent(text)}&voice=${voiceId}&rate=${rateStr}`;
-
-      showLoading('🎙️ Natural Voice ലോഡ് ചെയ്യുന്നു...');
-      edgeAudio = new Audio(url);
-
-      const words = text.split(/\s+/);
-      let lastWordIdx = -1;
-
-      edgeAudio.ontimeupdate = () => {
-        if (edgeAudio && edgeAudio.duration) {
-          const progress = edgeAudio.currentTime / edgeAudio.duration;
-          let wordIndex = Math.floor(words.length * progress);
-          if (wordIndex >= words.length) wordIndex = words.length - 1;
-
-          if (wordIndex !== lastWordIdx) {
-            lastWordIdx = wordIndex;
-            currentWordOffset = words.slice(0, wordIndex).join(' ').length + (wordIndex > 0 ? 1 : 0);
-
-            if (isVisualMode) updateVisualChunk();
-            else highlightCurrentWord();
-            
-            if (currentBookId && currentPages[currentPageIndex]) {
-               window.DB.saveProgress(currentBookId, currentPages[currentPageIndex].sequence, currentWordOffset);
-            }
-          }
-
-          const percent = progress * 100;
-          if (STATE.mode === 'audio') {
-            document.getElementById('audioProgressBar').style.width = percent + '%';
-          }
-          document.getElementById('visProgressBar').style.width = percent + '%';
-        }
-      };
-
-      edgeAudio.onplay = () => {
-        hideLoading();
-        document.getElementById('silentAudio').play().catch(()=>{});
-        localStorage.setItem('last_played_book_id', currentBookId);
-        const book = allBooks.find(b => b.id === currentBookId);
-        localStorage.setItem('last_played_book_title', book?.title_ml || book?.title_ar || 'Book');
-      };
-
-      edgeAudio.onended = () => {
-        if (isPlaying) {
-          const autoNext = document.getElementById('optAutoNext')?.checked !== false;
-          if (autoNext && currentPageIndex < totalPages - 1) {
-            currentWordOffset = 0;
-            nextPage();
-          } else {
-            stopAudio();
-          }
-        }
-      };
-
-      edgeAudio.onerror = () => {
-        hideLoading();
-        alert("ഓഡിയോ ലോഡ് ചെയ്യാൻ കഴിഞ്ഞില്ല. ഇന്റർനെറ്റ് കണക്ഷൻ പരിശോധിക്കുക.");
-        stopAudio();
-      };
-
-      edgeAudio.play().catch(e => {
-        hideLoading();
-        stopAudio();
-      });
-    }
-
-    function stopAudio() {
-      if (edgeAudio) {
-        edgeAudio.pause();
-        edgeAudio = null;
-      }
-      isPlaying = false;
-      updatePlayIcon();
-      document.getElementById('audioProgressBar').style.width = '0%';
-      document.getElementById('visProgressBar').style.width = '0%';
-      document.getElementById('silentAudio').pause();
-      if (wakeLock) {
-        wakeLock.release().catch(()=>{});
-        wakeLock = null;
-      }
-      document.querySelectorAll('.word-hl, .word-hl-ar, .word-hl-ml, .word-hl-en').forEach(el => {
-        el.classList.remove('word-hl', 'word-hl-ar', 'word-hl-ml', 'word-hl-en');
-      });
-    }
-
     function toggleVisualFullscreen() {
       document.getElementById('visualMode').classList.toggle('fullscreen');
     }
 
-    function updatePlayIcon() {
-      const icon = isPlaying ? 'fa-pause' : 'fa-play';
-      document.getElementById('miniPlayIcon').className = `fas ${icon}`;
-      document.getElementById('audioPlayBtn').className = `fas ${icon} play-big`;
-      document.getElementById('visPlayBtn').className = `fas ${icon} vis-play`;
+    function updateVisualChunk() {
+      const page = currentPages[currentPageIndex];
+      if (!page) return;
+      
+      const arText = (page.Arabic || '').replace(/<[^>]+>/g, '').trim();
+      const mlText = (page.Malayalam || '').replace(/<[^>]+>/g, '').trim();
+      const enText = (page.English || '').replace(/<[^>]+>/g, '').trim();
+      
+      document.getElementById('visArText').innerHTML = getVisualWords(arText, 'ar');
+      document.getElementById('visMlText').innerHTML = getVisualWords(mlText, 'ml');
+      document.getElementById('visEnText').innerHTML = getVisualWords(enText, 'en');
     }
 
-    function applyAudioSettings(restart) {
-      if (restart && isPlaying) {
-        if (edgeAudio) edgeAudio.pause();
-        playAudio();
+    function getVisualWords(text, lang) {
+      if (!text) return '...';
+      const words = text.split(/\s+/);
+      let currentPos = 0;
+      let startIdx = 0;
+
+      for (let i = 0; i < words.length; i++) {
+        const wordLen = words[i].length + 1;
+        if (currentPos + wordLen <= currentWordOffset) {
+          startIdx = i + 1;
+        }
+        currentPos += wordLen;
+      }
+
+      const displayWords = words.slice(Math.max(0, startIdx - 2), Math.min(words.length, startIdx + 3));
+      const isActive = spokenLang === lang;
+      
+      return displayWords.map((word, idx) => {
+        const wordOffset = words.slice(0, startIdx + idx).join(' ').length + (idx > 0 ? 1 : 0);
+        const isHighlighted = isActive && wordOffset >= currentWordOffset - 5 && wordOffset <= currentWordOffset + 30;
+        return isHighlighted ? `<span class="vis-word-hl">${word}</span>` : word;
+      }).join(' ');
+    }
+
+    function applyVisualBg() {
+      const id = document.getElementById('optYoutubeId').value.trim();
+      const video = document.getElementById('visualVideo');
+      const yt = document.getElementById('visualYoutube');
+      const vid = extractYoutubeId(id);
+
+      if (vid) {
+        video.style.display = 'none';
+        yt.style.display = 'block';
+        yt.src = `https://www.youtube.com/embed/${vid}?enablejsapi=1&autoplay=1&mute=1&controls=0&loop=1&playlist=${vid}&playsinline=1&showinfo=0&rel=0`;
+      } else {
+        yt.style.display = 'none';
+        video.style.display = 'block';
+        video.src = 'https://assets.mixkit.co/videos/preview/mixkit-forest-trees-3524-large.mp4';
+        video.loop = true;
+        video.play().catch(()=>{});
+      }
+    }
+
+    function extractYoutubeId(url) {
+      const match = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
+      return (match && match[2].length === 11) ? match[2] : url;
+    }
+
+    // ================================================================
+    // NAVIGATION
+    // ================================================================
+    function nextPage() {
+      if (currentPageIndex < totalPages - 1) {
+        currentPageIndex++;
+        currentWordOffset = 0;
+        renderCurrentPage();
+        if (isPlaying) playAudio();
+        saveProgress();
+      } else {
+        // Show end of book message
+        if (totalPages > 0) {
+          // Just vibrate or show visual feedback
+          if (navigator.vibrate) navigator.vibrate(50);
+        }
+      }
+    }
+
+    function prevPage() {
+      if (currentPageIndex > 0) {
+        currentPageIndex--;
+        currentWordOffset = 0;
+        renderCurrentPage();
+        if (isPlaying) playAudio();
+        saveProgress();
+      }
+    }
+
+    function jumpToPage(index) {
+      if (index >= 0 && index < totalPages) {
+        currentPageIndex = index;
+        currentWordOffset = 0;
+        renderCurrentPage();
+        if (isPlaying) playAudio();
+        saveProgress();
+        closeModal();
+      }
+    }
+
+    function saveProgress() {
+      if (currentBookId && currentPages.length > 0) {
+        const chunk = currentPages[currentPageIndex];
+        if (chunk) {
+          localStorage.setItem(`progress_${currentBookId}`, JSON.stringify({
+            sequence: chunk.sequence,
+            offset: currentWordOffset
+          }));
+        }
       }
     }
 
     // ================================================================
-    // CONTINUOUS APP HELPERS (RESTORED MISSING CORE FUNCTIONS)
+    // CONTINUE READING
     // ================================================================
     function updateContinueReading() {
       const card = document.getElementById('continueCard');
@@ -1865,13 +1826,201 @@
       if (bookId) openBook(bookId);
     }
 
-    function showLoading(text) {
-      document.getElementById('loadingText').textContent = text || '📖 Loading...';
-      document.getElementById('loadingOverlay').classList.add('show');
+    // ================================================================
+    // TTS ENGINE
+    // ================================================================
+    function setupVoices() {
+      allVoices = synth.getVoices();
+      const select = document.getElementById('optVoice');
+      if (!select) return;
+      const lang = document.getElementById('optAudioLang').value;
+      const filtered = allVoices.filter(v => v.lang.includes(lang.split('-')[0]));
+      select.innerHTML = '';
+      (filtered.length ? filtered : allVoices).forEach(v => {
+        select.appendChild(new Option(`${v.name} (${v.lang})`, v.name));
+      });
     }
 
-    function hideLoading() {
-      document.getElementById('loadingOverlay').classList.remove('show');
+    function togglePlay() {
+      initAudioContext();
+      if (isPlaying) {
+        synth.pause();
+        isPlaying = false;
+        updatePlayIcon();
+        document.getElementById('silentAudio').pause();
+      } else {
+        if (synth.paused) {
+          synth.resume();
+          isPlaying = true;
+          updatePlayIcon();
+          document.getElementById('silentAudio').play().catch(()=>{});
+          requestWakeLock();
+        } else {
+          isPlaying = true;
+          updatePlayIcon();
+          playAudio();
+          requestWakeLock();
+        }
+      }
+    }
+
+    function playAudio() {
+      const page = currentPages[currentPageIndex];
+      if (!page) return;
+
+      const lang = document.getElementById('optAudioLang').value;
+      let text = '';
+      let langKey = 'ml';
+      
+      if (lang === 'ar-EG') {
+        text = page.Arabic || '';
+        langKey = 'ar';
+      } else if (lang === 'en-US') {
+        text = page.English || '';
+        langKey = 'en';
+      } else {
+        text = page.Malayalam || '';
+        langKey = 'ml';
+      }
+
+      text = text.replace(/<[^>]+>/g, '').trim();
+      if (!text) {
+        if (currentPageIndex < totalPages - 1) {
+          nextPage();
+        } else {
+          stopAudio();
+        }
+        return;
+      }
+
+      spokenLang = langKey;
+      document.querySelectorAll('.lang-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById('lang-' + langKey).classList.add('active');
+
+      let startText = text;
+      if (currentWordOffset > 0 && currentWordOffset < text.length) {
+        startText = text.substring(currentWordOffset);
+      } else {
+        currentWordOffset = 0;
+      }
+
+      if (!startText.trim()) {
+        if (currentPageIndex < totalPages - 1) {
+          currentWordOffset = 0;
+          nextPage();
+        } else {
+          stopAudio();
+        }
+        return;
+      }
+
+      synth.cancel();
+      
+      const fullText = text;
+      const startOffset = currentWordOffset;
+      
+      currentUtterance = new SpeechSynthesisUtterance(startText);
+      currentUtterance.lang = lang;
+      const voiceName = document.getElementById('optVoice').value;
+      if (voiceName) {
+        const voice = allVoices.find(v => v.name === voiceName);
+        if (voice) currentUtterance.voice = voice;
+      }
+      currentUtterance.rate = parseFloat(document.getElementById('optSpeed').value) || 1.0;
+
+      if (audioProgressInterval) clearInterval(audioProgressInterval);
+      let progress = 0;
+      audioProgressInterval = setInterval(() => {
+        progress += 0.5;
+        if (progress > 100) progress = 0;
+        if (STATE.mode === 'audio') {
+          document.getElementById('audioProgressBar').style.width = progress + '%';
+        }
+        document.getElementById('visProgressBar').style.width = progress + '%';
+      }, 100);
+
+      currentUtterance.onboundary = (e) => {
+        if (typeof e.charIndex === 'number' && e.name === 'word') {
+          const newOffset = startOffset + e.charIndex;
+          if (newOffset > currentWordOffset) {
+            currentWordOffset = newOffset;
+            if (isVisualMode) {
+              updateVisualChunk();
+            } else {
+              highlightCurrentWord();
+            }
+            saveProgress();
+          }
+        }
+      };
+
+      currentUtterance.onstart = () => {
+        document.getElementById('silentAudio').play().catch(()=>{});
+        initAudioContext();
+        if (isVisualMode) {
+          updateVisualChunk();
+        } else {
+          highlightCurrentWord();
+        }
+        localStorage.setItem('last_played_book_id', currentBookId);
+        const book = allBooks.find(b => b.id === currentBookId);
+        localStorage.setItem('last_played_book_title', book?.title_ml || book?.title_ar || 'Book');
+      };
+
+      currentUtterance.onend = () => {
+        if (isPlaying) {
+          const autoNext = document.getElementById('optAutoNext')?.checked !== false;
+          if (autoNext && currentPageIndex < totalPages - 1) {
+            currentWordOffset = 0;
+            nextPage();
+          } else {
+            stopAudio();
+          }
+        }
+      };
+
+      currentUtterance.onerror = () => {
+        if (isPlaying && currentPageIndex < totalPages - 1) {
+          currentWordOffset = 0;
+          nextPage();
+        } else {
+          stopAudio();
+        }
+      };
+
+      synth.speak(currentUtterance);
+    }
+
+    function stopAudio() {
+      synth.cancel();
+      isPlaying = false;
+      currentUtterance = null;
+      updatePlayIcon();
+      if (audioProgressInterval) clearInterval(audioProgressInterval);
+      document.getElementById('audioProgressBar').style.width = '0%';
+      document.getElementById('visProgressBar').style.width = '0%';
+      document.getElementById('silentAudio').pause();
+      if (wakeLock) {
+        wakeLock.release().catch(()=>{});
+        wakeLock = null;
+      }
+      document.querySelectorAll('.word-hl, .word-hl-ar, .word-hl-ml, .word-hl-en').forEach(el => {
+        el.classList.remove('word-hl', 'word-hl-ar', 'word-hl-ml', 'word-hl-en');
+      });
+    }
+
+    function updatePlayIcon() {
+      const icon = isPlaying ? 'fa-pause' : 'fa-play';
+      document.getElementById('miniPlayIcon').className = `fas ${icon}`;
+      document.getElementById('audioPlayBtn').className = `fas ${icon} play-big`;
+      document.getElementById('visPlayBtn').className = `fas ${icon} vis-play`;
+    }
+
+    function applyAudioSettings(restart) {
+      if (restart && isPlaying) {
+        synth.cancel();
+        playAudio();
+      }
     }
 
     function updateAudioUI() {
@@ -1886,19 +2035,18 @@
     function setSpokenLang(lang) {
       spokenLang = lang;
       document.querySelectorAll('.lang-btn').forEach(el => el.classList.remove('active'));
-      const tgtBtn = document.getElementById('lang-' + lang);
-      if (tgtBtn) tgtBtn.classList.add('active');
+      document.getElementById('lang-' + lang).classList.add('active');
       localStorage.setItem('pref_spoken_lang', lang);
-
+      
       const langMap = { 'ar': 'ar-EG', 'ml': 'ml-IN', 'en': 'en-US' };
       document.getElementById('optAudioLang').value = langMap[lang];
       setupVoices();
-
+      
       if (isPlaying) {
         stopAudio();
         togglePlay();
       }
-
+      
       if (isVisualMode) {
         updateVisualChunk();
       } else {
@@ -1907,7 +2055,7 @@
     }
 
     // ================================================================
-    // VIEW SWITCH & VIEW LAYERS
+    // VIEW SWITCH
     // ================================================================
     function switchView(mode) {
       STATE.mode = mode;
@@ -1936,17 +2084,17 @@
       if (!currentBookId || !currentPages.length) return;
       const chunk = currentPages[currentPageIndex];
       if (!chunk) return;
-
+      
       const key = `bookmarks_${currentBookId}`;
       let bookmarks = JSON.parse(localStorage.getItem(key) || '[]');
       const exists = bookmarks.find(b => b.sequence === chunk.sequence);
-
+      
       if (exists) {
         bookmarks = bookmarks.filter(b => b.sequence !== chunk.sequence);
       } else {
         bookmarks.push({ sequence: chunk.sequence, part: chunk.part, page: chunk.page });
       }
-
+      
       localStorage.setItem(key, JSON.stringify(bookmarks));
       updateBookmarkUI();
     }
@@ -1955,7 +2103,7 @@
       if (!currentBookId || !currentPages.length) return;
       const chunk = currentPages[currentPageIndex];
       if (!chunk) return;
-
+      
       const key = `bookmarks_${currentBookId}`;
       const bookmarks = JSON.parse(localStorage.getItem(key) || '[]');
       const exists = bookmarks.find(b => b.sequence === chunk.sequence);
@@ -1967,7 +2115,7 @@
     // ================================================================
     function buildTOCData() {
       if (!currentPages || currentPages.length === 0) return;
-
+      
       tocTree = [];
       let currentPart = null;
       let currentH1 = null;
@@ -1977,7 +2125,7 @@
         const arText = page.Arabic || '';
         const mlText = (page.Malayalam || '').replace(/<[^>]+>/g, '').trim().substring(0, 30);
         const enText = (page.English || '').replace(/<[^>]+>/g, '').trim().substring(0, 30);
-
+        
         const partName = page.part || "1";
         if (!currentPart || currentPart.name !== partName) {
           currentPart = { type: 'part', name: partName, title: `ഭാഗം ${partName}`, children: [], index: index, page: page.page };
@@ -1986,11 +2134,12 @@
           currentH2 = null;
         }
 
+        // Check for headings
         const h1Match = arText.match(/<h1[^>]*>(.*?)<\/h1>/i);
         const h2Match = arText.match(/<h2[^>]*>(.*?)<\/h2>/i);
         const h3Match = arText.match(/<h3[^>]*>(.*?)<\/h3>/i);
         const h4Match = arText.match(/<h4[^>]*>(.*?)<\/h4>/i);
-
+        
         if (h1Match) {
           const title = h1Match[1].replace(/<[^>]+>/g, '').trim();
           currentH1 = { type: 'h1', title: title, subtitle: mlText || enText, children: [], index: index, page: page.page };
@@ -2014,6 +2163,7 @@
           else if (currentH1) currentH1.children.push(node);
           else currentPart.children.push(node);
         } else if (index % 10 === 0 || index === currentPageIndex || index === 0 || index === currentPages.length - 1) {
+          // Page markers
           const node = { type: 'page', title: `പേജ് ${page.page || index + 1}`, subtitle: mlText.substring(0, 30) + '...', children: [], index: index, page: page.page };
           if (currentH2) currentH2.children.push(node);
           else if (currentH1) currentH1.children.push(node);
@@ -2024,10 +2174,12 @@
 
     function openTOC() {
       if (!currentBookId || !currentPages.length) return;
+      
+      // Rebuild TOC if empty
       if (tocTree.length === 0) {
         buildTOCData();
       }
-
+      
       const modal = document.getElementById('tocModal');
       document.getElementById('modalOverlay').classList.add('show');
       modal.classList.add('show');
@@ -2038,7 +2190,8 @@
 
     function renderTOCLevel() {
       const currentLevel = tocPath[tocPath.length - 1];
-
+      
+      // Breadcrumb
       const breadcrumb = document.getElementById('tocBreadcrumb');
       if (breadcrumb) {
         breadcrumb.innerHTML = tocPath.map((p, i) => 
@@ -2049,6 +2202,7 @@
       const list = document.getElementById('tocList');
       let html = '';
 
+      // Jump to page input
       html += `
         <div class="jump-to-page-container">
           <input type="number" id="jumpPageInput" min="1" max="${totalPages}" placeholder="Jump to page...">
@@ -2061,7 +2215,7 @@
           const isCurrent = node.index === currentPageIndex;
           const hasChildren = node.children && node.children.length > 0;
           const typeIcon = { part: '📖', h1: '📑', h2: '📄', h3: '🔹', h4: '🔸', page: '📌' }[node.type] || '📄';
-
+          
           if (hasChildren) {
             html += `
               <div class="toc-item" onclick="drillTOC(${idx})">
@@ -2116,7 +2270,7 @@
     }
 
     // ================================================================
-    // SETTINGS LAYERS
+    // SETTINGS
     // ================================================================
     function openSettings() {
       document.getElementById('modalOverlay').classList.add('show');
@@ -2130,7 +2284,6 @@
 
     function goHome() { closeReader(); }
 
-    // Theme, Fonts and Scale Controllers
     function setTheme(theme) {
       STATE.theme = theme;
       document.documentElement.setAttribute('data-theme', theme);
@@ -2182,18 +2335,25 @@
     // ================================================================
     async function updateStorageInfo() {
       try {
+        let totalPages = 0;
         let totalSize = 0;
         let downloaded = 0;
         
         for (const book of allBooks) {
           if (book.downloaded) {
             downloaded++;
-            const chunks = await window.DB.getAllChunks(book.id);
-            totalSize += chunks.reduce((sum, c) => sum + (c.Arabic || '').length + (c.Malayalam || '').length + (c.English || '').length, 0);
+            const key = `book_${book.id}`;
+            const cached = localStorage.getItem(key);
+            if (cached) {
+              const data = JSON.parse(cached);
+              totalPages += data.length;
+              totalSize += data.reduce((sum, c) => sum + (c.Arabic || '').length + (c.Malayalam || '').length + (c.English || '').length, 0);
+            }
           }
         }
         
         document.getElementById('storageBooks').textContent = downloaded;
+        document.getElementById('storagePages').textContent = totalPages.toLocaleString();
         document.getElementById('storageSize').textContent = (totalSize / 1024 / 1024).toFixed(1) + ' MB';
       } catch(err) {
         console.error('Storage info error:', err);
@@ -2202,12 +2362,18 @@
 
     async function clearAllData() {
       if (!confirm('⚠️ Remove all downloaded books and data? This cannot be undone!')) return;
+      
       try {
-        await window.DB.clearAllData();
+        // Clear all book caches
         for (const book of allBooks) {
+          localStorage.removeItem(`book_${book.id}`);
+          localStorage.removeItem(`progress_${book.id}`);
+          localStorage.removeItem(`bookmarks_${book.id}`);
           book.downloaded = false;
+          book.total_pages = 0;
         }
         localStorage.setItem('library_books', JSON.stringify(allBooks));
+        dbCache = {};
         renderBooks(allBooks);
         updateStorageInfo();
         alert('✅ All data cleared!');
@@ -2217,7 +2383,19 @@
     }
 
     // ================================================================
-    // LOAD PREFERENCES & INITIALIZATION
+    // LOADING HELPERS
+    // ================================================================
+    function showLoading(text) {
+      document.getElementById('loadingText').textContent = text || '📖 Loading...';
+      document.getElementById('loadingOverlay').classList.add('show');
+    }
+
+    function hideLoading() {
+      document.getElementById('loadingOverlay').classList.remove('show');
+    }
+
+    // ================================================================
+    // LOAD PREFERENCES
     // ================================================================
     function loadPreferences() {
       setTheme(localStorage.getItem('m_rb_theme') || 'light');
@@ -2235,9 +2413,10 @@
         applyFonts();
       }
 
-      const savedLang = localStorage.getItem('pref_spoken_lang') || 'ml';
+      const savedLang = localStorage.getItem('pref_spoken_lang') || 'ar';
       setSpokenLang(savedLang);
-
+      
+      // Background play setting
       const bgPlay = localStorage.getItem('pref_bg_play');
       if (bgPlay !== null) {
         document.getElementById('optBgPlay').checked = bgPlay === 'true';
@@ -2252,9 +2431,14 @@
       });
     }
 
+    // ================================================================
+    // INIT
+    // ================================================================
     document.addEventListener('DOMContentLoaded', function() {
       loadPreferences();
       setupVoices();
+      if (synth.onvoiceschanged !== undefined) synth.onvoiceschanged = setupVoices;
+      
       initApp();
     });
   </script>
