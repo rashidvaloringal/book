@@ -403,6 +403,8 @@
       font-size: 13px;
       border: 1px solid var(--primary-green);
     }
+    
+    /* ===== TEXT JUSTIFY FIX ===== */
     .ar-content {
       font-family: var(--font-ar);
       font-size: calc(var(--font-scale) + 6px);
@@ -412,14 +414,19 @@
       font-weight: 700;
       text-align: right;
       margin-bottom: 16px;
+      word-spacing: 2px;
     }
     [data-theme="dark"] .ar-content { color: #81d4fa; }
+    
     .ml-content {
       font-family: var(--font-ml);
       font-size: var(--font-scale);
       line-height: 2.2;
       margin-bottom: 12px;
+      text-align: justify;
+      word-spacing: 1px;
     }
+    
     .en-content {
       font-family: var(--font-en);
       font-size: calc(var(--font-scale) - 1px);
@@ -429,6 +436,7 @@
       border-top: 1px dashed var(--border);
       padding-top: 15px;
       margin-top: 10px;
+      text-align: justify;
     }
 
     /* ===== WORD HIGHLIGHT ===== */
@@ -1147,6 +1155,7 @@
     let tocTree = [];
     let tocPath = [];
     let isDownloadingInstance = false;
+    let isStoppingAudio = false; // TTS Fix flag
 
     const STATE = {
       showAr: true,
@@ -1158,7 +1167,7 @@
     };
 
     // ================================================================
-    // INDEXEDDB ENGINE (അതിവേഗം ഡാറ്റ സൂക്ഷിക്കാൻ)
+    // INDEXEDDB ENGINE
     // ================================================================
     const IDB = {
       dbName: "IslamicLibraryIDB",
@@ -1213,7 +1222,7 @@
     };
 
     // ================================================================
-    // AUDIO CONTEXT - For background play
+    // AUDIO CONTEXT
     // ================================================================
     let audioCtx = null;
     function initAudioContext() {
@@ -1248,7 +1257,7 @@
     });
 
     // ================================================================
-    // SUPABASE CONNECTION
+    // SUPABASE CONNECTION & INDEXEDDB APP RE-VERIFICATION
     // ================================================================
     async function initApp() {
       try {
@@ -1257,6 +1266,15 @@
         const cachedBooks = localStorage.getItem('library_books');
         if (cachedBooks) {
           allBooks = JSON.parse(cachedBooks);
+          
+          // IDB Fix: വീണ്ടും പരിശോധിച്ചു ഡൗൺലോഡ്ഡ് ഫ്ലാഗ് ഉറപ്പുവരുത്തുന്നു
+          for (const book of allBooks) {
+            const idbData = await IDB.get(book.id);
+            if (idbData && idbData.length > 0) {
+              book.downloaded = true;
+            }
+          }
+          localStorage.setItem('library_books', JSON.stringify(allBooks));
           renderBooks(allBooks);
           updateContinueReading();
         }
@@ -1459,7 +1477,6 @@
         } else {
           const tableName = `${bookId}_contents`;
           
-          // ടോട്ടൽ കൗണ്ട് Supabase-ൽ നിന്ന് കൃത്യമായി എടുക്കാനുള്ള ഫിക്സ്
           const { count, error: countError } = await supabaseClient
             .from(tableName)
             .select('*', { count: 'exact', head: true });
@@ -1489,7 +1506,6 @@
             English: item['English Text'] || ''
           }));
           
-          // ടോട്ടൽ കൗണ്ട് ശരിയായി ഇവിടെ അസൈൻ ചെയ്യുന്നു
           totalPages = actualTotalPages > 0 ? actualTotalPages : currentPages.length;
         }
         
@@ -1568,7 +1584,6 @@
             
             if (currentBookId === bookId) {
               currentPages = allData;
-              // ഇവിടെയും ടോട്ടൽ കൗണ്ടിന്റെ സുരക്ഷ നിലനിർത്തുന്നു
               totalPages = totalCount > 0 ? totalCount : allData.length;
               renderCurrentPage();
               buildTOCData();
@@ -1586,6 +1601,7 @@
         book.downloaded = true;
         book.total_pages = allData.length;
         localStorage.setItem('library_books', JSON.stringify(allBooks));
+        localStorage.setItem(`idb_downloaded_${bookId}`, 'true');
         renderBooks(allBooks);
         updateStorageInfo();
         
@@ -1626,14 +1642,11 @@
       updateContinueReading();
     }
 
-    // ================================================================
-    // RENDER PAGE WITH WORD HIGHLIGHT
-    // ================================================================
     function renderCurrentPage() {
       if (!currentPages || currentPages.length === 0) return;
 
       const page = currentPages[currentPageIndex];
-      if (!page) return; // സുരക്ഷിതമായി ബൗണ്ട് ചെക്ക് ചെയ്യുന്നു
+      if (!page) return; 
 
       const container = document.getElementById('readerPageContainer');
 
@@ -1821,7 +1834,6 @@
       }).join(' ');
     }
 
-    // EXTRACT YOUTUBE ID ഫംഗ്ഷൻ ശരിയായി ഇവിടെ ഫിക്സ് ചെയ്തിരിക്കുന്നു
     function extractYoutubeId(url) {
       const match = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
       return (match && match[2].length === 11) ? match[2] : url;
@@ -1847,13 +1859,12 @@
     }
 
     // ================================================================
-    // NAVIGATION
+    // NAVIGATION & ON-DEMAND LOADING
     // ================================================================
     function nextPage() {
       if (currentPageIndex < totalPages - 1) {
         currentPageIndex++;
         currentWordOffset = 0;
-        // താൽക്കാലികമായി ഡൗൺലോഡ് ആകാത്ത പേജ് ആണെങ്കിൽ ഓൺലൈൻ സ്ട്രീം ചെയ്യാം
         if (!currentPages[currentPageIndex]) {
           fetchSinglePageOnline(currentPageIndex);
         } else {
@@ -1925,6 +1936,18 @@
       }
     }
 
+    function jumpToPageNumber() {
+      const input = document.getElementById('jumpPageInput');
+      if (!input) return;
+      const pageNum = parseInt(input.value);
+      if (pageNum > 0 && pageNum <= totalPages) {
+        closeModal();
+        jumpToPage(pageNum - 1);
+      } else {
+        alert(`Please enter a number between 1 and ${totalPages}`);
+      }
+    }
+
     function saveProgress() {
       if (currentBookId && currentPages.length > 0) {
         const chunk = currentPages[currentPageIndex];
@@ -1960,7 +1983,7 @@
     }
 
     // ================================================================
-    // TTS ENGINE
+    // TTS ENGINE & JUMPING LOCK FIX
     // ================================================================
     function setupVoices() {
       allVoices = synth.getVoices();
@@ -2049,9 +2072,7 @@
 
       synth.cancel();
       
-      const fullText = text;
       const startOffset = currentWordOffset;
-      
       currentUtterance = new SpeechSynthesisUtterance(startText);
       currentUtterance.lang = lang;
       const voiceName = document.getElementById('optVoice').value;
@@ -2101,7 +2122,8 @@
       };
 
       currentUtterance.onend = () => {
-        if (isPlaying) {
+        // TTS Fix: Language ലോജിക് ചേഞ്ച് ചെയ്യുമ്പോൾ ഉണ്ടാകുന്ന തനിയെയുള്ള ജമ്പിങ് ബ്ലോക്ക് ചെയ്യുന്നു
+        if (isPlaying && !isStoppingAudio) { 
           const autoNext = document.getElementById('optAutoNext')?.checked !== false;
           if (autoNext && currentPageIndex < totalPages - 1) {
             currentWordOffset = 0;
@@ -2109,11 +2131,13 @@
           } else {
             stopAudio();
           }
+        } else if (isStoppingAudio) {
+          isStoppingAudio = false;
         }
       };
 
       currentUtterance.onerror = () => {
-        if (isPlaying && currentPageIndex < totalPages - 1) {
+        if (isPlaying && !isStoppingAudio && currentPageIndex < totalPages - 1) {
           currentWordOffset = 0;
           nextPage();
         } else {
@@ -2162,9 +2186,10 @@
       const mlText = (page.Malayalam || '').replace(/<[^>]+>/g, '').trim();
       document.getElementById('audioTitle').textContent = mlText.substring(0, 50) + '...';
       document.getElementById('audioMeta').textContent = 
-        `भागം ${page.part || '?'} - പേജ് ${page.page || '?'} / ${totalPages}`;
+        `ഭാഗം ${page.part || '?'} - പേജ് ${page.page || '?'} / ${totalPages}`;
     }
 
+    // FIXED LANG WITH SET TIMEOUT & FLAG LOCK
     function setSpokenLang(lang) {
       spokenLang = lang;
       document.querySelectorAll('.lang-btn').forEach(el => el.classList.remove('active'));
@@ -2176,8 +2201,18 @@
       setupVoices();
       
       if (isPlaying) {
-        stopAudio();
-        togglePlay();
+        isStoppingAudio = true;
+        synth.cancel();
+        currentUtterance = null;
+        
+        setTimeout(() => {
+          isStoppingAudio = false;
+          playAudio();
+        }, 300);
+        
+        updatePlayIcon();
+        document.getElementById('silentAudio').pause();
+        if (audioProgressInterval) clearInterval(audioProgressInterval);
       }
       
       if (isVisualMode) {
@@ -2306,7 +2341,7 @@
 
     function openTOC() {
       if (!currentBookId || !currentPages.length) return;
-      buildTOCData(); // ഉള്ളടക്കം അപ്ഡേറ്റ് ആയിട്ടുണ്ടെങ്കിൽ വീണ്ടും TOC ബിൽഡ് ചെയ്യുന്നു
+      buildTOCData(); 
       
       const modal = document.getElementById('tocModal');
       document.getElementById('modalOverlay').classList.add('show');
@@ -2377,18 +2412,6 @@
       renderTOCLevel();
     }
 
-    function jumpToPageNumber() {
-      const input = document.getElementById('jumpPageInput');
-      if (!input) return;
-      const pageNum = parseInt(input.value);
-      if (pageNum > 0 && pageNum <= totalPages) {
-        closeModal();
-        jumpToPage(pageNum - 1);
-      } else {
-        alert(`Please enter a number between 1 and ${totalPages}`);
-      }
-    }
-
     // ================================================================
     // SETTINGS
     // ================================================================
@@ -2404,7 +2427,6 @@
 
     function goHome() { closeReader(); }
 
-    // (Preferences settings stay unchanged)
     function setTheme(theme) {
       STATE.theme = theme;
       document.documentElement.setAttribute('data-theme', theme);
