@@ -113,8 +113,8 @@
     .visual-video-wrapper { position: absolute; inset: 0; z-index: 1; overflow: hidden; display: flex; align-items: center; justify-content: center; }
     .visual-video-wrapper iframe, .visual-video-wrapper video { width: 100vw; height: 100vh; object-fit: cover; pointer-events: none; border: none; }
     .visual-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.5); z-index: 2; }
-    .visual-content { position: relative; z-index: 10; flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 100px 25px; color: white; text-align: center; gap: 20px; }
-    .vis-text { font-size: 28px; line-height: 2; text-shadow: 2px 2px 10px rgba(0,0,0,0.9); padding: 8px 16px; border-radius: 12px; background: rgba(0,0,0,0.4); backdrop-filter: blur(5px); max-width: 95%; }
+    .visual-content { position: relative; z-index: 10; flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 80px 25px; color: white; text-align: center; gap: 30px; }
+    .vis-text { font-size: 36px; line-height: 2.5; text-shadow: 2px 2px 15px rgba(0,0,0,0.9); padding: 15px 25px; border-radius: 16px; background: rgba(0,0,0,0.5); backdrop-filter: blur(8px); max-width: 95%; }
     .vis-text.ar { font-family: var(--font-ar); direction: rtl; color: #81d4fa; }
     .vis-text.ml { font-family: var(--font-ml); color: #fff; }
     .vis-text.en { font-family: var(--font-en); font-style: italic; color: #ddd; }
@@ -126,39 +126,39 @@
     .visual-progress { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); width: 80%; max-width: 500px; height: 3px; background: rgba(255,255,255,0.3); }
     .vis-progress-bar { height: 100%; background: #38bdf8; width: 0%; }
 
-    /* ===== VISUAL CAPTION STYLES ===== */
-    .vis-caption-wrap { display: inline-flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
-    .vis-word { display: inline-block; padding: 2px 6px; border-radius: 6px; transition: all 0.2s ease; }
-    .vis-word.active { font-weight: bold; }
+    /* ===== VISUAL CAPTION - 5 WORDS ONLY ===== */
+    .vis-caption-wrap { display: inline-flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 12px; }
+    .vis-word { display: inline-block; padding: 4px 12px; border-radius: 8px; transition: all 0.25s ease; font-size: 0.85em; opacity: 0.6; }
+    .vis-word.active { font-weight: bold; font-size: 1.3em; opacity: 1; transform: scale(1.1); }
 
     /* Karaoke */
-    .cap-karaoke .vis-word.active { background: linear-gradient(90deg, #ff6b6b, #ffd93d, #6bcb77, #4d96ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 1.4em; animation: karaokeFill 0.5s ease; }
+    .cap-karaoke .vis-word.active { background: linear-gradient(90deg, #ff6b6b, #ffd93d, #6bcb77, #4d96ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: karaokeFill 0.5s ease; }
     @keyframes karaokeFill { 0% { filter: brightness(0.5); } 100% { filter: brightness(1.2); } }
     /* Word-by-Word */
-    .cap-wordbyword .vis-word.active { background: #ff1744; color: #fff !important; font-size: 1.5em; box-shadow: 0 0 25px #ff1744; }
+    .cap-wordbyword .vis-word.active { background: #ff1744; color: #fff !important; box-shadow: 0 0 30px #ff1744; }
     /* Bounce */
-    .cap-bounce .vis-word.active { animation: bounceWord 0.5s ease; color: #ffd93d !important; font-size: 1.4em; }
-    @keyframes bounceWord { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-18px); } }
+    .cap-bounce .vis-word.active { animation: bounceWord 0.5s ease; color: #ffd93d !important; }
+    @keyframes bounceWord { 0%,100% { transform: translateY(0) scale(1.1); } 50% { transform: translateY(-18px) scale(1.2); } }
     /* Pop-up */
-    .cap-popup .vis-word.active { animation: popupWord 0.4s ease; background: #ff6b6b; color: #fff !important; font-size: 1.5em; }
-    @keyframes popupWord { 0% { transform: scale(0); opacity: 0; } 60% { transform: scale(1.3); } 100% { transform: scale(1); opacity: 1; } }
+    .cap-popup .vis-word.active { animation: popupWord 0.4s ease; background: #ff6b6b; color: #fff !important; }
+    @keyframes popupWord { 0% { transform: scale(0); opacity: 0; } 60% { transform: scale(1.3); } 100% { transform: scale(1.1); opacity: 1; } }
     /* Zoom */
-    .cap-zoom .vis-word.active { animation: zoomWord 0.5s ease; color: #4d96ff !important; font-size: 1.6em; }
+    .cap-zoom .vis-word.active { animation: zoomWord 0.5s ease; color: #4d96ff !important; }
     @keyframes zoomWord { 0% { transform: scale(0.3); opacity: 0; } 100% { transform: scale(1.2); opacity: 1; } }
     /* Hormozi */
-    .cap-hormozi .vis-word.active { background: #ff0000; color: #fff !important; font-weight: 900; font-size: 1.4em; text-transform: uppercase; border-bottom: 3px solid #fff; }
+    .cap-hormozi .vis-word.active { background: #ff0000; color: #fff !important; font-weight: 900; text-transform: uppercase; border-bottom: 3px solid #fff; }
     /* MrBeast */
-    .cap-mrbeast .vis-word.active { color: #ffff00 !important; font-size: 1.5em; text-shadow: 0 0 20px #ffff00, 0 0 40px #ff00ff; animation: mrbeastPulse 0.3s ease; }
-    @keyframes mrbeastPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.2); } }
+    .cap-mrbeast .vis-word.active { color: #ffff00 !important; text-shadow: 0 0 25px #ffff00, 0 0 50px #ff00ff; animation: mrbeastPulse 0.3s ease; }
+    @keyframes mrbeastPulse { 0%,100% { transform: scale(1.1); } 50% { transform: scale(1.25); } }
     /* TikTok */
-    .cap-tiktok .vis-word.active { animation: tiktokSwitch 0.25s ease; color: #ff0050 !important; font-size: 1.5em; font-weight: 900; }
+    .cap-tiktok .vis-word.active { animation: tiktokSwitch 0.25s ease; color: #ff0050 !important; font-weight: 900; }
     @keyframes tiktokSwitch { 0% { color: #00f2ea; transform: rotate(-8deg); } 100% { color: #ff0050; transform: rotate(0deg); } }
     /* Dynamic AI */
-    .cap-dynamic .vis-word.active { background: linear-gradient(45deg, #ff6b6b, #ffd93d, #6bcb77, #4d96ff); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: dynamicGrad 1.5s ease infinite; font-size: 1.4em; }
+    .cap-dynamic .vis-word.active { background: linear-gradient(45deg, #ff6b6b, #ffd93d, #6bcb77, #4d96ff); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: dynamicGrad 1.5s ease infinite; }
     @keyframes dynamicGrad { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
     /* Emoji */
-    .cap-emoji .vis-word.active { color: #ffd93d !important; font-size: 1.4em; }
-    .cap-emoji .vis-word.active::before { content: '🔥'; margin-right: 4px; font-size: 0.8em; }
+    .cap-emoji .vis-word.active { color: #ffd93d !important; }
+    .cap-emoji .vis-word.active::before { content: '🔥 '; font-size: 0.8em; }
 
     .reader-pagination { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; margin-top: 15px; background: var(--surface); border-radius: 50px; border: 1px solid var(--border); }
     .reader-pagination button { padding: 8px 18px; border-radius: 30px; background: var(--bg); border: 1px solid var(--border); font-weight: bold; color: var(--text-dark); }
@@ -226,7 +226,7 @@
     .jump-to-page-container input { flex: 1; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text-dark); min-width: 100px; font-size: 14px; }
     .jump-to-page-container button { padding: 8px 16px; background: var(--primary-green); color: white; border-radius: 6px; font-weight: bold; white-space: nowrap; font-size: 13px; }
 
-    @media (max-width: 600px) { .book-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); } .reader-page-card { padding: 20px 15px; } .ar-content { font-size: calc(var(--font-scale) + 2px); } .vis-text { font-size: 22px; } .theme-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 600px) { .book-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); } .reader-page-card { padding: 20px 15px; } .ar-content { font-size: calc(var(--font-scale) + 2px); } .vis-text { font-size: 28px; } .theme-grid { grid-template-columns: repeat(2, 1fr); } }
   </style>
 </head>
 <body>
@@ -261,7 +261,7 @@
     <div class="visual-video-wrapper"><video id="visualVideo" muted loop playsinline></video><iframe id="visualYoutube" src="" allow="autoplay; fullscreen; encrypted-media;" playsinline></iframe></div>
     <div class="visual-overlay"></div>
     <div class="visual-controls"><i class="fas fa-backward-step" onclick="prevPage()"></i><i class="fas fa-play vis-play" id="visPlayBtn" onclick="togglePlay()"></i><i class="fas fa-forward-step" onclick="nextPage()"></i><i class="fas fa-stop" onclick="stopAudio()"></i><i class="fas fa-expand vis-fullscreen-btn" onclick="toggleVisualFullscreen()" title="Fullscreen"></i><i class="fas fa-times-circle vis-close-btn" onclick="closeVisualMode()"></i></div>
-    <div class="visual-content" id="visualContentArea"><div class="vis-text ar" id="visArText">...</div><div class="vis-text ml" id="visMlText">...</div><div class="vis-text en" id="visEnText">...</div></div>
+    <div class="visual-content"><div class="vis-text ar" id="visArText">...</div><div class="vis-text ml" id="visMlText">...</div><div class="vis-text en" id="visEnText">...</div></div>
     <div class="visual-progress"><div class="vis-progress-bar" id="visProgressBar"></div></div>
   </div>
 
@@ -271,11 +271,9 @@
     <div class="modal-header"><span>⚙️ ക്രമീകരണങ്ങൾ</span><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
       <div class="setting-group"><label class="setting-label">🎨 Theme</label><div class="theme-grid"><div class="theme-btn active" id="th-light" onclick="setTheme('light')">☀️ Light</div><div class="theme-btn" id="th-dark" onclick="setTheme('dark')">🌙 Dark</div><div class="theme-btn" id="th-amoled" onclick="setTheme('amoled')">⚫ AMOLED</div><div class="theme-btn" id="th-sepia" onclick="setTheme('sepia')">📜 Sepia</div></div></div>
-      <div class="setting-group"><label class="setting-label">🔤 Fonts</label><div class="setting-row"><span>മലയാളം</span><select id="optFontMl" onchange="applyFonts()"><option value="'Manjari', sans-serif">Manjari</option><option value="'Chilanka', cursive">Chilanka</option><option value="'Gayathri', sans-serif">Gayathri</option></select></div>
-      <div class="setting-row"><span>Arabic</span><select id="optFontAr" onchange="applyFonts()"><option value="'Amiri', serif">Amiri</option><option value="'Scheherazade New', serif">Scheherazade</option><option value="'Lateef', serif">Lateef</option></select></div>
-      <div class="setting-row"><span>English</span><select id="optFontEn" onchange="applyFonts()"><option value="sans-serif">Sans</option><option value="serif">Serif</option></select></div></div>
+      <div class="setting-group"><label class="setting-label">🔤 Fonts</label><div class="setting-row"><span>മലയാളം</span><select id="optFontMl" onchange="applyFonts()"><option value="'Manjari', sans-serif">Manjari</option><option value="'Chilanka', cursive">Chilanka</option><option value="'Gayathri', sans-serif">Gayathri</option></select></div><div class="setting-row"><span>Arabic</span><select id="optFontAr" onchange="applyFonts()"><option value="'Amiri', serif">Amiri</option><option value="'Scheherazade New', serif">Scheherazade</option><option value="'Lateef', serif">Lateef</option></select></div><div class="setting-row"><span>English</span><select id="optFontEn" onchange="applyFonts()"><option value="sans-serif">Sans</option><option value="serif">Serif</option></select></div></div>
       <div class="setting-group"><label class="setting-label">📖 Reader Settings</label><div class="setting-row"><span>Font Size</span><input type="range" id="optFontSize" min="14" max="30" value="18" onchange="applyFontSize()"></div><div class="setting-row"><span>Auto Scroll</span><input type="checkbox" id="optAutoScroll" checked onchange="updateAutoScroll()"></div><div class="setting-row"><span>Display Arabic</span><input type="checkbox" id="optShowAr" checked onchange="renderAllViews()"></div><div class="setting-row"><span>Display Malayalam</span><input type="checkbox" id="optShowMl" checked onchange="renderAllViews()"></div><div class="setting-row"><span>Display English</span><input type="checkbox" id="optShowEn" checked onchange="renderAllViews()"></div></div>
-      <div class="setting-group"><label class="setting-label">🎙️ TTS Settings</label><select id="optAudioLang" onchange="setupVoices();"><option value="ml-IN">മലയാളം</option><option value="ar-EG">العربية</option><option value="en-US">English</option></select><select id="optVoice" style="margin-top:5px;" onchange="stopAudio();"></select><div class="setting-row"><span>Speed</span><input type="range" id="optSpeed" min="0.5" max="1.5" step="0.1" value="1.0"></div><div class="setting-row"><span>Auto Next Page</span><input type="checkbox" id="optAutoNext" checked></div><div class="setting-row"><span>Background Play</span><input type="checkbox" id="optBgPlay" checked></div></div>
+      <div class="setting-group"><label class="setting-label">🎙️ TTS Settings</label><select id="optAudioLang" onchange="setupVoices();"><option value="ml-IN">മലയാളം</option><option value="ar-EG">العربية</option><option value="en-US">English</option></select><select id="optVoice" style="margin-top:5px;"></select><div class="setting-row"><span>Speed</span><input type="range" id="optSpeed" min="0.5" max="1.5" step="0.1" value="1.0"></div><div class="setting-row"><span>Auto Next Page</span><input type="checkbox" id="optAutoNext" checked></div><div class="setting-row"><span>Background Play</span><input type="checkbox" id="optBgPlay" checked></div></div>
       <div class="setting-group"><label class="setting-label">🔊 Highlight Language</label><div class="lang-selector"><button class="lang-btn active" id="lang-ar" onclick="setSpokenLang('ar')">🇦🇪 Arabic</button><button class="lang-btn" id="lang-ml" onclick="setSpokenLang('ml')">🇮🇳 Malayalam</button><button class="lang-btn" id="lang-en" onclick="setSpokenLang('en')">🇬🇧 English</button></div></div>
       <div class="setting-group"><label class="setting-label">🎬 Visual Caption Style</label><select id="optCaptionStyle" onchange="applyCaptionStyle()"><option value="karaoke">🎤 Karaoke Style</option><option value="wordbyword">📝 Word-by-Word Highlight</option><option value="bounce">🎾 Bounce Captions</option><option value="popup">💬 Pop-up Captions</option><option value="zoom">🔍 Zoom Captions</option><option value="hormozi">🎬 Alex Hormozi Style</option><option value="mrbeast">🦁 MrBeast Style</option><option value="tiktok">📱 TikTok Viral Style</option><option value="dynamic">🤖 Dynamic AI Captions</option><option value="emoji">😀 Emoji Captions</option></select></div>
       <div class="setting-group"><label class="setting-label">🎬 Visual Background</label><input type="text" id="optYoutubeId" placeholder="YouTube Video ID" style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text-dark);"><button style="width:100%; margin-top:5px; padding:8px; background:var(--primary-green); color:white; border-radius:6px; border:none; font-weight:bold;" onclick="applyVisualBg()">Update Background</button></div>
@@ -295,12 +293,11 @@
     let autoScrollEnabled = true, currentUtterance = null, currentWordOffset = 0, isVisualMode = false;
     let dbCache = {}, tocTree = [], tocPath = [], isDownloadingInstance = false;
     let visualCaptionStyle = 'karaoke';
-    let isVoiceChanging = false; // Language change double-skip prevent lock
 
     const STATE = { showAr: true, showMl: true, showEn: true, fontScale: 18, theme: 'light', mode: 'ebook' };
 
     const IDB = {
-      dbName: "IslamicLibraryV3", version: 1, db: null,
+      dbName: "IslamicLibraryV4", version: 1, db: null,
       init() { return new Promise((resolve, reject) => { let req = indexedDB.open(this.dbName, this.version); req.onupgradeneeded = (e) => { let db = e.target.result; if (!db.objectStoreNames.contains("books")) db.createObjectStore("books", { keyPath: "bookId" }); }; req.onsuccess = (e) => { this.db = e.target.result; resolve(this.db); }; req.onerror = (e) => reject(e.target.error); }); },
       get(bookId) { return new Promise((resolve) => { if (!this.db) return resolve(null); try { let tx = this.db.transaction("books", "readonly"); let store = tx.objectStore("books"); let req = store.get(bookId); req.onsuccess = () => resolve(req.result ? req.result.data : null); req.onerror = () => resolve(null); } catch(e) { resolve(null); } }); },
       set(bookId, data) { return new Promise((resolve) => { if (!this.db) return resolve(); try { let tx = this.db.transaction("books", "readwrite"); let store = tx.objectStore("books"); store.put({ bookId, data, updatedAt: Date.now() }); tx.oncomplete = () => resolve(); tx.onerror = () => resolve(); } catch(e) { resolve(); } }); },
@@ -315,7 +312,7 @@
     async function requestWakeLock() { try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch(e) {} }
 
     async function initApp() {
-      try { await IDB.init(); const cachedBooks = localStorage.getItem('library_books'); if (cachedBooks) { allBooks = JSON.parse(cachedBooks); for (let book of allBooks) { book.downloaded = await IDB.has(book.id); } renderBooks(allBooks); updateContinueReading(); }
+      try { await IDB.init(); const cachedBooks = localStorage.getItem('library_books'); if (cachedBooks) { allBooks = JSON.parse(cachedBooks); renderBooks(allBooks); updateContinueReading(); }
         const savedUrl = localStorage.getItem('supabase_url'), savedKey = localStorage.getItem('supabase_key');
         if (window.ENV_SUPABASE_URL && window.ENV_SUPABASE_KEY) { useConfigCredentials(); return; }
         if (savedUrl && savedKey) { supabaseClient = window.supabase.createClient(savedUrl, savedKey); document.getElementById('setupBox').style.display = 'none'; document.getElementById('loader').classList.add('hidden'); document.getElementById('homeView').classList.add('show'); await loadBooks(); return; }
@@ -327,8 +324,8 @@
     function useConfigCredentials() { supabaseClient = window.supabase.createClient(window.ENV_SUPABASE_URL, window.ENV_SUPABASE_KEY); localStorage.setItem('supabase_url', window.ENV_SUPABASE_URL); localStorage.setItem('supabase_key', window.ENV_SUPABASE_KEY); testConnection(); }
     async function testConnection() { const msg = document.getElementById('statusMsg'); try { const { error } = await supabaseClient.from('master_catalog').select('*').limit(1); if (error) { msg.innerHTML = `<div class="status-msg error">❌ ${error.message}</div>`; return; } document.getElementById('setupBox').style.display = 'none'; document.getElementById('loader').classList.add('hidden'); document.getElementById('homeView').classList.add('show'); await loadBooks(); } catch(err) { msg.innerHTML = `<div class="status-msg error">❌ ${err.message}</div>`; } }
 
-    async function loadBooks() { showLoading('📚 Loading books...'); try { const { data, error } = await supabaseClient.from('master_catalog').select('*').order('title_ml', { ascending: true }); if (error) throw error; allBooks = data || []; for (let book of allBooks) { book.downloaded = await IDB.has(book.id); } localStorage.setItem('library_books', JSON.stringify(allBooks)); renderBooks(allBooks); updateContinueReading(); updateStorageInfo(); hideLoading(); } catch(err) { hideLoading(); } }
-    function renderBooks(books) { const grid = document.getElementById('bookGrid'); if (!books || books.length === 0) { grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color(--text-muted);">📚 No books found</div>`; return; } grid.innerHTML = books.map(book => { const isDownloaded = book.downloaded || false; return `<div class="book-card" onclick="openBook('${book.id}')"><span class="book-parts-badge">${book.parts || 0} Parts</span><div class="book-avatar-fallback">${book.cover_url || '📖'}</div><div class="book-details"><h3 dir="rtl">${book.title_ml || book.title_ar}</h3><div class="book-author">${book.author || 'Unknown'}</div><span class="status-badge ${isDownloaded ? 'downloaded' : 'not-downloaded'}">${isDownloaded ? '✅ Downloaded' : '📥 Online'}</span></div><div class="book-footer"><button class="open-btn" onclick="event.stopPropagation(); openBook('${book.id}')"><i class="fas fa-book-open"></i> Read</button><button class="dl-btn" onclick="event.stopPropagation(); downloadBookBackground('${book.id}')"><i class="fas fa-download"></i> Download</button></div></div>`; }).join(''); }
+    async function loadBooks() { showLoading('📚 Loading books...'); try { const { data, error } = await supabaseClient.from('master_catalog').select('*').order('title_ml', { ascending: true }); if (error) throw error; allBooks = data || []; localStorage.setItem('library_books', JSON.stringify(allBooks)); renderBooks(allBooks); updateContinueReading(); updateStorageInfo(); hideLoading(); } catch(err) { hideLoading(); document.getElementById('bookGrid').innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:#dc3545;">❌ ${err.message}</div>`; } }
+    function renderBooks(books) { const grid = document.getElementById('bookGrid'); if (!books || books.length === 0) { grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">📚 No books found</div>`; return; } grid.innerHTML = books.map(book => { const isDownloaded = book.downloaded || false; return `<div class="book-card" onclick="openBook('${book.id}')"><span class="book-parts-badge">${book.parts || 0} Parts</span><div class="book-avatar-fallback">${book.cover_url || '📖'}</div><div class="book-details"><h3 dir="rtl">${book.title_ml || book.title_ar}</h3><div class="book-author">${book.author || 'Unknown'}</div><span class="status-badge ${isDownloaded ? 'downloaded' : 'not-downloaded'}">${isDownloaded ? '✅ Downloaded' : '📥 Online'}</span></div><div class="book-footer"><button class="open-btn" onclick="event.stopPropagation(); openBook('${book.id}')"><i class="fas fa-book-open"></i> Read</button><button class="dl-btn" onclick="event.stopPropagation(); downloadBookBackground('${book.id}')"><i class="fas fa-download"></i> Download</button></div></div>`; }).join(''); }
     function filterBooks(type) { document.querySelectorAll('.tab-item').forEach(el => el.classList.remove('active')); const tabMap = { all: 'tab-all', downloaded: 'tab-downloaded' }; document.getElementById(tabMap[type]).classList.add('active'); if (type === 'all') renderBooks(allBooks); else { const downloaded = allBooks.filter(b => b.downloaded); renderBooks(downloaded); } }
     function searchBooks(q) { if (!q || q.length < 2) { renderBooks(allBooks); return; } const filtered = allBooks.filter(b => (b.title_ml || '').includes(q) || (b.title_ar || '').includes(q) || (b.author || '').toLowerCase().includes(q.toLowerCase())); renderBooks(filtered); }
     function toggleSearch() { document.getElementById('searchBar').classList.toggle('show'); }
@@ -403,52 +400,59 @@
       if (autoScrollEnabled && document.getElementById('optAutoScroll')?.checked !== false) setTimeout(autoScrollToHighlight, 150);
     }
 
-    function tokenizeText(text, lang) { if (!text) return ''; const pureText = text.replace(/<[^>]+>/g, '').trim(); if (!pureText) return text; const tokens = pureText.split(/(\s+)/); let offset = 0; return tokens.map(token => { if (token.trim() === '') { offset += token.length; return token; } const startOffset = offset; offset += token.length; const isHighlighted = isPlaying && currentWordOffset >= startOffset && currentWordOffset < startOffset + token.length && spokenLang === lang; const hlClass = isHighlighted ? `word-hl word-hl-${lang}"` : ''; return `<span class="word-token ${hlClass}" data-lang="${lang}" data-offset="${startOffset}" onclick="seekToWord(${startOffset}, '${lang}')">${token}</span>`; }).join(''); }
+    function tokenizeText(text, lang) { if (!text) return ''; const pureText = text.replace(/<[^>]+>/g, '').trim(); if (!pureText) return text; const tokens = pureText.split(/(\s+)/); let offset = 0; return tokens.map(token => { if (token.trim() === '') { offset += token.length; return token; } const startOffset = offset; offset += token.length; const isHighlighted = isPlaying && currentWordOffset >= startOffset && currentWordOffset < startOffset + token.length && spokenLang === lang; const hlClass = isHighlighted ? `word-hl word-hl-${lang}` : ''; return `<span class="word-token ${hlClass}" data-lang="${lang}" data-offset="${startOffset}" onclick="seekToWord(${startOffset}, '${lang}')">${token}</span>`; }).join(''); }
     function seekToWord(offset, lang) { currentWordOffset = offset; spokenLang = lang; if (isPlaying) { if (currentUtterance) { highlightCurrentWord(); if (isVisualMode) updateVisualChunk(); } } else togglePlay(); }
     function highlightCurrentWord() { if (isVisualMode) return; document.querySelectorAll('.word-hl, .word-hl-ar, .word-hl-ml, .word-hl-en').forEach(el => { el.classList.remove('word-hl', 'word-hl-ar', 'word-hl-ml', 'word-hl-en'); }); const langMap = { 'ar': 'arContent', 'ml': 'mlContent', 'en': 'enContent' }; const contentId = langMap[spokenLang]; if (!contentId) return; const container = document.getElementById(contentId); if (!container) return; const tokens = container.querySelectorAll('.word-token'); let targetToken = null; for (const token of tokens) { const offset = parseInt(token.dataset.offset); if (offset <= currentWordOffset) targetToken = token; } if (targetToken) { targetToken.classList.add('word-hl', `word-hl-${spokenLang}`); if (autoScrollEnabled && document.getElementById('optAutoScroll')?.checked !== false) targetToken.scrollIntoView({ behavior: 'smooth', block: 'center' }); } }
     function autoScrollToHighlight() { const highlighted = document.querySelector('.word-hl'); if (highlighted) highlighted.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
     function updateAutoScroll() { autoScrollEnabled = document.getElementById('optAutoScroll').checked; }
 
+    // ===== VISUAL MODE - 5 WORDS ONLY =====
     function applyCaptionStyle() { visualCaptionStyle = document.getElementById('optCaptionStyle').value; localStorage.setItem('pref_caption_style', visualCaptionStyle); updateVisualCaptionClass(); if (isVisualMode) updateVisualChunk(); }
     function updateVisualCaptionClass() { const vm = document.getElementById('visualMode'); vm.className = 'visual-mode' + (isVisualMode ? ' show' : ''); const capClasses = ['cap-karaoke','cap-wordbyword','cap-bounce','cap-popup','cap-zoom','cap-hormozi','cap-mrbeast','cap-tiktok','cap-dynamic','cap-emoji']; capClasses.forEach(c => vm.classList.remove(c)); vm.classList.add('cap-' + visualCaptionStyle); }
     function openVisualMode() { isVisualMode = true; document.getElementById('visualMode').classList.add('show'); updateVisualCaptionClass(); applyVisualBg(); updateVisualChunk(); if (!isPlaying) togglePlay(); }
     function closeVisualMode() { isVisualMode = false; document.getElementById('visualMode').classList.remove('show'); document.getElementById('visualVideo').pause(); document.getElementById('visualYoutube').src = ''; }
     function toggleVisualFullscreen() { document.getElementById('visualMode').classList.toggle('fullscreen'); }
 
-    // ===== VISUAL CAPTION WITH INDEX SYNC AND 5 WORDS CHUNK FIX =====
+    function updateVisualChunk() {
+      const page = currentPages[currentPageIndex]; if (!page) return;
+      const arText = (page.Arabic || '').replace(/<[^>]+>/g, '').trim();
+      const mlText = (page.Malayalam || '').replace(/<[^>]+>/g, '').trim();
+      const enText = (page.English || '').replace(/<[^>]+>/g, '').trim();
+      document.getElementById('visArText').innerHTML = buildVisualCaption(arText, 'ar');
+      document.getElementById('visMlText').innerHTML = buildVisualCaption(mlText, 'ml');
+      document.getElementById('visEnText').innerHTML = buildVisualCaption(enText, 'en');
+    }
+
     function buildVisualCaption(text, lang) {
       if (!text) return '...';
       const words = text.split(/\s+/).filter(w => w.length > 0);
-      let currentPos = 0, activeWordIdx = -1;
+      if (words.length === 0) return '...';
       
+      let currentPos = 0, activeWordIdx = -1;
       for (let i = 0; i < words.length; i++) { 
         const wordLen = words[i].length + 1; 
-        if (currentPos + wordLen <= currentWordOffset) {
-          activeWordIdx = i; 
-        } 
+        if (currentPos + wordLen <= currentWordOffset) activeWordIdx = i; 
         currentPos += wordLen; 
       }
       
-      let targetActiveIdx = activeWordIdx + 1;
+      // Target word is the next word to be spoken
+      const targetIdx = activeWordIdx + 1;
       const isActive = spokenLang === lang;
       
-      if (isActive && targetActiveIdx < words.length) {
-        const startIdx = Math.max(0, targetActiveIdx - 2);
-        const endIdx = Math.min(words.length, targetActiveIdx + 3);
-        const visibleWords = words.slice(startIdx, endIdx);
-        
-        return `<span class="vis-caption-wrap">` + visibleWords.map((word, idx) => {
-          const actualIdx = startIdx + idx;
-          const isHighlighted = actualIdx === targetActiveIdx;
-          return `<span class="vis-word${isHighlighted ? ' active' : ''}">${word}</span>`;
-        }).join(' ') + `</span>`;
-      }
+      // Show only 5 words: 2 before + target + 2 after
+      const startIdx = Math.max(0, targetIdx - 2);
+      const endIdx = Math.min(words.length, targetIdx + 3);
+      const displayWords = words.slice(startIdx, endIdx);
       
-      const visibleWords = words.slice(0, 5);
-      return `<span class="vis-caption-wrap">` + visibleWords.map((word, idx) => {
-        const isHighlighted = isActive && idx === 0;
+      // Add "..." if there are words before or after
+      let prefix = startIdx > 0 ? '<span class="vis-word" style="opacity:0.3">...</span> ' : '';
+      let suffix = endIdx < words.length ? ' <span class="vis-word" style="opacity:0.3">...</span>' : '';
+      
+      return prefix + '<span class="vis-caption-wrap">' + displayWords.map((word, idx) => {
+        const actualIdx = startIdx + idx;
+        const isHighlighted = isActive && actualIdx === targetIdx;
         return `<span class="vis-word${isHighlighted ? ' active' : ''}">${word}</span>`;
-      }).join(' ') + `</span>`;
+      }).join(' ') + '</span>' + suffix;
     }
 
     function extractYoutubeId(url) { const match = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/); return (match && match[2].length === 11) ? match[2] : url; }
@@ -486,31 +490,15 @@
       let progress = 0; audioProgressInterval = setInterval(() => { progress += 0.5; if (progress > 100) progress = 0; if (STATE.mode === 'audio') document.getElementById('audioProgressBar').style.width = progress + '%'; document.getElementById('visProgressBar').style.width = progress + '%'; }, 100);
       currentUtterance.onboundary = (e) => { if (typeof e.charIndex === 'number' && e.name === 'word' && e.charIndex >= 0) { const newOffset = startOffset + e.charIndex; if (newOffset > currentWordOffset) { currentWordOffset = newOffset; if (isVisualMode) updateVisualChunk(); else highlightCurrentWord(); saveProgress(); } } };
       currentUtterance.onstart = () => { document.getElementById('silentAudio').play().catch(()=>{}); initAudioContext(); if (isVisualMode) updateVisualChunk(); else highlightCurrentWord(); localStorage.setItem('last_played_book_id', currentBookId); const book = allBooks.find(b => b.id === currentBookId); localStorage.setItem('last_played_book_title', book?.title_ml || book?.title_ar || 'Book'); };
-      currentUtterance.onend = () => { if (isPlaying && !isVoiceChanging) { currentWordOffset = 0; nextPage(); } };
-      currentUtterance.onerror = (e) => { if (e.error !== 'canceled' && isPlaying && !isVoiceChanging) { if (currentPageIndex < totalPages - 1) { currentWordOffset = 0; nextPage(); } else stopAudio(); } };
+      currentUtterance.onend = () => { if (isPlaying) { const autoNext = document.getElementById('optAutoNext')?.checked !== false; if (autoNext && currentPageIndex < totalPages - 1) { currentWordOffset = 0; nextPage(); } else stopAudio(); } };
+      currentUtterance.onerror = (e) => { if (e.error !== 'canceled' && isPlaying) { if (currentPageIndex < totalPages - 1) { currentWordOffset = 0; nextPage(); } else stopAudio(); } };
       synth.speak(currentUtterance);
     }
 
     function stopAudio() { synth.cancel(); isPlaying = false; currentUtterance = null; updatePlayIcon(); if (audioProgressInterval) clearInterval(audioProgressInterval); document.getElementById('audioProgressBar').style.width = '0%'; document.getElementById('visProgressBar').style.width = '0%'; document.getElementById('silentAudio').pause(); if (wakeLock) { wakeLock.release().catch(()=>{}); wakeLock = null; } document.querySelectorAll('.word-hl, .word-hl-ar, .word-hl-ml, .word-hl-en').forEach(el => { el.classList.remove('word-hl', 'word-hl-ar', 'word-hl-ml', 'word-hl-en'); }); }
     function updatePlayIcon() { const icon = isPlaying ? 'fa-pause' : 'fa-play'; document.getElementById('miniPlayIcon').className = `fas ${icon}`; document.getElementById('audioPlayBtn').className = `fas ${icon} play-big`; document.getElementById('visPlayBtn').className = `fas ${icon} vis-play`; }
     function updateAudioUI() { const page = currentPages[currentPageIndex]; if (!page) return; const mlText = (page.Malayalam || '').replace(/<[^>]+>/g, '').trim(); document.getElementById('audioTitle').textContent = mlText.substring(0, 50) + '...'; document.getElementById('audioMeta').textContent = `ഭാഗം ${page.part || '?'} - പേജ് ${page.page || '?'} / ${totalPages}`; }
-    
-    function setSpokenLang(lang) { 
-      spokenLang = lang; 
-      document.querySelectorAll('.lang-btn').forEach(el => el.classList.remove('active')); 
-      document.getElementById('lang-' + lang).classList.add('active'); 
-      localStorage.setItem('pref_spoken_lang', lang); 
-      const langMap = { 'ar': 'ar-EG', 'ml': 'ml-IN', 'en': 'en-US' }; 
-      document.getElementById('optAudioLang').value = langMap[lang]; 
-      setupVoices(); 
-      if (isPlaying) { 
-        isVoiceChanging = true; 
-        synth.cancel(); 
-        setTimeout(() => { isVoiceChanging = false; playAudio(); }, 200); 
-      } else {
-        if (isVisualMode) updateVisualChunk(); else highlightCurrentWord(); 
-      }
-    }
+    function setSpokenLang(lang) { spokenLang = lang; document.querySelectorAll('.lang-btn').forEach(el => el.classList.remove('active')); document.getElementById('lang-' + lang).classList.add('active'); localStorage.setItem('pref_spoken_lang', lang); const langMap = { 'ar': 'ar-EG', 'ml': 'ml-IN', 'en': 'en-US' }; document.getElementById('optAudioLang').value = langMap[lang]; setupVoices(); if (isPlaying) { stopAudio(); setTimeout(() => togglePlay(), 200); } if (isVisualMode) updateVisualChunk(); else highlightCurrentWord(); }
 
     function switchView(mode) { STATE.mode = mode; document.getElementById('ebookView').style.display = mode === 'ebook' ? 'block' : 'none'; document.getElementById('audioView').style.display = mode === 'audio' ? 'block' : 'none'; document.getElementById('visualView').style.display = mode === 'visual' ? 'block' : 'none'; document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active')); const tab = document.getElementById('nav-' + mode); if (tab) tab.classList.add('active'); if (mode === 'visual') openVisualMode(); else { closeVisualMode(); if (isPlaying) highlightCurrentWord(); } }
 
@@ -544,8 +532,7 @@
       const size = localStorage.getItem('m_rb_fsize') || '18'; document.getElementById('optFontSize').value = size; applyFontSize();
       const ml = localStorage.getItem('pref_font_ml') || "'Manjari', sans-serif", ar = localStorage.getItem('pref_font_ar') || "'Amiri', serif", en = localStorage.getItem('pref_font_en') || "sans-serif";
       if (document.getElementById('optFontMl')) { document.getElementById('optFontMl').value = ml; document.getElementById('optFontAr').value = ar; document.getElementById('optFontEn').value = en; applyFonts(); }
-      let savedLang = localStorage.getItem('pref_spoken_lang') || 'ar';
-      spokenLang = savedLang; document.querySelectorAll('.lang-btn').forEach(el => el.classList.remove('active')); document.getElementById('lang-' + savedLang).classList.add('active'); const langMap = { 'ar': 'ar-EG', 'ml': 'ml-IN', 'en': 'en-US' }; if(document.getElementById('optAudioLang')) document.getElementById('optAudioLang').value = langMap[savedLang];
+      setSpokenLang(localStorage.getItem('pref_spoken_lang') || 'ar');
       visualCaptionStyle = localStorage.getItem('pref_caption_style') || 'karaoke';
       if (document.getElementById('optCaptionStyle')) document.getElementById('optCaptionStyle').value = visualCaptionStyle;
       updateVisualCaptionClass();
